@@ -1,11 +1,13 @@
+
+Prisma
 // Snívať database schema
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 // --- Auth (NextAuth.js core models) ---
@@ -167,3 +169,4 @@ model Settings {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
+
