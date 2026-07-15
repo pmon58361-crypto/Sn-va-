@@ -1,0 +1,169 @@
+// Snívať database schema
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// --- Auth (NextAuth.js core models) ---
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  bio           String?
+  location      String?
+  // OAuth provider used for this account (credentials, github, google, ...)
+  provider      String    @default("credentials")
+  role          String    @default("member")
+  createdAt     DateTime  @default(now())
+
+  accounts      Account[]
+  sessions      Session[]
+  posts         Post[]
+  comments      Comment[]
+  settings      Settings?
+  applications  Application[]
+  reactions     Reaction[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// --- App content ---
+
+// A single "post" is reused across all three sections via `category`:
+//   COMMUNITY     -> community discussions / shared experiences
+//   JOB_OFFER     -> "I do this kind of work" (Jobs section, offer tab)
+//   JOB_REQUEST   -> "I'm looking for someone to do this work" (Jobs section, request tab)
+//   JOB_LISTING   -> a job opening to apply to (Job Applications section)
+model Post {
+  id        String      @id @default(cuid())
+  category  String
+  title     String
+  content   String
+  tags      String?
+  // Optional structured fields (used for job posts; empty for community)
+  budget    String?
+  location  String?
+  type      String? // e.g. full-time, part-time, contract, freelance
+  status    String      @default("open") // open | closed
+  authorId  String
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  author       User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  images       PostImage[]
+  comments     Comment[]
+  applications Application[]
+  reactions    Reaction[]
+
+  @@index([category])
+  @@index([authorId])
+  @@index([createdAt])
+}
+
+// A like or dislike on a post. One reaction per user per post (unique).
+model Reaction {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  type      String   // "like" | "dislike"
+  createdAt DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([postId])
+}
+
+model PostImage {
+  id      String @id @default(cuid())
+  postId  String
+  url     String
+  caption String?
+  order   Int    @default(0)
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  postId    String
+  authorId  String
+  content   String
+  createdAt DateTime @default(now())
+
+  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+}
+
+// A job application made by a user against a JOB_LISTING post.
+model Application {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  message   String
+  status    String   @default("pending") // pending | accepted | rejected
+  createdAt DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+}
+
+// Per-user system settings.
+model Settings {
+  id                String  @id @default(cuid())
+  userId            String  @unique
+  theme             String  @default("light") // light | dark
+  accent            String  @default("#dc2626")
+  emailNotifications Boolean @default(true)
+  publicProfile     Boolean @default(true)
+  showEmail         Boolean @default(false)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}

@@ -1,0 +1,246 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Snívať design language.
+ * Dark-first: true-black canvas (#121212), luminous green accent,
+ * crisp white text. Light theme available via html.light override.
+ * The living DNA field provides organic color movement behind content.
+ */
+
+:root {
+  /* Core palette — dark-first (black canvas) */
+  --bg: #121212;            /* true black canvas */
+  --bg-elevated: #1c1c1c;   /* card / elevated surface */
+  --bg-soft: #0a0a0a;       /* recessed areas */
+  --ink: #f5f5f5;           /* primary text — near white */
+  --ink-soft: #d4d4d4;
+  --ink-muted: #9a9a9a;
+  --ink-faint: #6a6a6a;
+  --line: #2a2a2a;          /* divider */
+  --line-strong: #383838;
+
+  /* Accent — luminous green (echoes the brand mark's teal→lime gradient) */
+  --accent: #2f9e6b;
+  --accent-hover: #34b577;
+  --accent-soft: #5bb98c;
+  --accent-tint: #1a2e24;
+  --accent-ink: #ffffff;
+
+  /* Supporting tones */
+  --warm: #e08855;          /* warm orange (terracotta) */
+  --warm-tint: #2e1f15;
+  --deep: #4a90e2;          /* sky blue */
+  --slate: #8a8a8a;         /* neutral gray */
+  --moss: #7ab85c;          /* moss green */
+
+  /* Shadows */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 6px 20px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.6);
+  --shadow-xl: 0 24px 70px rgba(0, 0, 0, 0.7);
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
+}
+
+/* Light theme override — opt-in via html.light */
+html.light {
+  --bg: #f6f3ee;            /* warm cream */
+  --bg-elevated: #fffdf9;   /* paper white */
+  --bg-soft: #efeae1;       /* recessed areas */
+  --ink: #1a2620;           /* deep slate-green ink */
+  --ink-soft: #3d4a44;
+  --ink-muted: #6b7770;
+  --ink-faint: #9da69f;
+  --line: #e3ddd2;          /* warm divider */
+  --line-strong: #d4ccbd;
+  --accent: #2f9e6b;
+  --accent-hover: #247a52;
+  --accent-soft: #5bb98c;
+  --accent-tint: #e8f5ee;
+  --accent-ink: #fffdf9;
+  --warm: #c97b3a;
+  --warm-tint: #f4e6d7;
+  --deep: #1d3557;
+  --slate: #4a5568;
+  --moss: #6b8e4e;
+  --shadow-xs: 0 1px 2px rgba(26, 38, 32, 0.04);
+  --shadow-sm: 0 1px 3px rgba(26, 38, 32, 0.05), 0 1px 2px rgba(26, 38, 32, 0.03);
+  --shadow-md: 0 6px 20px rgba(26, 38, 32, 0.07), 0 2px 8px rgba(26, 38, 32, 0.04);
+  --shadow-lg: 0 16px 48px rgba(26, 38, 32, 0.09), 0 6px 16px rgba(26, 38, 32, 0.06);
+  --shadow-xl: 0 24px 70px rgba(26, 38, 32, 0.12);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "cv11", "ss01";
+  letter-spacing: -0.014em;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+::-webkit-scrollbar {
+  width: 11px;
+  height: 11px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+  border-radius: 8px;
+  border: 3px solid var(--bg);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--ink-faint);
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-[var(--bg)] disabled:opacity-50 disabled:pointer-events-none;
+  }
+  .btn-primary {
+    @apply btn text-[var(--accent-ink)];
+    background-color: var(--accent);
+    box-shadow: var(--shadow-sm);
+  }
+  .btn-primary:hover {
+    background-color: var(--accent-hover);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+  }
+  .btn-primary:active {
+    transform: translateY(0);
+  }
+  .btn-outline {
+    @apply btn border bg-[var(--bg-elevated)];
+    border-color: var(--line-strong);
+    color: var(--ink);
+  }
+  .btn-outline:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .btn-ghost {
+    @apply btn text-[var(--ink-soft)];
+  }
+  .btn-ghost:hover {
+    background-color: var(--bg-soft);
+    color: var(--ink);
+  }
+
+  .input {
+    @apply w-full rounded-xl px-4 py-2.5 text-sm transition-all focus:outline-none;
+    background-color: var(--bg-elevated);
+    border: 1px solid var(--line-strong);
+    color: var(--ink);
+  }
+  .input::placeholder {
+    color: var(--ink-faint);
+  }
+  .input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.14);
+  }
+
+  .card {
+    @apply rounded-2xl bg-[var(--bg-elevated)] transition-all duration-300;
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow-sm);
+  }
+  .card-hover:hover {
+    border-color: var(--line-strong);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+  }
+
+  .badge {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+
+  .eyebrow {
+    @apply inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em];
+    color: var(--accent);
+  }
+
+  /* Display headline scale — huge, lots of breathing room */
+  .display-1 {
+    @apply font-bold tracking-tight;
+    font-size: clamp(2.75rem, 8vw, 5.5rem);   /* 44px → 88px */
+    line-height: 1.0;
+    letter-spacing: -0.035em;
+  }
+  .display-2 {
+    @apply font-bold tracking-tight;
+    font-size: clamp(2.25rem, 5vw, 3.75rem);  /* 36px → 60px */
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+  }
+  .display-3 {
+    @apply font-bold tracking-tight;
+    font-size: clamp(1.75rem, 3vw, 2.5rem);   /* 28px → 40px */
+    line-height: 1.1;
+    letter-spacing: -0.025em;
+  }
+  .lead {
+    font-size: clamp(1.05rem, 1.6vw, 1.3rem);
+    line-height: 1.6;
+    letter-spacing: -0.01em;
+  }
+}
+
+/* Reveal-on-scroll */
+@keyframes reveal-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.reveal {
+  animation: reveal-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Soft pulse */
+@keyframes soft-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.45; transform: scale(0.8); }
+}
+.pulse-dot {
+  animation: soft-pulse 2.6s ease-in-out infinite;
+}
+
+/* Slow float for ambient artwork */
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+.float-slow {
+  animation: float-slow 8s ease-in-out infinite;
+}
+
+/* Scroll indicator bob */
+@keyframes scroll-bob {
+  0%, 100% { transform: translateY(0); opacity: 0.6; }
+  50% { transform: translateY(8px); opacity: 1; }
+}
+.scroll-bob {
+  animation: scroll-bob 2.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}

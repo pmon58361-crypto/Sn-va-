@@ -1,0 +1,2 @@
+# Uploads directory
+User-uploaded images are stored here at runtime. Files are git-ignored.
