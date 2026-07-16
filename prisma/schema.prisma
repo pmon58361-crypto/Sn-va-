@@ -1,5 +1,3 @@
-
-Prisma
 // Snívať database schema
 generator client {
   provider = "prisma-client-js"
