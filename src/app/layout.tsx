@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import type { Metadata } from "next";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
@@ -42,3 +44,4 @@ export default function RootLayout({
     </html>
   );
 }
+

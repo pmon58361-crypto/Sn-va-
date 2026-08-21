@@ -2,6 +2,8 @@ import { getPosts } from "@/lib/queries";
 import { PostCard, EmptyState } from "@/components/posts/PostCard";
 import { QuickComposer } from "@/components/posts/QuickComposer";
 import { RightSidebar } from "@/components/layout/RightSidebar";
+import { StoriesBar } from "@/components/stories/StoriesBar";
+import { getActiveStories } from "@/lib/stories";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
@@ -19,6 +21,8 @@ export default async function CommunityPage({
     getPosts({ category: "COMMUNITY", search: q }),
     auth(),
   ]);
+
+  const storyGroups = await getActiveStories(session?.user?.id);
 
   // Real tags from DB for the topic chip row
   const taggedPosts = await prisma.post.findMany({
@@ -41,6 +45,11 @@ export default async function CommunityPage({
     <div className="flex">
       {/* Center feed */}
       <div className="mx-auto w-full max-w-[640px] px-4 py-5">
+        {/* Stories rail */}
+        <StoriesBar groups={storyGroups} meId={session?.user?.id} />
+
+        <div className="h-4" />
+
         {/* Composer */}
         <QuickComposer />
 
@@ -112,3 +121,4 @@ export default async function CommunityPage({
     </div>
   );
 }
+

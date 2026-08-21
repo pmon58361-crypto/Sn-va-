@@ -65,7 +65,7 @@ export function Sidebar() {
           <SidebarLink key={item.href} href={item.href} active={isActive(item.href)} icon={item.icon} label={item.label} />
         ))}
         {/* Not-yet-built features — disabled, not faked */}
-        <SidebarLink href="#" icon={MessageIcon} label="DM's" disabled active={false} />
+        <SidebarLink href="/dm" active={isActive("/dm")} icon={MessageIcon} label="DM's" />
         <SidebarLink href="#" icon={BookIcon} label="Bookmarks" disabled active={false} />
         <SidebarLink href="/settings" active={isActive("/settings")} icon={SettingsIcon} label="Settings" />
       </nav>
@@ -158,3 +158,4 @@ function SidebarLink({
     </Link>
   );
 }
+
