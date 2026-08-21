@@ -12,6 +12,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { timeAgo } from "@/lib/utils";
 
 // Landing page content. Rendered by src/app/page.tsx when the visitor is signed out.
+// Premium editorial rebrand — serif display, generous space, real feed preview.
 
 const CURRENTS = [
   {
@@ -43,15 +44,15 @@ const CURRENTS = [
 const PRINCIPLES = [
   {
     k: "Growth",
-    v: "Every role is a step in a longer sequence. You are not climbing a ladder — you are growing like a living thing.",
+    v: "Growth is shared, not solo. Show your work, your progress, your dead ends — someone a step behind you needs to see it.",
   },
   {
     k: "Connection",
-    v: "Knowledge flows fastest between people. The shortest distance between a question and an answer is another person.",
+    v: "Real connection comes from real interaction — replies, feedback, collaboration. Not one-click networking.",
   },
   {
     k: "Evolution",
-    v: "Careers bend, branch, and recombine. What feels like a detour often becomes the path.",
+    v: "Your profile is not a résumé. It's a living record of what you've built and how far you've come.",
   },
 ];
 
@@ -66,50 +67,42 @@ export async function Landing() {
 
   return (
     <div>
-      {/* ════════════════════════ HERO (100vh) ════════════════════════ */}
-      <section className="relative flex min-h-[100vh] flex-col items-center justify-center px-5 text-center">
-        <div
-          className="reveal mb-10 flex justify-center"
-          style={{ animationDelay: "0ms" }}
-        >
-          <span className="inline-flex items-center gap-2 rounded-full border border-line bg-surface/70 px-4 py-1.5 text-xs font-medium text-ink-muted backdrop-blur-sm">
+      {/* ════════════════════════ HERO ════════════════════════ */}
+      <section className="relative flex min-h-[92vh] flex-col items-center justify-center px-5 text-center">
+        <div className="reveal mb-8 flex justify-center" style={{ animationDelay: "0ms" }}>
+          <span className="inline-flex items-center gap-2 rounded-full border border-line bg-surface/70 px-4 py-1.5 text-xs font-medium tracking-wide text-ink-muted backdrop-blur-sm">
             <span className="h-1.5 w-1.5 rounded-full bg-accent pulse-dot" />
-            A living network for talent
+            Dream · Grow · Connect
           </span>
         </div>
 
         <h1
-          className="display-1 max-w-5xl text-ink reveal"
+          className="display-serif reveal max-w-4xl text-balance text-6xl leading-[1.05] sm:text-7xl md:text-8xl"
           style={{ animationDelay: "100ms" }}
         >
-          Where talent
+          Grow in public.
           <br />
-          <span className="text-accent">evolves.</span>
+          Find your <em>people.</em>
         </h1>
 
         <p
-          className="lead reveal mt-10 max-w-xl text-ink-muted"
+          className="lead reveal mt-8 max-w-xl text-ink-muted"
           style={{ animationDelay: "220ms" }}
         >
-          Every connection is a strand. Every career is a living sequence —
-          bending, branching, growing toward the light.
+          Snívať is where ambitious people build in the open — sharing progress,
+          wins, and failures as they happen. Not LinkedIn. Not a job board.
+          Just people growing together.
         </p>
 
         <div
-          className="reveal mt-12 flex flex-col items-center justify-center gap-3 sm:flex-row"
+          className="reveal mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row"
           style={{ animationDelay: "340ms" }}
         >
-          <Link
-            href="/auth/signin"
-            className="btn-primary px-8 py-3.5 text-base"
-          >
-            Begin Evolving
+          <Link href="/auth/signin" className="btn-primary px-9 py-3.5 text-base">
+            Start growing
           </Link>
-          <Link
-            href="/community"
-            className="btn-outline px-8 py-3.5 text-base"
-          >
-            Explore
+          <Link href="/community" className="btn-outline px-9 py-3.5 text-base">
+            Explore the community
           </Link>
         </div>
 
@@ -131,37 +124,35 @@ export async function Landing() {
         </div>
       </section>
 
-      {/* ════════════════════════ THREE CURRENTS ════════════════════════ */}
-      <section className="px-5 py-32">
+      {/* ════════════════════════ THREE DOORS ════════════════════════ */}
+      <section className="px-5 py-28">
         <div className="mx-auto max-w-6xl">
-          <div className="mb-24 max-w-2xl">
-            <p className="eyebrow mb-5">Three ways to grow</p>
-            <h2 className="display-2 text-ink">
-              One network.
-              <br />
-              Three currents.
+          <div className="mb-16 max-w-2xl">
+            <p className="eyebrow mb-4">Three ways in</p>
+            <h2 className="display-serif text-4xl sm:text-5xl">
+              One community. <em>Three doors.</em>
             </h2>
           </div>
 
-          <div className="grid gap-8 md:grid-cols-3">
+          <div className="grid gap-5 md:grid-cols-3">
             {CURRENTS.map((s, i) => {
               const Icon = s.icon;
               return (
                 <Link
                   key={s.href}
                   href={s.href}
-                  className="card card-hover group flex flex-col p-10 reveal"
+                  className="card card-hover group flex flex-col p-9 reveal"
                   style={{ animationDelay: `${i * 120}ms` }}
                 >
-                  <div className="mb-8 grid h-14 w-14 place-items-center rounded-2xl bg-accent-tint text-accent transition-colors duration-300 group-hover:bg-accent group-hover:text-accent-ink">
-                    <Icon className="h-7 w-7" />
+                  <div className="mb-7 grid h-12 w-12 place-items-center rounded-xl bg-accent-tint text-accent transition-colors duration-300 group-hover:bg-accent group-hover:text-accent-ink">
+                    <Icon className="h-6 w-6" />
                   </div>
-                  <p className="eyebrow mb-3">{s.eyebrow}</p>
-                  <h3 className="display-3 text-ink">{s.title}</h3>
-                  <p className="mt-4 text-[15px] leading-relaxed text-ink-muted">
+                  <p className="eyebrow mb-2.5">{s.eyebrow}</p>
+                  <h3 className="text-xl font-bold tracking-tight">{s.title}</h3>
+                  <p className="mt-3 text-[15px] leading-relaxed text-ink-muted">
                     {s.description}
                   </p>
-                  <span className="mt-8 text-sm font-medium text-accent">
+                  <span className="mt-auto pt-7 text-sm font-semibold text-accent">
                     Enter →
                   </span>
                 </Link>
@@ -171,56 +162,52 @@ export async function Landing() {
         </div>
       </section>
 
-      {/* ════════════════════════ PARTIAL DNA PHILOSOPHY ════════════════════════ */}
-      <section className="px-5 py-40">
+      {/* ════════════════════════ PHILOSOPHY ════════════════════════ */}
+      <section className="px-5 py-32">
         <div className="mx-auto max-w-4xl text-center">
-          <p className="eyebrow mb-6 justify-center">Partial DNA</p>
-          <h2 className="display-2 text-ink">
+          <p className="eyebrow mb-5 justify-center">Partial DNA</p>
+          <h2 className="display-serif text-4xl leading-tight sm:text-5xl">
             Every person changes.
             <br />
             Every skill connects.
             <br />
-            <span className="text-accent">
-              Every opportunity creates another strand.
-            </span>
+            <em>Every post becomes proof.</em>
           </h2>
         </div>
 
-        <div className="mx-auto mt-24 grid max-w-5xl gap-px overflow-hidden rounded-3xl border border-line bg-line md:grid-cols-3">
+        <div className="mx-auto mt-20 grid max-w-5xl gap-px overflow-hidden rounded-3xl border border-line bg-line md:grid-cols-3">
           {PRINCIPLES.map((p) => (
-            <div key={p.k} className="bg-surface p-10">
-              <p className="eyebrow mb-4">{p.k}</p>
-              <p className="text-[15px] leading-relaxed text-ink-muted">
-                {p.v}
-              </p>
+            <div key={p.k} className="bg-surface p-9">
+              <p className="eyebrow mb-3.5">{p.k}</p>
+              <p className="text-[15px] leading-relaxed text-ink-muted">{p.v}</p>
             </div>
           ))}
         </div>
       </section>
 
       {/* ════════════════════════ GROW ════════════════════════ */}
-      <section className="px-5 pb-40">
+      <section className="px-5 pb-32">
         <div className="mx-auto max-w-6xl">
-          <div className="mb-20 text-center">
-            <p className="eyebrow mb-5 justify-center">Grow</p>
-            <h2 className="display-2 text-ink">Three things happen here.</h2>
+          <div className="mb-16 text-center">
+            <p className="eyebrow mb-4 justify-center">Grow</p>
+            <h2 className="display-serif text-4xl sm:text-5xl">
+              Three things happen here.
+            </h2>
           </div>
-          <div className="grid gap-8 md:grid-cols-3">
+          <div className="grid gap-5 md:grid-cols-3">
             {GROW.map((g, i) => {
               const G = g.Icon;
               return (
                 <div
                   key={g.title}
-                  className="card p-10 reveal text-center"
+                  className="card p-9 text-center reveal"
                   style={{ animationDelay: `${i * 120}ms` }}
                 >
-                  <div className="mx-auto mb-6 grid h-14 w-14 place-items-center rounded-2xl bg-accent-tint text-accent">
-                    <G className="h-7 w-7" />
+                  <div className="mx-auto mb-5 grid h-12 w-12 place-items-center rounded-xl bg-accent-tint text-accent">
+                    <G className="h-6 w-6" />
                   </div>
-                  <h3 className="text-xl font-semibold tracking-tight text-ink">
-                    {g.title}
-                  </h3>
-                  <p className="mt-3 text-sm leading-relaxed text-ink-muted">
+                  <h3 className="text-lg font-bold tracking-tight">{g.title}</h3>
+                  <p className="mt-2.5 text-sm leading-relaxed text-ink-muted">
                     {g.desc}
                   </p>
                 </div>
@@ -230,107 +217,84 @@ export async function Landing() {
         </div>
       </section>
 
-      {/* ════════════════════════ COMMUNITY FEED ════════════════════════ */}
-      <section className="px-5 pb-40">
+      {/* ════════════════════════ LIVE FEED PREVIEW ════════════════════════ */}
+      <section className="px-5 pb-32">
         <div className="mx-auto max-w-5xl">
-          <div className="mb-16 flex flex-wrap items-end justify-between gap-6">
+          <div className="mb-12 flex flex-wrap items-end justify-between gap-5">
             <div>
-              <p className="eyebrow mb-4">From the community</p>
-              <h2 className="display-2 text-ink">Quiet wins, shared.</h2>
+              <p className="eyebrow mb-3">From the community</p>
+              <h2 className="display-serif text-4xl sm:text-5xl">
+                Quiet wins, shared.
+              </h2>
             </div>
-            <Link
-              href="/community"
-              className="btn-outline px-6 py-2.5 text-sm"
-            >
+            <Link href="/community" className="btn-outline px-6 py-2.5 text-sm">
               See all →
             </Link>
           </div>
 
           {posts.length === 0 ? (
             <div className="card p-12 text-center text-ink-muted">
-              The first story could be yours.
+              Nothing shared yet. The first story could be yours.
             </div>
           ) : (
-            <div className="grid gap-6 md:grid-cols-3">
+            <div className="grid gap-5 md:grid-cols-3">
               {posts.map((p, i) => (
                 <Link
                   key={p.id}
                   href={`/community/${p.id}`}
-                  className="card card-hover flex flex-col p-8 reveal"
+                  className="card card-hover flex flex-col p-7 reveal"
                   style={{ animationDelay: `${i * 120}ms` }}
                 >
-                  <div className="mb-5 flex items-center gap-3">
-                    <Avatar
-                      name={p.author?.name}
-                      image={p.author?.image}
-                      size={40}
-                    />
+                  <div className="mb-4 flex items-center gap-3">
+                    <Avatar name={p.author?.name} image={p.author?.image} size={38} />
                     <div>
-                      <p className="text-sm font-medium text-ink">
-                        {p.author?.name || "Someone"}
-                      </p>
-                      <p className="text-xs text-ink-faint">
-                        {timeAgo(p.createdAt)}
-                      </p>
+                      <p className="text-sm font-semibold">{p.author?.name || "Someone"}</p>
+                      <p className="text-xs text-ink-faint">{timeAgo(p.createdAt)}</p>
                     </div>
                   </div>
-                  <h3 className="text-lg font-semibold leading-snug text-ink">
-                    {p.title}
-                  </h3>
+                  <h3 className="font-bold leading-snug">{p.title}</h3>
                   <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-ink-muted">
                     {p.content}
                   </p>
-                  <div className="mt-auto flex items-center gap-4 border-t border-line pt-5 text-xs text-ink-faint">
-                    <span className="inline-flex items-center gap-1">
-                      <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-7-4.35-7-10a4 4 0 0 1 7-2.65A4 4 0 0 1 19 11c0 5.65-7 10-7 10z" /></svg>
-                      {Math.floor(Math.random() * 200) + 20}
-                    </span>
-                    <span className="inline-flex items-center gap-1">
-                      <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" /></svg>
-                      {p._count?.comments || 0}
-                    </span>
-                  </div>
+                  <span className="mt-auto pt-5 text-xs text-ink-faint">
+                    {p._count.comments}{" "}
+                    {p._count.comments === 1 ? "comment" : "comments"}
+                  </span>
                 </Link>
               ))}
             </div>
           )}
-
-          <div className="mt-16 text-center">
-            <Link href="/community" className="btn-primary px-8 py-3.5 text-base">
-              Join the community
-            </Link>
-          </div>
         </div>
       </section>
 
       {/* ════════════════════════ CTA ════════════════════════ */}
-      <section className="px-5 pb-40">
-        <div className="mx-auto max-w-4xl">
+      <section className="px-5 pb-36">
+        <div className="mx-auto max-w-3xl">
           <div
-            className="card relative overflow-hidden p-16 text-center sm:p-24"
+            className="card relative overflow-hidden p-14 text-center sm:p-20"
             style={{ boxShadow: "var(--shadow-xl)" }}
           >
             <div
-              className="pointer-events-none absolute inset-0 opacity-[0.05]"
+              className="pointer-events-none absolute inset-0 opacity-[0.04]"
               style={{
                 backgroundImage:
                   "radial-gradient(circle at 1px 1px, var(--accent) 1px, transparent 0)",
-                backgroundSize: "32px 32px",
+                backgroundSize: "30px 30px",
               }}
             />
-            <h2 className="display-2 relative text-ink">
-              Your next strand
+            <h2 className="display-serif relative text-4xl sm:text-5xl">
+              Your growth story
               <br />
-              starts here.
+              <em>starts here.</em>
             </h2>
-            <p className="lead relative mx-auto mt-6 max-w-md text-ink-muted">
-              Sign in takes seconds. Grow from there.
+            <p className="lead relative mx-auto mt-5 max-w-md text-ink-muted">
+              Sign in takes seconds. Post your first win from there.
             </p>
             <Link
               href="/auth/signin"
-              className="btn-primary relative mt-10 px-8 py-3.5 text-base"
+              className="btn-primary relative mt-9 px-9 py-3.5 text-base"
             >
-              Sign in
+              Join Snívať
             </Link>
           </div>
         </div>

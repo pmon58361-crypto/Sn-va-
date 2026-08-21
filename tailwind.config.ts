@@ -35,7 +35,8 @@ const config: Config = {
         moss: "var(--moss)",
       },
       fontFamily: {
-        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
+        sans: ["var(--font-inter)", "var(--font-sans)", "system-ui", "sans-serif"],
+        display: ["var(--font-display)", "Georgia", "serif"],
       },
       boxShadow: {
         xs: "var(--shadow-xs)",
@@ -53,3 +54,4 @@ const config: Config = {
 };
 
 export default config;
+

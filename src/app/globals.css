@@ -177,7 +177,19 @@ body {
   }
 
   /* Display headline scale — huge, lots of breathing room */
-  .display-1 {
+  @media (min-width: 768px) {
+  .display-serif {
+    font-family: var(--font-display), Georgia, serif;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+  }
+  .display-serif em {
+    font-style: italic;
+    color: var(--accent-soft);
+  }
+}
+
+.display-1 {
     @apply font-bold tracking-tight;
     font-size: clamp(2.75rem, 8vw, 5.5rem);   /* 44px → 88px */
     line-height: 1.0;
@@ -244,3 +256,4 @@ body {
     transition-duration: 0.001ms !important;
   }
 }
+
