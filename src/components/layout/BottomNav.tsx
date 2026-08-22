@@ -1,9 +1,10 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
+  HomeIcon,
   UsersIcon,
   BriefcaseIcon,
   ClipboardIcon,
@@ -14,13 +15,13 @@ import {
 type Tab = {
   href: string;
   label: string;
-  icon: typeof UsersIcon;
+  icon: typeof HomeIcon | typeof UsersIcon;
   primary?: boolean;
   needsAuth?: boolean;
 };
 
 /**
- * Mobile bottom tab bar — Instagram/TikTok pattern.
+ * Mobile bottom tab bar â€” Instagram/TikTok pattern.
  * Fixed below the lg breakpoint; desktop keeps the sidebar.
  * Center slot is an elevated "New Post" action button.
  */
@@ -36,7 +37,7 @@ export function BottomNav() {
       : "/auth/signin";
 
   const tabs: Tab[] = [
-    { href: "/community", label: "Home", icon: UsersIcon },
+    { href: "/community", label: "Home", icon: HomeIcon },
     { href: "/jobs", label: "Jobs", icon: BriefcaseIcon },
     { href: "/new", label: "New", icon: PlusIcon, primary: true },
     { href: "/applications", label: "Apps", icon: ClipboardIcon },

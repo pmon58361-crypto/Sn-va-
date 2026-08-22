@@ -495,3 +495,15 @@ html.light .gm-logo-img { filter: none; }
 .hairline {
   border-color: rgba(255, 255, 255, 0.08);
 }
+
+/* ── Builder-terminal landing ────────────────────────────────────────── */
+.term-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+@keyframes blink-cursor { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+.cursor-blink { animation: blink-cursor 1.1s steps(1) infinite; }
+@keyframes log-line { from { opacity: 0; transform: translateX(-10px); } }
+.log-line { animation: log-line 0.5s cubic-bezier(0.16, 1, 0.3, 1) backwards; }
