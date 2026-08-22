@@ -13,7 +13,7 @@ import { timeAgo } from "@/lib/utils";
 import { ClockLive } from "@/components/ClockLive";
 
 // Landing page content. Rendered by src/app/page.tsx when the visitor is signed out.
-// Premium editorial rebrand — serif display, generous space, real feed preview.
+// Premium editorial rebrand â€” serif display, generous space, real feed preview.
 
 const CURRENTS = [
   {
@@ -37,7 +37,7 @@ const CURRENTS = [
     eyebrow: "Applications",
     title: "Take the next step.",
     description:
-      "Open positions, applied to in one breath. The friction between you and what's next — removed.",
+      "Open positions, applied to in one breath. The friction between you and what's next â€” removed.",
     icon: ClipboardIcon,
   },
 ];
@@ -45,20 +45,20 @@ const CURRENTS = [
 const PRINCIPLES = [
   {
     k: "Growth",
-    v: "Growth is shared, not solo. Show your work, your progress, your dead ends — someone a step behind you needs to see it.",
+    v: "Growth is shared, not solo. Show your work, your progress, your dead ends â€” someone a step behind you needs to see it.",
   },
   {
     k: "Connection",
-    v: "Real connection comes from real interaction — replies, feedback, collaboration. Not one-click networking.",
+    v: "Real connection comes from real interaction â€” replies, feedback, collaboration. Not one-click networking.",
   },
   {
     k: "Evolution",
-    v: "Your profile is not a résumé. It's a living record of what you've built and how far you've come.",
+    v: "Your profile is not a rÃ©sumÃ©. It's a living record of what you've built and how far you've come.",
   },
 ];
 
 const GROW = [
-  { Icon: CompassIcon, title: "Find opportunities.", desc: "Work that fits where you are now — and where you're growing." },
+  { Icon: CompassIcon, title: "Find opportunities.", desc: "Work that fits where you are now â€” and where you're growing." },
   { Icon: BookIcon, title: "Learn from people.", desc: "Real stories from people a few steps ahead of you." },
   { Icon: HandshakeIcon, title: "Build together.", desc: "Connect, collaborate, and let the next strand form." },
 ];
@@ -68,68 +68,54 @@ export async function Landing() {
 
   return (
     <div>
-      {/* ════════════════════════ HERO ════════════════════════ */}
-<section className="relative flex min-h-[92vh] flex-col items-center justify-center px-5 text-center">
-        <div className="reveal mb-9" style={{ animationDelay: "0ms" }}>
-          <ClockLive />
-        </div>
-
-        <div className="reveal mb-8 flex justify-center" style={{ animationDelay: "100ms" }}>
-          <span className="inline-flex items-center gap-2 rounded-full border border-line bg-surface/70 px-4 py-1.5 text-xs font-medium tracking-wide text-ink-muted backdrop-blur-sm">
-            <span className="h-1.5 w-1.5 rounded-full bg-accent pulse-dot" />
-            Dream · Grow · Connect
-          </span>
-        </div>
-
-        <h1
-          className="display-serif reveal max-w-4xl text-balance text-6xl leading-[1.05] sm:text-7xl md:text-8xl"
-          style={{ animationDelay: "100ms" }}
-        >
-          Grow in public.
-          <br />
-          Find your <em>people.</em>
-        </h1>
-
-        <p
-          className="lead reveal mt-8 max-w-xl text-ink-muted"
-          style={{ animationDelay: "220ms" }}
-        >
-          Snívať is where ambitious people build in the open — sharing progress,
-          wins, and failures as they happen. Not LinkedIn. Not a job board.
-          Just people growing together.
-        </p>
-
-        <div
-          className="reveal mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row"
-          style={{ animationDelay: "340ms" }}
-        >
-          <Link href="/auth/signin" className="btn-primary px-9 py-3.5 text-base">
-            Start growing
-          </Link>
-          <Link href="/community" className="btn-outline px-9 py-3.5 text-base">
-            Explore the community
-          </Link>
-        </div>
-
-        {/* Scroll indicator */}
-        <div
-          className="reveal absolute bottom-10 left-1/2 -translate-x-1/2 scroll-bob"
-          style={{ animationDelay: "500ms" }}
-        >
-          <svg
-            className="h-6 w-6 text-ink-faint"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
+      {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• HERO â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+<section className="relative h-[100svh]">
+        {/* The page IS the clock */}
+        <ClockLive fullscreen>
+          <div
+            className="reveal mb-5 flex justify-center"
+            style={{ animationDelay: "0ms" }}
           >
-            <path d="M12 5v14M19 12l-7 7-7-7" />
-          </svg>
-        </div>
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-black/40 px-4 py-1.5 text-xs font-medium tracking-wide text-white/90 backdrop-blur-sm">
+              <span className="h-1.5 w-1.5 rounded-full bg-accent pulse-dot" />
+              Dream · Grow · Connect
+            </span>
+          </div>
+
+          <h1
+            className="display-serif reveal text-balance text-4xl leading-[1.06] sm:text-6xl"
+            style={{ animationDelay: "100ms", textShadow: "0 2px 24px rgba(0,0,0,.85)" }}
+          >
+            Grow in public.
+            <br />
+            Find your <em>people.</em>
+          </h1>
+
+          <p
+            className="reveal mx-auto mt-4 max-w-lg text-sm leading-relaxed text-white/80 sm:text-base"
+            style={{ animationDelay: "220ms", textShadow: "0 1px 12px rgba(0,0,0,.95)" }}
+          >
+            Build in the open — progress, wins, failures, as they happen.
+          </p>
+
+          <div
+            className="reveal mt-6 flex flex-col items-center justify-center gap-3 pb-2 sm:flex-row"
+            style={{ animationDelay: "340ms" }}
+          >
+            <Link href="/auth/signin" className="btn-primary px-8 py-3 text-base">
+              Start growing
+            </Link>
+            <Link
+              href="/community"
+              className="btn-outline border-white/30 px-8 py-3 text-base !text-white hover:!border-accent"
+            >
+              Explore
+            </Link>
+          </div>
+        </ClockLive>
       </section>
 
-      {/* ════════════════════════ THREE DOORS ════════════════════════ */}
+      {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• THREE DOORS â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
       <section className="px-5 py-28">
         <div className="mx-auto max-w-6xl">
           <div className="mb-16 max-w-2xl">
@@ -158,7 +144,7 @@ export async function Landing() {
                     {s.description}
                   </p>
                   <span className="mt-auto pt-7 text-sm font-semibold text-accent">
-                    Enter →
+                    Enter â†’
                   </span>
                 </Link>
               );
@@ -167,7 +153,7 @@ export async function Landing() {
         </div>
       </section>
 
-      {/* ════════════════════════ PHILOSOPHY ════════════════════════ */}
+      {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• PHILOSOPHY â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
       <section className="px-5 py-32">
         <div className="mx-auto max-w-4xl text-center">
           <p className="eyebrow mb-5 justify-center">Partial DNA</p>
@@ -190,7 +176,7 @@ export async function Landing() {
         </div>
       </section>
 
-      {/* ════════════════════════ GROW ════════════════════════ */}
+      {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• GROW â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
       <section className="px-5 pb-32">
         <div className="mx-auto max-w-6xl">
           <div className="mb-16 text-center">
@@ -222,7 +208,7 @@ export async function Landing() {
         </div>
       </section>
 
-      {/* ════════════════════════ LIVE FEED PREVIEW ════════════════════════ */}
+      {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• LIVE FEED PREVIEW â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
       <section className="px-5 pb-32">
         <div className="mx-auto max-w-5xl">
           <div className="mb-12 flex flex-wrap items-end justify-between gap-5">
@@ -233,7 +219,7 @@ export async function Landing() {
               </h2>
             </div>
             <Link href="/community" className="btn-outline px-6 py-2.5 text-sm">
-              See all →
+              See all â†’
             </Link>
           </div>
 
@@ -272,7 +258,7 @@ export async function Landing() {
         </div>
       </section>
 
-      {/* ════════════════════════ CTA ════════════════════════ */}
+      {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• CTA â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
       <section className="px-5 pb-36">
         <div className="mx-auto max-w-3xl">
           <div
@@ -299,7 +285,7 @@ export async function Landing() {
               href="/auth/signin"
               className="btn-primary relative mt-9 px-9 py-3.5 text-base"
             >
-              Join Snívať
+              Join SnÃ­vaÅ¥
             </Link>
           </div>
         </div>
