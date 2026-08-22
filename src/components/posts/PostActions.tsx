@@ -49,15 +49,31 @@ export function PostActions({
       window.location.href = "/auth/signin";
       return;
     }
-    const active = type === "like" ? state.liked : state.disliked;
-    setState((s) => ({
-      ...s,
-      [type === "like" ? "likes" : "dislikes"]:
-        (type === "like" ? s.likes : s.dislikes) + (active ? -1 : 1),
-      ...(type === "like"
-        ? { liked: !active, disliked: active ? false : s.disliked }
-        : { disliked: !active, liked: active ? false : s.liked }),
-    }));
+    // Mirrors the server invariant: one reaction per user per post.
+    // Switching replaces the opposite (and moves its count);
+    // clicking the active reaction removes it.
+    setState((s) => {
+      if (type === "like") {
+        const wasLiked = s.liked;
+        const hadDislike = !wasLiked && s.disliked;
+        return {
+          ...s,
+          liked: !wasLiked,
+          disliked: false,
+          likes: s.likes + (wasLiked ? -1 : 1),
+          dislikes: hadDislike ? s.dislikes - 1 : s.dislikes,
+        };
+      }
+      const wasDisliked = s.disliked;
+      const hadLike = !wasDisliked && s.liked;
+      return {
+        ...s,
+        disliked: !wasDisliked,
+        liked: false,
+        dislikes: s.dislikes + (wasDisliked ? -1 : 1),
+        likes: hadLike ? s.likes - 1 : s.likes,
+      };
+    });
     startTransition(async () => {
       try {
         await toggleReaction(postId, type);

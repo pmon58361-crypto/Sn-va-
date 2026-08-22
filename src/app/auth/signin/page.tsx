@@ -73,7 +73,7 @@ export default function SignInPage() {
     <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-md flex-col items-center justify-center px-5 py-16">
       {/* Animated pocket-watch splash — no text, responsive */}
       <div className="mb-10 select-none" aria-hidden>
-        <ClockLive />
+        <ClockLive fullscreen />
       </div>
 
       <div className="card w-full p-8 reveal" style={{ boxShadow: "var(--shadow-lg)" }}>
@@ -113,4 +113,5 @@ export default function SignInPage() {
     </div>
   );
 }
+
 

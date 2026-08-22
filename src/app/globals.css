@@ -324,3 +324,30 @@ html.light .gm-logo-img { filter: none; }
 
 /* Legacy splash container now uses the live clock too */
 .splash-clock { width: clamp(190px, 46vw, 300px); }
+
+/* -- Fullscreen clock page ---------------------------------------------- */
+.clock-stage {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  height: 100svh;
+  aspect-ratio: 1;
+}
+.clock-stage img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(1.12);
+  transform-origin: 52% 51%;
+  user-select: none;
+}
+.clock-stage .hands {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,.85));
+}
