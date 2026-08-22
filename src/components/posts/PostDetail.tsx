@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/Icons";
 import { PostActions } from "@/components/posts/PostActions";
 import { OwnerControls } from "@/components/posts/OwnerControls";
+import { ReportMenu } from "@/components/moderation/ReportMenu";
 import { timeAgo, formatDate, parseTags } from "@/lib/utils";
 import { cdnUrl } from "@/lib/cdn";
 import { CATEGORY_META } from "@/lib/types";
@@ -217,6 +218,11 @@ export function CommentList({
                 {c.author?.name || "Unknown"}
               </Link>
               <span className="text-xs text-ink-faint">{timeAgo(c.createdAt)}</span>
+              <ReportMenu
+                targetType="COMMENT"
+                targetId={c.id}
+                className="ml-auto"
+              />
             </div>
             <p className="mt-1 whitespace-pre-wrap text-sm text-ink-soft">
               {c.content}

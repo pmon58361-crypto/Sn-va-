@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { sendMessage, markThreadRead } from "@/app/dm/actions";
+import { ReportMenu } from "@/components/moderation/ReportMenu";
 import { timeAgo } from "@/lib/utils";
 
 type Msg = {
@@ -109,23 +110,25 @@ export function DmThread({
           {messages.map((m) => {
             const mine = m.senderId === meId;
             return (
-              <div
-                key={m.id}
-                className={`max-w-[75%] rounded-3xl px-4 py-2.5 text-[15px] leading-snug ${
-                  mine
-                    ? "self-end rounded-br-md bg-accent text-white"
-                    : "self-start rounded-bl-md bg-surface-hover"
-                }`}
-                title={new Date(m.createdAt).toLocaleString()}
-              >
-                <span className="whitespace-pre-wrap break-words">{m.content}</span>
-                <span
-                  className={`mt-0.5 block text-right text-[11px] ${
-                    mine ? "text-white/70" : "text-ink-secondary"
+              <div key={m.id} className={`flex flex-col ${mine ? "self-end items-end" : "self-start items-start"}`}>
+                <div
+                  className={`max-w-[75%] rounded-3xl px-4 py-2.5 text-[15px] leading-snug ${
+                    mine
+                      ? "rounded-br-md bg-accent text-white"
+                      : "rounded-bl-md bg-surface-hover"
                   }`}
+                  title={new Date(m.createdAt).toLocaleString()}
                 >
-                  {timeAgo(m.createdAt)}
-                </span>
+                  <span className="whitespace-pre-wrap break-words">{m.content}</span>
+                  <span
+                    className={`mt-0.5 block text-right text-[11px] ${
+                      mine ? "text-white/70" : "text-ink-secondary"
+                    }`}
+                  >
+                    {timeAgo(m.createdAt)}
+                  </span>
+                </div>
+                {!mine && <ReportMenu targetType="MESSAGE" targetId={m.id} className="mt-0.5" />}
               </div>
             );
           })}

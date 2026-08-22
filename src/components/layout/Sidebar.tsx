@@ -17,6 +17,7 @@ import {
   BellIcon,
   CompassIcon,
   PlusIcon,
+  ShieldIcon,
 } from "@/components/ui/Icons";
 import { NotificationsBadge } from "./NotificationsBadge";
 

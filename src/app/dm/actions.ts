@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { createNotification } from "@/lib/notify";
 import { requireActiveUser, requireUserId } from "@/lib/session";
+import { assertClean } from "@/lib/filter";
 
 // Send a direct message. Creates the message and clears read state on the
 // recipient's side naturally (their unread count is computed per-thread).
@@ -13,6 +14,7 @@ export async function sendMessage(recipientId: string, content: string) {
   if (me === recipientId) throw new Error("Cannot message yourself");
   if (!content.trim()) throw new Error("Message required");
   if (content.length > 2000) throw new Error("Message too long");
+  assertClean(content, "Message");
 
   const recipient = await prisma.user.findUnique({
     where: { id: recipientId },

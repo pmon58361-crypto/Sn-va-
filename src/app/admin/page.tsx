@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { cloudinary } from "@/lib/cloudinary";
 import {
   dismissReports,
   removeTarget,
@@ -66,6 +67,22 @@ export default async function AdminPage() {
   ]);
 
   const [userCount, postCount, reportCount, hiddenCount] = stats;
+
+  // Free Cloudinary admin API — quota visibility without leaving the app.
+  // Best-effort: a missing/failing CLOUDINARY_URL must not break moderation.
+  type Usage = {
+    credits?: { usage?: number; limit?: number };
+    storage?: { usage?: number; limit?: number };
+    resources?: number;
+  };
+  let usage: Usage | null = null;
+  try {
+    if (process.env.CLOUDINARY_URL) {
+      usage = (await cloudinary.api.usage()) as Usage;
+    }
+  } catch {
+    /* render nothing */
+  }
 
   // Group open reports by target so one card = one piece of content.
   type Group = {
@@ -315,9 +332,46 @@ export default async function AdminPage() {
         )}
       </section>
 
+      {/* Storage glance */}
+      {usage && (
+        <section className="mt-10">
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-ink-faint">
+            Image storage
+          </h2>
+          <div className="card grid grid-cols-2 gap-4 p-4 text-sm sm:grid-cols-3">
+            <div>
+              <p className="text-lg font-bold text-ink">
+                {(usage.resources ?? 0).toLocaleString()}
+              </p>
+              <p className="text-xs uppercase tracking-wide text-ink-faint">
+                stored assets
+              </p>
+            </div>
+            <div>
+              <p className="text-lg font-bold text-ink">
+                {fmtBytes(usage.storage?.usage)}
+              </p>
+              <p className="text-xs uppercase tracking-wide text-ink-faint">
+                storage used
+              </p>
+            </div>
+            <div>
+              <p className="text-lg font-bold text-ink">
+                {usage.credits?.usage != null && usage.credits?.limit
+                  ? `${Math.round((usage.credits.usage / usage.credits.limit) * 100)}%`
+                  : "—"}
+              </p>
+              <p className="text-xs uppercase tracking-wide text-ink-faint">
+                monthly quota
+              </p>
+            </div>
+          </div>
+        </section>
+      )}
+
       <p className="mt-10 text-center text-xs text-ink-faint">
-        Storage &amp; usage glance: Cloudinary quota is visible in your
-        Cloudinary console (free tier); Neon usage in the Neon console.
+        Database quota lives in your Neon console. Deleted content frees its
+        images automatically.
       </p>
     </div>
   );
@@ -372,6 +426,18 @@ function sectionPath(category: string): string {
 
 function truncate(s: string, n: number): string {
   return s.length > n ? s.slice(0, n - 1) + "…" : s;
+}
+
+function fmtBytes(bytes?: number): string {
+  if (!bytes || bytes <= 0) return "0 MB";
+  const units = ["B", "KB", "MB", "GB"];
+  let v = bytes;
+  let i = 0;
+  while (v >= 1024 && i < units.length - 1) {
+    v /= 1024;
+    i++;
+  }
+  return `${v.toFixed(v < 10 && i > 1 ? 1 : 0)} ${units[i]}`;
 }
 
 function Stat({

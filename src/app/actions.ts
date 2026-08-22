@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { createNotification } from "@/lib/notify";
 import { requireActiveUser } from "@/lib/session";
 import { destroyAssets } from "@/lib/storage";
+import { assertClean } from "@/lib/filter";
 import {
   POST_CATEGORIES,
   MAX_IMAGES_PER_POST,
@@ -49,6 +50,9 @@ export async function savePost(input: PostInput) {
   if (input.imageUrls.length > MAX_IMAGES_PER_POST) {
     throw new Error(`Max ${MAX_IMAGES_PER_POST} images per post`);
   }
+  // Hard-block list only — everything else goes through the report queue.
+  assertClean(input.title, "Title");
+  assertClean(input.content, "Post");
 
   const data = {
     category: input.category,
@@ -136,6 +140,7 @@ export async function deletePost(id: string) {
 export async function addComment(postId: string, content: string) {
   const me = await requireActiveUser();
   if (!content.trim()) throw new Error("Comment required");
+  assertClean(content, "Comment");
 
   await prisma.comment.create({
     data: { postId, authorId: me.id, content: content.trim() },

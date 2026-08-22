@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireActiveUser, requireUserId } from "@/lib/session";
+import { assertClean } from "@/lib/filter";
 import { prisma } from "@/lib/prisma";
 import { cloudinary } from "@/lib/cloudinary";
 import { destroyAssets } from "@/lib/storage";
@@ -54,6 +55,11 @@ export async function createStory(
 
   if (!imageUrl && !caption) {
     return { ok: false, error: "Add an image or a caption" };
+  }
+  try {
+    assertClean(caption, "Caption");
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Blocked" };
   }
 
   await prisma.story.create({

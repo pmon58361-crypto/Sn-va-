@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createStory } from "@/app/stories/actions";
 import { viewStory } from "@/app/stories/actions";
 import { cdnUrl } from "@/lib/cdn";
+import { ReportMenu } from "@/components/moderation/ReportMenu";
 import { timeAgo } from "@/lib/utils";
 
 export type StoryGroup = {
@@ -342,6 +343,14 @@ function StoryViewer({
           {group.author.name || "Someone"}
           <span className="font-normal text-white/60">Â· {timeAgo(item.createdAt)}</span>
         </span>
+        {!item.isMine && (
+          <ReportMenu
+            targetType="STORY"
+            targetId={item.id}
+            label="Report story"
+            className="[&_button]:!text-white/60 [&_button:hover]:!text-white"
+          />
+        )}
         <button onClick={done} className="rounded-full px-2 text-2xl leading-none hover:bg-white/10">Ã—</button>
       </div>
 
