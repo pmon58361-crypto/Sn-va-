@@ -1,28 +1,32 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { toggleFollow } from "@/app/actions";
 
 export function FollowButton({
   targetUserId,
   following,
+  className = "",
 }: {
   targetUserId: string;
   following: boolean;
+  className?: string;
 }) {
   const [isFollowing, setIsFollowing] = useState(following);
-  const [pending, startTransition] = useTransition();
+  const [pending, setPending] = useState(false);
 
-  function toggle() {
+  async function toggle() {
+    if (pending) return;
     const next = !isFollowing;
     setIsFollowing(next);
-    startTransition(async () => {
-      try {
-        await toggleFollow(targetUserId);
-      } catch {
-        setIsFollowing(!next);
-      }
-    });
+    setPending(true);
+    try {
+      await toggleFollow(targetUserId);
+    } catch {
+      setIsFollowing(!next);
+    } finally {
+      setPending(false);
+    }
   }
 
   return (
@@ -31,9 +35,9 @@ export function FollowButton({
       onClick={toggle}
       disabled={pending}
       className={
-        isFollowing
-          ? "btn-outline px-5 py-2 text-sm"
-          : "btn-primary px-6 py-2 text-sm"
+        (isFollowing
+          ? "btn-outline px-5 py-2 text-sm "
+          : "btn-primary px-6 py-2 text-sm ") + className
       }
     >
       {pending ? "…" : isFollowing ? "Following" : "Follow"}

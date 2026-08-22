@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { addComment } from "@/app/actions";
@@ -8,28 +8,27 @@ import { Avatar } from "@/components/ui/Avatar";
 
 export function CommentComposer({ postId }: { postId: string }) {
   const { data: session, status } = useSession();
-  const formRef = useRef<HTMLFormElement>(null);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const [state, formAction, pending] = useActionState(
-    async (_prev: unknown, formData: FormData) => {
-      const content = formData.get("content") as string;
-      try {
-        await addComment(postId, content);
-        formRef.current?.reset();
-        return null;
-      } catch (e) {
-        return e instanceof Error ? e.message : "Failed to post comment";
-      }
-    },
-    null
-  );
-
-  // Clear error after a few seconds
-  useEffect(() => {
-    if (!state) return;
-    const t = setTimeout(() => {}, 3000);
-    return () => clearTimeout(t);
-  }, [state]);
+  // Plain async submit — useActionState is React 19-only (undefined in
+  // this app's React 18.3.1, which crashed the composer on render).
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (pending) return;
+    const form = e.currentTarget;
+    const content = (new FormData(form).get("content") as string) || "";
+    setPending(true);
+    setError(null);
+    try {
+      await addComment(postId, content);
+      form.reset();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to post comment");
+    } finally {
+      setPending(false);
+    }
+  }
 
   if (status !== "authenticated") {
     return (
@@ -45,7 +44,7 @@ export function CommentComposer({ postId }: { postId: string }) {
   }
 
   return (
-    <form ref={formRef} action={formAction} className="card flex gap-3 p-4">
+    <form onSubmit={onSubmit} className="card flex gap-3 p-4">
       <Avatar
         name={session.user.name}
         image={session.user.image}
@@ -59,8 +58,8 @@ export function CommentComposer({ postId }: { postId: string }) {
           className="input min-h-[72px] resize-y"
           placeholder="Write a comment…"
         />
-        {state && (
-          <p className="mt-1 text-xs text-accent">{String(state)}</p>
+        {error && (
+          <p className="mt-1 text-xs text-warm">{error}</p>
         )}
         <div className="mt-2 flex justify-end">
           <button type="submit" disabled={pending} className="btn-primary">

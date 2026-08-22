@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <mask id="slash">
+      <rect width="128" height="128" fill="#fff"/>
+      <!-- two parallel 45° slots (SW -> NE) slicing the mark -->
+      <path d="M-12 88 L88 -12 L97 -3 L-3 97 Z" fill="#000"/>
+      <path d="M14 130 L118 26 L127 35 L23 139 Z" fill="#000"/>
+    </mask>
+  </defs>
+  <g mask="url(#slash)" fill="#000">
+    <!-- squared S: top bar, NE->SW diagonal, bottom bar -->
+    <path d="M30 10 H112 V36 H30 Z"/>
+    <path d="M86 10 H114 L56 118 H28 Z"/>
+    <path d="M16 92 H98 V118 H16 Z"/>
+    <!-- stripe extensions beyond the silhouette -->
+    <path d="M96 34 L120 10 L129 19 L105 43 Z" transform="translate(-6,-4)"/>
+    <path d="M108 46 L126 28 L134 36 L116 54 Z" transform="translate(-8,-2)"/>
+    <path d="M22 94 L4 112 L-5 103 L13 85 Z" transform="translate(6,4)"/>
+    <path d="M10 82 L-4 96 L-12 88 L2 74 Z" transform="translate(10,2)"/>
+  </g>
+</svg>

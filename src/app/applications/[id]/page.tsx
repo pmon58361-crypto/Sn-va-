@@ -8,6 +8,7 @@ import { ApplyForm } from "@/components/posts/ApplyForm";
 import { Avatar } from "@/components/ui/Avatar";
 import { MailIcon } from "@/components/ui/Icons";
 import { formatDate } from "@/lib/utils";
+import { ApplicationActions } from "./ApplicationActions";
 
 export const dynamic = "force-dynamic";
 
@@ -98,6 +99,21 @@ export default async function ApplicationDetailPage({
                     <MailIcon className="h-3.5 w-3.5" />
                     {a.user.email}
                   </div>
+                  {a.status === "pending" ? (
+                    <ApplicationActions applicationId={a.id} />
+                  ) : (
+                    <div className="mt-3">
+                      <span
+                        className={`badge text-xs font-semibold ${
+                          a.status === "accepted"
+                            ? "bg-accent-tint text-accent"
+                            : "bg-soft text-ink-muted"
+                        }`}
+                      >
+                        {a.status === "accepted" ? "Accepted" : "Rejected"}
+                      </span>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

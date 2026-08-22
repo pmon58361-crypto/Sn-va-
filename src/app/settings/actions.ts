@@ -12,7 +12,6 @@ export type SettingsInput = {
   theme: string;
   accent: string;
   background: string;
-  emailNotifications: boolean;
   publicProfile: boolean;
   showEmail: boolean;
 };
@@ -25,13 +24,47 @@ export async function saveSettings(input: SettingsInput) {
   const bgOk = /^#[0-9a-fA-F]{6}$/.test(input.background ?? "");
   const themeOk = input.theme === "light" || input.theme === "dark";
 
+  // Avatar must be a direct image URL. Search-result pages and other HTML
+  // pages silently render as broken <img> tags everywhere, so we verify
+  // content-type before accepting it.
+  const image = input.image.trim();
+  if (image) {
+    const isLocal = image.startsWith("/");
+    const isDataImg = image.startsWith("data:image/");
+    if (!isLocal && !isDataImg && !/^https?:\/\//i.test(image)) {
+      throw new Error("Avatar URL must start with https:// (or be a direct image link).");
+    }
+    if (/^https?:\/\//i.test(image)) {
+      try {
+        const controller = new AbortController();
+        const t = setTimeout(() => controller.abort(), 6000);
+        const res = await fetch(image, {
+          method: "GET",
+          headers: { Range: "bytes=0-64" },
+          signal: controller.signal,
+          redirect: "follow",
+        });
+        clearTimeout(t);
+        const ct = res.headers.get("content-type") || "";
+        if (!ct.startsWith("image/")) {
+          throw new Error();
+        }
+      } catch (err) {
+        if (err instanceof Error && err.message.startsWith("Avatar")) throw err;
+        throw new Error(
+          "That link is not a direct image. Open the picture itself, copy its address (it should end in .jpg/.png/.webp), and paste that."
+        );
+      }
+    }
+  }
+
   await prisma.user.update({
     where: { id: session.user.id },
     data: {
       name: input.name.trim() || null,
       bio: input.bio.trim() || null,
       location: input.location.trim() || null,
-      image: input.image.trim() || null,
+      image: image || null,
     },
   });
 
@@ -41,7 +74,6 @@ export async function saveSettings(input: SettingsInput) {
       theme: themeOk ? input.theme : "light",
       accent: accentOk ? input.accent : "#2f9e6b",
         background: bgOk ? input.background.toUpperCase() : null,
-      emailNotifications: input.emailNotifications,
       publicProfile: input.publicProfile,
       showEmail: input.showEmail,
     },
@@ -50,7 +82,6 @@ export async function saveSettings(input: SettingsInput) {
       theme: themeOk ? input.theme : "light",
       accent: accentOk ? input.accent : "#2f9e6b",
         background: bgOk ? input.background.toUpperCase() : null,
-      emailNotifications: input.emailNotifications,
       publicProfile: input.publicProfile,
       showEmail: input.showEmail,
     },

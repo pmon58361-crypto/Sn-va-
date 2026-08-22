@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useState } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { applyToJob } from "@/app/actions";
@@ -17,19 +17,26 @@ export function ApplyForm({
 }) {
   const { status } = useSession();
   const [submitted, setSubmitted] = useState(hasApplied);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const [state, formAction, pending] = useActionState(
-    async (_prev: unknown, formData: FormData) => {
-      try {
-        await applyToJob(postId, (formData.get("message") as string) || "");
-        setSubmitted(true);
-        return null;
-      } catch (e) {
-        return e instanceof Error ? e.message : "Failed to apply";
-      }
-    },
-    null
-  );
+  // Plain async submit — useActionState is React 19-only (undefined in
+  // this app's React 18.3.1, which crashed the form on render).
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (pending) return;
+    const message = new FormData(e.currentTarget).get("message") as string || "";
+    setPending(true);
+    setError(null);
+    try {
+      await applyToJob(postId, message);
+      setSubmitted(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to apply");
+    } finally {
+      setPending(false);
+    }
+  }
 
   if (isOwner) {
     return (
@@ -59,7 +66,7 @@ export function ApplyForm({
   }
 
   return (
-    <form action={formAction} className="card p-4">
+    <form onSubmit={onSubmit} className="card p-4">
       <label className="mb-1.5 block text-sm font-medium text-ink-soft">
         Your message
       </label>
@@ -70,7 +77,7 @@ export function ApplyForm({
         className="input min-h-[100px] resize-y"
         placeholder="Introduce yourself and explain why you're a good fit…"
       />
-      {state && <p className="mt-1 text-xs text-accent">{String(state)}</p>}
+      {error && <p className="mt-1 text-xs text-warm">{error}</p>}
       <div className="mt-3 flex justify-end">
         <button type="submit" disabled={pending} className="btn-primary">
           {pending ? "Sending…" : "Apply now"}

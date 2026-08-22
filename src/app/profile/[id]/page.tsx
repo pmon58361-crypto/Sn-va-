@@ -5,16 +5,21 @@ import { prisma } from "@/lib/prisma";
 import { isFollowing } from "@/lib/social";
 import { Avatar } from "@/components/ui/Avatar";
 import { FollowButton } from "@/components/profile/FollowButton";
-import { MapPinIcon, MailIcon, CalendarIcon } from "@/components/ui/Icons";
+import { MapPinIcon, MailIcon, CalendarIcon, SettingsIcon } from "@/components/ui/Icons";
+import { CATEGORY_META } from "@/lib/types";
+import { Highlights } from "./Highlights";
 
 export const dynamic = "force-dynamic";
 
 export default async function ProfilePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ tab?: string }>;
 }) {
   const { id } = await params;
+  const { tab } = await searchParams;
   const [user, session] = await Promise.all([
     prisma.user.findUnique({
       where: { id },
@@ -43,7 +48,37 @@ export default async function ProfilePage({
   const settings = user.settings;
   const isPublic = settings?.publicProfile ?? true;
   const isOwner = session?.user?.id === user.id;
+
+  // Private profiles show nothing but the identity card to other viewers —
+  // no bio, location, email, stats, or posts.
+  if (!isPublic && !isOwner) {
+    return (
+      <div className="mx-auto max-w-3xl px-5 py-16">
+        <div className="card p-12 text-center">
+          <div className="mb-4 flex justify-center">
+            <Avatar name={user.name} image={user.image} size={88} />
+          </div>
+          <h1 className="text-xl font-bold text-ink">
+            {user.name || "Anonymous"}
+          </h1>
+          <p className="mt-2 text-sm text-ink-muted">This profile is private.</p>
+        </div>
+      </div>
+    );
+  }
+
   const viewerIsFollowing = await isFollowing(session?.user?.id, user.id);
+  const highlightRows = await prisma.highlight.findMany({
+    where: { userId: id },
+    orderBy: { createdAt: "desc" },
+    include: { items: { select: { id: true, imageUrl: true } } },
+  });
+  const highlights = highlightRows.map((h) => ({
+    id: h.id,
+    title: h.title,
+    coverUrl: h.coverUrl,
+    items: h.items,
+  }));
   const joinDate = new Date(user.createdAt).toLocaleDateString(undefined, {
     month: "short",
     year: "numeric",
@@ -54,6 +89,20 @@ export default async function ProfilePage({
     (sum, p) => sum + p._count.reactions,
     0
   );
+
+  // Real filter tabs — the active tab actually filters the grid below.
+  const activeTab = ["posts", "work", "photos"].includes(tab || "")
+    ? (tab as "posts" | "work" | "photos")
+    : null;
+  const filteredPosts = !activeTab
+    ? user.posts
+    : activeTab === "posts"
+    ? user.posts.filter((p) => p.images.length === 0)
+    : activeTab === "work"
+    ? user.posts.filter(
+        (p) => p.category === "JOB_OFFER" || p.category === "JOB_REQUEST"
+      )
+    : user.posts.filter((p) => p.images.length > 0);
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-8">
@@ -76,12 +125,22 @@ export default async function ProfilePage({
                 <p className="text-sm text-ink-faint">{handle}</p>
               </div>
               {isOwner ? (
-                <Link
-                  href="/settings"
-                  className="btn-outline shrink-0 px-5 py-2 text-sm"
-                >
-                  Edit profile
-                </Link>
+                <div className="flex shrink-0 items-center gap-2">
+                  <Link
+                    href="/settings"
+                    aria-label="Settings"
+                    title="Settings"
+                    className="btn-outline grid h-10 w-10 place-items-center px-0"
+                  >
+                    <SettingsIcon className="h-4 w-4" />
+                  </Link>
+                  <Link
+                    href="/archive"
+                    className="btn-outline flex items-center justify-center gap-2 px-4 py-2 text-sm"
+                  >
+                    View archive
+                  </Link>
+                </div>
               ) : isPublic ? (
                 <FollowButton
                   targetUserId={user.id}
@@ -154,12 +213,11 @@ export default async function ProfilePage({
         </div>
       </div>
 
+      {/* Highlights row (Instagram-style circles) */}
+      <Highlights userId={user.id} isOwner={isOwner} highlights={highlights} />
+
       {/* ───────────── Content ───────────── */}
-      {!isPublic && !isOwner ? (
-        <div className="card p-16 text-center">
-          <p className="text-sm text-ink-muted">This profile is private.</p>
-        </div>
-      ) : user.posts.length === 0 ? (
+      {user.posts.length === 0 ? (
         <div className="card p-16 text-center">
           <p className="text-sm text-ink-muted">
             {isOwner
@@ -174,12 +232,19 @@ export default async function ProfilePage({
         </div>
       ) : (
         <>
-          {/* Filter bar */}
+          {/* Filter bar — tabs are links that really filter */}
           <div className="mb-5 flex items-center gap-1 overflow-x-auto border-b border-line pb-px">
-            <FilterTab label="All" count={user.posts.length} active />
+            <FilterTab
+              label="All"
+              count={user.posts.length}
+              active={!activeTab}
+              href={`/profile/${id}`}
+            />
             <FilterTab
               label="Posts"
               count={user.posts.filter((p) => p.images.length === 0).length}
+              active={activeTab === "posts"}
+              href={`/profile/${id}?tab=posts`}
             />
             <FilterTab
               label="Work"
@@ -188,14 +253,24 @@ export default async function ProfilePage({
                   (p) => p.category === "JOB_OFFER" || p.category === "JOB_REQUEST"
                 ).length
               }
+              active={activeTab === "work"}
+              href={`/profile/${id}?tab=work`}
             />
             <FilterTab
               label="Photos"
               count={user.posts.filter((p) => p.images.length > 0).length}
+              active={activeTab === "photos"}
+              href={`/profile/${id}?tab=photos`}
             />
           </div>
 
-          <PostGrid posts={user.posts} />
+          {filteredPosts.length === 0 ? (
+            <div className="card p-16 text-center">
+              <p className="text-sm text-ink-muted">Nothing in this tab yet.</p>
+            </div>
+          ) : (
+            <PostGrid posts={filteredPosts} />
+          )}
         </>
       )}
     </div>
@@ -219,13 +294,16 @@ function FilterTab({
   label,
   count,
   active = false,
+  href,
 }: {
   label: string;
   count: number;
   active?: boolean;
+  href: string;
 }) {
   return (
-    <span
+    <Link
+      href={href}
       className={`relative shrink-0 px-4 py-3 text-sm font-medium transition-colors ${
         active
           ? "text-ink"
@@ -239,7 +317,7 @@ function FilterTab({
       {active && (
         <span className="absolute -bottom-px left-0 right-0 h-0.5 bg-accent" />
       )}
-    </span>
+    </Link>
   );
 }
 
@@ -262,6 +340,13 @@ type GridPost = {
   images: { id: string; url: string; order: number }[];
 };
 
+// Detail pages live in different sections per category — linking everything
+// to /community would 404 job posts.
+function postHref(p: GridPost): string {
+  const meta = CATEGORY_META[p.category as keyof typeof CATEGORY_META];
+  return `/${meta?.section || "community"}/${p.id}`;
+}
+
 function PostGrid({ posts }: { posts: GridPost[] }) {
   const withImages = posts.filter((p) => p.images.length > 0);
   const textOnly = posts.filter((p) => p.images.length === 0);
@@ -273,7 +358,7 @@ function PostGrid({ posts }: { posts: GridPost[] }) {
           {withImages.map((p) => (
             <Link
               key={p.id}
-              href={`/community/${p.id}`}
+              href={postHref(p)}
               className="group relative aspect-square overflow-hidden rounded-xl border border-line bg-soft"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -297,7 +382,7 @@ function PostGrid({ posts }: { posts: GridPost[] }) {
           {textOnly.map((p) => (
             <Link
               key={p.id}
-              href={`/community/${p.id}`}
+              href={postHref(p)}
               className="card card-hover block p-5"
             >
               <h3 className="text-base font-semibold text-ink group-hover:text-accent">

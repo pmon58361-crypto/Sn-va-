@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Avatar } from "@/components/ui/Avatar";
 import { MapPinIcon, MessageIcon, BriefcaseIcon } from "@/components/ui/Icons";
 import { PostActions } from "@/components/posts/PostActions";
+import { ImageGrid } from "@/components/posts/ImageGrid";
 import { timeAgo, parseTags } from "@/lib/utils";
 import { CATEGORY_META } from "@/lib/types";
 import { reactionCounts, type PostWithRelations } from "@/lib/queries";
@@ -160,118 +161,7 @@ export function PostCard({
 // 5+ → 2×2 with last tile showing "+N" overlay
 //
 // Key: single image = no crop (contain). Multi = cover with FIXED heights
-// so tiles are always proportional and consistent.
-const GAP = "gap-[3px]";
-
-function ImageGrid({
-  images,
-  post,
-}: {
-  images: { id: string; url: string; order: number }[];
-  post: { category: string; id: string; title: string };
-}) {
-  const count = images.length;
-  const href = detailPath(post.category, post.id);
-  const TILE = "relative overflow-hidden bg-soft";
-
-  if (count === 1) {
-    return (
-      <Link href={href} className="block bg-soft">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={images[0].url}
-          alt={post.title}
-          className="mx-auto w-full max-h-[500px] object-contain"
-          loading="lazy"
-        />
-      </Link>
-    );
-  }
-
-  if (count === 2) {
-    // Side-by-side, tall enough for portrait (9:16) without cropping
-    return (
-      <div className={`grid grid-cols-2 ${GAP} h-[440px]`}>
-        {images.slice(0, 2).map((img) => (
-          <GridLink key={img.id} href={href} className={TILE}>
-            <GridImg src={img.url} alt={post.title} />
-          </GridLink>
-        ))}
-      </div>
-    );
-  }
-
-  if (count === 3) {
-    return (
-      <div className={`flex flex-col ${GAP}`}>
-        <GridLink href={href} className={`${TILE} h-[260px]`}>
-          <GridImg src={images[0].url} alt={post.title} />
-        </GridLink>
-        <div className={`grid grid-cols-2 ${GAP} h-[180px]`}>
-          {images.slice(1, 3).map((img) => (
-            <GridLink key={img.id} href={href} className={TILE}>
-              <GridImg src={img.url} alt={post.title} />
-            </GridLink>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  // 4 or more → 2×2 grid
-  const shown = images.slice(0, 4);
-  const extra = count - 4;
-
-  return (
-    <div className={`grid grid-cols-2 ${GAP} aspect-square`}>
-      {shown.map((img, i) => {
-        const isLast = i === 3 && extra > 0;
-        return (
-          <GridLink key={img.id} href={href} className={TILE}>
-            <GridImg src={img.url} alt={post.title} />
-            {isLast && <MoreOverlay count={extra} />}
-          </GridLink>
-        );
-      })}
-    </div>
-  );
-}
-
-function GridLink({
-  href,
-  className,
-  children,
-}: {
-  href: string;
-  className: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <Link href={href} className={`block ${className}`}>
-      {children}
-    </Link>
-  );
-}
-
-function GridImg({ src, alt }: { src: string; alt: string }) {
-  return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={src}
-      alt={alt}
-      className="h-full w-full object-cover"
-      loading="lazy"
-    />
-  );
-}
-
-function MoreOverlay({ count }: { count: number }) {
-  return (
-    <div className="absolute inset-0 grid place-items-center bg-black/55">
-      <span className="text-3xl font-bold text-white drop-shadow">+{count}</span>
-    </div>
-  );
-}
+// (ImageGrid lives in ./ImageGrid.tsx — imported at the top.)
 
 export function EmptyState({
   title,

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { createNotification } from "@/lib/notify";
 
 // Send a direct message. Creates the message and clears read state on the
 // recipient's side naturally (their unread count is computed per-thread).
@@ -27,6 +28,12 @@ export async function sendMessage(recipientId: string, content: string) {
       recipientId,
       content: content.trim(),
     },
+  });
+
+  await createNotification({
+    userId: recipientId,
+    actorId: me,
+    type: "message",
   });
 
   revalidatePath("/dm");

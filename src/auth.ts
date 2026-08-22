@@ -115,15 +115,37 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (account?.provider) {
         token.provider = account.provider;
       }
-      // NOTE: We intentionally do NOT fetch theme/accent from the DB here
-      // because this callback runs in Edge Runtime (via middleware) and
-      // Prisma Client is not available in Edge Runtime.
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string;
         session.user.provider = (token.provider as string) || "credentials";
+
+        // Identity and preferences come fresh from the DB on every request,
+        // so name/avatar edits apply immediately (no re-login needed) and
+        // saved theme/accent follow the account across browsers.
+        // Safe to use Prisma here: this callback runs in Node route
+        // handlers — middleware no longer imports this file.
+        if (token.id) {
+          const user = await prisma.user.findUnique({
+            where: { id: token.id as string },
+            select: {
+              name: true,
+              image: true,
+              settings: {
+                select: { theme: true, accent: true, background: true },
+              },
+            },
+          });
+          if (user) {
+            session.user.name = user.name;
+            session.user.image = user.image;
+            session.user.theme = user.settings?.theme;
+            session.user.accent = user.settings?.accent;
+            session.user.background = user.settings?.background || undefined;
+          }
+        }
       }
       return session;
     },

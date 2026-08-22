@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { DNABackground } from "@/components/DNABackground";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
+import { BottomNav } from "@/components/layout/BottomNav";
 import { Sidebar } from "@/components/layout/Sidebar";
 
 export const metadata: Metadata = {
@@ -56,9 +57,13 @@ export default function RootLayout({
           {/* Desktop three-column shell */}
           <div className="mx-auto flex max-w-[1400px]">
             <Sidebar />
-            <main className="relative min-h-screen flex-1">{children}</main>
+            {/* min-w-0: without it the flex item's automatic minimum size
+                lets the landing marquee (w-max) blow main out to ~4400px,
+                pushing hero content off-screen. */}
+            <main className="relative min-h-screen min-w-0 flex-1 pb-20 lg:pb-0">{children}</main>
           </div>
           <Footer />
+          <BottomNav />
         </ThemeProvider>
       </body>
     </html>

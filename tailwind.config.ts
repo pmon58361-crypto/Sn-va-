@@ -6,28 +6,31 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        bg: "var(--bg)",
-        surface: "var(--bg-elevated)",
-        soft: "var(--bg-soft)",
+        // Channel-based vars (--x-rgb = "r g b") so Tailwind alpha
+        // modifiers like bg-accent/10 generate real CSS.
+        bg: "rgb(var(--bg-rgb) / <alpha-value>)",
+        surface: "rgb(var(--bg-elevated-rgb) / <alpha-value>)",
+        "surface-hover": "rgb(var(--bg-soft-rgb) / <alpha-value>)",
+        soft: "rgb(var(--bg-soft-rgb) / <alpha-value>)",
         ink: {
-          DEFAULT: "var(--ink)",
-          soft: "var(--ink-soft)",
-          muted: "var(--ink-muted)",
-          faint: "var(--ink-faint)",
+          DEFAULT: "rgb(var(--ink-rgb) / <alpha-value>)",
+          soft: "rgb(var(--ink-soft-rgb) / <alpha-value>)",
+          muted: "rgb(var(--ink-muted-rgb) / <alpha-value>)",
+          faint: "rgb(var(--ink-faint-rgb) / <alpha-value>)",
         },
         line: {
-          DEFAULT: "var(--line)",
-          strong: "var(--line-strong)",
+          DEFAULT: "rgb(var(--line-rgb) / <alpha-value>)",
+          strong: "rgb(var(--line-strong-rgb) / <alpha-value>)",
         },
         accent: {
-          DEFAULT: "var(--accent)",
+          DEFAULT: "rgb(var(--accent-rgb) / <alpha-value>)",
           hover: "var(--accent-hover)",
           soft: "var(--accent-soft)",
           tint: "var(--accent-tint)",
           ink: "var(--accent-ink)",
         },
         warm: {
-          DEFAULT: "var(--warm)",
+          DEFAULT: "rgb(var(--warm-rgb) / <alpha-value>)",
           tint: "var(--warm-tint)",
         },
         deep: "var(--deep)",

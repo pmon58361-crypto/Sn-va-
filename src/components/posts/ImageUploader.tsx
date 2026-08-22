@@ -1,16 +1,16 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { UploadIcon, TrashIcon, ImageIcon } from "@/components/ui/Icons";
+import { UploadIcon, TrashIcon, PlusIcon } from "@/components/ui/Icons";
 import { MAX_IMAGES_PER_POST, MAX_IMAGE_BYTES } from "@/lib/types";
 
 export type UploadedImage = { url: string; name: string };
 
 /**
  * Image uploader with drag-and-drop, previews, and per-image removal.
- * Uploads to /api/upload. Enforces a 100-image cap client-side (server enforces too).
- *
- * `postId` is optional; pass it to bind uploads to an existing post (edit mode).
+ * Uploads to /api/upload. Enforces the per-post image cap client-side
+ * (server enforces too). Compact: thumbnail strip first, dropzone only
+ * while empty. `postId` binds uploads to an existing post (edit mode).
  */
 export function ImageUploader({
   images,
@@ -73,88 +73,114 @@ export function ImageUploader({
   };
 
   const removeImage = (idx: number) => {
-    const next = images.filter((_, i) => i !== idx);
-    onChange(next);
+    onChange(images.filter((_, i) => i !== idx));
   };
+
+  const empty = images.length === 0;
 
   return (
     <div>
-      <label className="mb-1.5 block text-sm font-medium text-ink-soft">
-        Images <span className="text-ink-faint font-normal">({images.length}/{MAX_IMAGES_PER_POST})</span>
-      </label>
-
-      <div
-        onDragOver={(e) => {
-          e.preventDefault();
-          setDragging(true);
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        multiple
+        className="hidden"
+        onChange={(e) => {
+          if (e.target.files) uploadFiles(e.target.files);
+          e.target.value = "";
         }}
-        onDragLeave={() => setDragging(false)}
-        onDrop={handleDrop}
-        onClick={() => inputRef.current?.click()}
-        className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-8 text-center transition ${
-          dragging
-            ? "border-accent bg-accent-tint"
-            : "border-line-strong hover:border-zinc-400"
-        }`}
-      >
-        <UploadIcon className="h-8 w-8 text-ink-faint" />
-        <p className="mt-2 text-sm font-medium text-ink-soft">
-          {uploading ? "Uploading…" : "Drag & drop or click to upload"}
-        </p>
-        <p className="mt-0.5 text-xs text-ink-faint">
-          Up to {MAX_IMAGES_PER_POST} images · JPG, PNG, WEBP, GIF · 5MB each
-        </p>
-        <input
-          ref={inputRef}
-          type="file"
-          accept="image/jpeg,image/png,image/webp,image/gif"
-          multiple
-          className="hidden"
-          onChange={(e) => {
-            if (e.target.files) uploadFiles(e.target.files);
-            e.target.value = "";
+      />
+
+      {/* Empty state — full dropzone */}
+      {empty && (
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => inputRef.current?.click()}
+          onKeyDown={(e) => e.key === "Enter" && inputRef.current?.click()}
+          onDragOver={(e) => {
+            e.preventDefault();
+            setDragging(true);
           }}
-        />
-      </div>
-
-      {error && (
-        <p className="mt-2 text-xs text-accent">{error}</p>
-      )}
-
-      {images.length > 0 && (
-        <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-5">
-          {images.map((img, i) => (
-            <div
-              key={img.url + i}
-              className="group relative aspect-square overflow-hidden rounded-lg border border-line"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={img.url}
-                alt={img.name}
-                className="h-full w-full object-cover"
-              />
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  removeImage(i);
-                }}
-                className="absolute right-1 top-1 rounded-md bg-black/60 p-1 text-white opacity-0 transition group-hover:opacity-100"
-                aria-label="Remove image"
-              >
-                <TrashIcon className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          ))}
+          onDragLeave={() => setDragging(false)}
+          onDrop={handleDrop}
+          className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed px-6 py-7 text-center transition ${
+            dragging
+              ? "border-accent bg-accent-tint"
+              : "border-line-strong hover:border-accent"
+          }`}
+        >
+          <UploadIcon className="h-6 w-6 text-ink-faint" />
+          <p className="mt-2 text-sm font-medium text-ink-soft">
+            {uploading ? "Uploading…" : "Add images"}
+          </p>
+          <p className="mt-0.5 text-xs text-ink-faint">
+            Drag &amp; drop or click · JPG, PNG, WEBP, GIF · 5MB each
+          </p>
         </div>
       )}
 
-      {images.length === 0 && (
-        <p className="mt-2 flex items-center gap-1 text-xs text-ink-faint">
-          <ImageIcon className="h-3.5 w-3.5" /> No images yet
-        </p>
+      {/* Non-empty — thumbnail strip + add tile */}
+      {!empty && (
+        <div
+          onDragOver={(e) => {
+            e.preventDefault();
+            setDragging(true);
+          }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={handleDrop}
+        >
+          <div className="flex flex-wrap gap-2">
+            {images.map((img, i) => (
+              <div
+                key={img.url + i}
+                className="group relative h-20 w-20 overflow-hidden rounded-lg border border-line"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={img.url}
+                  alt={img.name}
+                  className="h-full w-full object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeImage(i)}
+                  className="absolute right-1 top-1 rounded-md bg-black/60 p-1 text-white opacity-0 transition group-hover:opacity-100 focus:opacity-100"
+                  aria-label="Remove image"
+                >
+                  <TrashIcon className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ))}
+
+            {remaining > 0 && (
+              <button
+                type="button"
+                onClick={() => inputRef.current?.click()}
+                disabled={uploading}
+                className={`grid h-20 w-20 place-items-center rounded-lg border border-dashed text-ink-faint transition hover:border-accent hover:text-accent disabled:opacity-50 ${
+                  dragging ? "border-accent bg-accent-tint text-accent" : "border-line-strong"
+                }`}
+                aria-label="Add more images"
+              >
+                {uploading ? (
+                  <span className="text-xs">…</span>
+                ) : (
+                  <PlusIcon className="h-5 w-5" />
+                )}
+              </button>
+            )}
+          </div>
+
+          <p className="mt-2 text-xs text-ink-faint">
+            {images.length}/{MAX_IMAGES_PER_POST} images
+            {uploading ? " · uploading…" : " · drag more here to add"}
+          </p>
+        </div>
       )}
+
+      {error && <p className="mt-2 text-xs text-warm">{error}</p>}
     </div>
   );
 }

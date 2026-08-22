@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { createNotification } from "@/lib/notify";
 import {
   POST_CATEGORIES,
   MAX_IMAGES_PER_POST,
@@ -128,6 +129,21 @@ export async function addComment(postId: string, content: string) {
   await prisma.comment.create({
     data: { postId, authorId: session.user.id, content: content.trim() },
   });
+
+  // Notify the post author (skipped when you comment on your own post).
+  const post = await prisma.post.findUnique({
+    where: { id: postId },
+    select: { authorId: true },
+  });
+  if (post) {
+    await createNotification({
+      userId: post.authorId,
+      actorId: session.user.id,
+      type: "comment",
+      postId,
+    });
+  }
+
   revalidatePath(`/community/${postId}`);
   revalidatePath(`/jobs/${postId}`);
   revalidatePath(`/applications/${postId}`);
@@ -139,19 +155,43 @@ export async function applyToJob(postId: string, message: string) {
 
   const post = await prisma.post.findUnique({
     where: { id: postId },
-    select: { category: true, status: true },
+    select: { category: true, status: true, authorId: true },
   });
   if (!post || post.category !== "JOB_LISTING") {
     throw new Error("Invalid listing");
   }
   if (post.status !== "open") throw new Error("Listing closed");
+  if (post.authorId === session.user.id) {
+    throw new Error("You cannot apply to your own listing");
+  }
 
   // upsert prevents double-applications (unique [postId, userId])
+  const wasNew = !(await prisma.application.findUnique({
+    where: { postId_userId: { postId, userId: session.user.id } },
+    select: { id: true },
+  }));
   await prisma.application.upsert({
     where: { postId_userId: { postId, userId: session.user.id } },
     update: { message: message.trim() },
     create: { postId, userId: session.user.id, message: message.trim() },
   });
+
+  // Notify the listing author on a first-time application only.
+  if (wasNew) {
+    const full = await prisma.post.findUnique({
+      where: { id: postId },
+      select: { authorId: true },
+    });
+    if (full) {
+      await createNotification({
+        userId: full.authorId,
+        actorId: session.user.id,
+        type: "application",
+        postId,
+      });
+    }
+  }
+
   revalidatePath(`/applications/${postId}`);
 }
 
@@ -172,6 +212,21 @@ export async function toggleReaction(
 
   if (!existing) {
     await prisma.reaction.create({ data: { postId, userId: me, type } });
+    // Notify the author on likes only (not dislikes).
+    if (type === "like") {
+      const post = await prisma.post.findUnique({
+        where: { id: postId },
+        select: { authorId: true },
+      });
+      if (post) {
+        await createNotification({
+          userId: post.authorId,
+          actorId: me,
+          type: "like",
+          postId,
+        });
+      }
+    }
   } else if (existing.type === type) {
     await prisma.reaction.delete({ where: { id: existing.id } });
   } else {
@@ -233,8 +288,47 @@ export async function toggleFollow(targetUserId: string): Promise<{ following: b
   await prisma.follow.create({
     data: { followerId: me, followingId: targetUserId },
   });
+  await createNotification({
+    userId: targetUserId,
+    actorId: me,
+    type: "follow",
+  });
   revalidatePath(`/profile/${targetUserId}`);
   return { following: true };
+}
+
+// Accept or reject a job application. Only the listing author decides.
+export async function setApplicationStatus(
+  applicationId: string,
+  status: "accepted" | "rejected"
+) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Unauthorized");
+  if (status !== "accepted" && status !== "rejected") {
+    throw new Error("Invalid status");
+  }
+
+  const application = await prisma.application.findUnique({
+    where: { id: applicationId },
+    include: { post: { select: { id: true, authorId: true } } },
+  });
+  if (!application) throw new Error("Not found");
+  if (application.post.authorId !== session.user.id) throw new Error("Forbidden");
+
+  await prisma.application.update({
+    where: { id: applicationId },
+    data: { status },
+  });
+
+  // The applicant finds out the moment a decision is made.
+  await createNotification({
+    userId: application.userId,
+    actorId: session.user.id,
+    type: status === "accepted" ? "application_accepted" : "application_rejected",
+    postId: application.post.id,
+  });
+
+  revalidatePath(`/applications/${application.post.id}`);
 }
 
 // Report a post for moderation. One report per user per post.

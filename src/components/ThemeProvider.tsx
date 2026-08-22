@@ -51,15 +51,23 @@ export function applyBackground(hex: string | null) {
   if (!hex) {
     root.removeProperty("--user-bg");
     root.removeProperty("--bg");
+    root.removeProperty("--bg-rgb");
     root.removeProperty("--bg-elevated");
+    root.removeProperty("--bg-elevated-rgb");
     root.removeProperty("--bg-soft");
+    root.removeProperty("--bg-soft-rgb");
     return;
   }
   const dark = !document.documentElement.classList.contains("light");
   root.setProperty("--user-bg", hex);
   root.setProperty("--bg", hex);
-  root.setProperty("--bg-elevated", shade(hex, dark ? 10 : 6));
-  root.setProperty("--bg-soft", shade(hex, dark ? -35 : -5));
+  root.setProperty("--bg-rgb", toChannels(hex));
+  const elevated = shade(hex, dark ? 10 : 6);
+  const soft = shade(hex, dark ? -35 : -5);
+  root.setProperty("--bg-elevated", elevated);
+  root.setProperty("--bg-elevated-rgb", toChannels(elevated));
+  root.setProperty("--bg-soft", soft);
+  root.setProperty("--bg-soft-rgb", toChannels(soft));
 }
 
 // Apply the accent and derive its tint/hover shades so a single hex drives
@@ -67,6 +75,7 @@ export function applyBackground(hex: string | null) {
 export function applyAccent(hex: string) {
   const root = document.documentElement.style;
   root.setProperty("--accent", hex);
+  root.setProperty("--accent-rgb", toChannels(hex));
   root.setProperty("--accent-hover", shade(hex, -18));
   root.setProperty("--accent-soft", shade(hex, 22));
   root.setProperty("--accent-tint", tint(hex, 0.9));
@@ -97,6 +106,12 @@ function parseHex(hex: string) {
     g: parseInt(h.slice(2, 4), 16),
     b: parseInt(h.slice(4, 6), 16),
   };
+}
+
+// "47 158 107" — the channel form Tailwind alpha modifiers read from.
+function toChannels(hex: string): string {
+  const { r, g, b } = parseHex(hex);
+  return `${r} ${g} ${b}`;
 }
 
 function toHex(r: number, g: number, b: number) {

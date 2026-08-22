@@ -38,31 +38,28 @@ export function QuickComposer() {
           </span>
         </button>
       </div>
-      <div className="mt-3 flex items-center justify-between border-t border-line pt-3">
+      <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-line pt-3">
         <span className="text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">
-          Post
+          Create
         </span>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => router.push("/new?category=COMMUNITY")}
-            className="rounded-lg px-3 py-1.5 text-xs font-medium text-ink-muted transition hover:bg-soft hover:text-accent"
-          >
-            Story
-          </button>
-          <button
-            onClick={() => router.push("/new?category=JOB_OFFER")}
-            className="rounded-lg px-3 py-1.5 text-xs font-medium text-ink-muted transition hover:bg-soft hover:text-accent"
-          >
-            Offer
-          </button>
-          <button
-            onClick={() => router.push("/new?category=JOB_LISTING")}
-            className="rounded-lg px-3 py-1.5 text-xs font-medium text-ink-muted transition hover:bg-soft hover:text-accent"
-          >
-            Job
-          </button>
+        <div className="ml-auto flex items-center gap-1.5">
+          {[
+            { label: "Story", hint: "Share an experience", href: "/new?category=COMMUNITY" },
+            { label: "Offer", hint: "Offer your skills", href: "/new?category=JOB_OFFER" },
+            { label: "Job", hint: "Post an opening", href: "/new?category=JOB_LISTING" },
+          ].map(({ label, hint, href }) => (
+            <button
+              key={label}
+              title={hint}
+              onClick={() => router.push(href)}
+              className="inline-flex items-center gap-1.5 rounded-full border border-line-strong px-3.5 py-1.5 text-xs font-semibold text-ink-muted transition hover:border-accent hover:bg-accent-tint hover:text-accent"
+            >
+              {label}
+            </button>
+          ))}
         </div>
       </div>
     </div>
   );
 }
+

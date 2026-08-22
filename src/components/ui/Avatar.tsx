@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import { initials } from "@/lib/utils";
 
 export function Avatar({
@@ -9,8 +12,15 @@ export function Avatar({
   image?: string | null;
   size?: number;
 }) {
-  if (image) {
-    // eslint-disable-next-line @next/next/no-img-element
+  const [broken, setBroken] = useState(false);
+  // Reset the error flag whenever the URL changes, so a fixed URL shows again.
+  const [lastImage, setLastImage] = useState(image);
+  if (image !== lastImage) {
+    setLastImage(image);
+    setBroken(false);
+  }
+
+  if (image && !broken) {
     return (
       <img
         src={image}
@@ -19,6 +29,7 @@ export function Avatar({
         height={size}
         className="rounded-full object-cover"
         style={{ width: size, height: size, objectPosition: "center top" }}
+        onError={() => setBroken(true)}
       />
     );
   }
@@ -31,4 +42,3 @@ export function Avatar({
     </div>
   );
 }
-

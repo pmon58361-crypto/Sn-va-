@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState } from "react";
 import { sendMessage, markThreadRead } from "@/app/dm/actions";
 import { timeAgo } from "@/lib/utils";
 
@@ -25,7 +25,7 @@ export function DmThread({
 }) {
   const [messages, setMessages] = useState<Msg[]>(initial);
   const [draft, setDraft] = useState("");
-  const [sending, startTransition] = useTransition();
+  const [sending, setSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const lastAt =
     messages.length > 0
@@ -66,7 +66,7 @@ export function DmThread({
     return () => clearInterval(iv);
   }, [otherId, lastAt]);
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
     const content = draft.trim();
     if (!content || sending) return;
@@ -79,21 +79,22 @@ export function DmThread({
       createdAt: new Date().toISOString(),
     };
     setMessages((prev) => [...prev, optimistic]);
-    startTransition(async () => {
-      try {
-        const saved = await sendMessage(otherId, content);
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === optimistic.id
-              ? { ...m, id: saved.id, createdAt: saved.createdAt }
-              : m
-          )
-        );
-      } catch {
-        setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
-        setDraft(content);
-      }
-    });
+    setSending(true);
+    try {
+      const saved = await sendMessage(otherId, content);
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === optimistic.id
+            ? { ...m, id: saved.id, createdAt: saved.createdAt }
+            : m
+        )
+      );
+    } catch {
+      setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
+      setDraft(content);
+    } finally {
+      setSending(false);
+    }
   }
 
   return (

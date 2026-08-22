@@ -1,13 +1,9 @@
 import { prisma } from "@/lib/prisma";
 
-// Active stories grouped by author, newest first. Expired stories are
-// lazily cleaned up on read. `meId` drives the seen/unseen ring state.
+// Active stories grouped by author, newest first. Expired stories are kept
+// (they power the profile Archive) — only non-expired ones are returned.
+// `meId` drives the seen/unseen ring state.
 export async function getActiveStories(meId?: string | null) {
-  // Lazy cleanup of expired stories.
-  await prisma.story.deleteMany({
-    where: { expiresAt: { lt: new Date() } },
-  });
-
   const stories = await prisma.story.findMany({
     where: { expiresAt: { gt: new Date() } },
     orderBy: { createdAt: "asc" },
@@ -64,5 +60,14 @@ export async function getActiveStories(meId?: string | null) {
     if (aMine !== bMine) return bMine - aMine;
     if (a.hasUnseen !== b.hasUnseen) return a.hasUnseen ? -1 : 1;
     return 0;
+  });
+}
+
+// The signed-in user's expired stories, newest first (profile Archive).
+export async function getArchivedStories(meId: string) {
+  return prisma.story.findMany({
+    where: { authorId: meId, expiresAt: { lte: new Date() } },
+    orderBy: { createdAt: "desc" },
+    take: 100,
   });
 }

@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { Avatar } from "@/components/ui/Avatar";
+import { CalendarIcon } from "@/components/ui/Icons";
 import { SettingsForm } from "./SettingsForm";
 import type { SettingsInput } from "./actions";
 
@@ -13,7 +15,10 @@ export default async function SettingsPage() {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    include: { settings: true },
+    include: {
+      settings: true,
+      _count: { select: { posts: true, followers: true } },
+    },
   });
 
   if (!user) redirect("/auth/signin");
@@ -27,20 +32,74 @@ export default async function SettingsPage() {
     theme: s?.theme || "light",
     accent: s?.accent || "#2f9e6b",
     background: s?.background ?? "",
-    emailNotifications: s?.emailNotifications ?? true,
     publicProfile: s?.publicProfile ?? true,
     showEmail: s?.showEmail ?? false,
   };
 
+  const provider = (session.user.provider as string) || user.provider;
+
   return (
-    <div className="mx-auto max-w-2xl px-5 py-16">
-      <p className="eyebrow mb-4">Account</p>
-      <h1 className="mb-2 display-2 text-ink">Settings</h1>
-      <p className="mb-10 text-sm text-ink-muted">
+    <div className="mx-auto max-w-3xl px-5 py-10">
+      {/* Page heading */}
+      <p className="eyebrow mb-2">Account</p>
+      <h1 className="text-2xl font-bold tracking-tight text-ink">Settings</h1>
+      <p className="mb-6 mt-1 text-sm text-ink-muted">
         Manage your profile, appearance, and privacy.
       </p>
+
+      {/* Identity header */}
+      <section className="card mb-8 overflow-hidden">
+        <div
+          className="h-16 w-full"
+          style={{
+            background: `linear-gradient(120deg, ${initial.accent}30 0%, transparent 50%), var(--bg-elevated)`,
+          }}
+        />
+        <div className="px-5 pb-5 sm:px-6">
+          <div className="-mt-10 mb-4">
+            <span className="inline-block rounded-full border-4 border-[var(--bg-elevated)]">
+              <Avatar name={user.name} image={user.image} size={88} />
+            </span>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="min-w-0">
+              <h2 className="truncate text-lg font-bold leading-tight text-ink">
+                {user.name || "Anonymous"}
+              </h2>
+              <p className="truncate text-sm text-ink-muted">{user.email}</p>
+            </div>
+            <span className="badge border border-line bg-[var(--bg-soft)] capitalize text-ink-muted">
+              {provider} sign-in
+            </span>
+          </div>
+
+          <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-ink-faint">
+            <span className="inline-flex items-center gap-1.5">
+              <CalendarIcon className="h-3.5 w-3.5" />
+              Joined{" "}
+              {new Date(user.createdAt).toLocaleDateString(undefined, {
+                month: "long",
+                year: "numeric",
+              })}
+            </span>
+            <span aria-hidden>·</span>
+            <span>
+              <b className="font-semibold text-ink-soft">{user._count.posts}</b>{" "}
+              posts
+            </span>
+            <span aria-hidden>·</span>
+            <span>
+              <b className="font-semibold text-ink-soft">
+                {user._count.followers}
+              </b>{" "}
+              followers
+            </span>
+          </p>
+        </div>
+      </section>
+
       <SettingsForm initial={initial} />
     </div>
   );
 }
-

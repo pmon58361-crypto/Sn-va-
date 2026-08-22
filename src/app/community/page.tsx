@@ -119,7 +119,7 @@ export default async function CommunityPage({
       </div>
 
       {/* Right sidebar */}
-      <RightSidebar />
+      <RightSidebar viewerId={session?.user?.id} />
     </div>
   );
 }

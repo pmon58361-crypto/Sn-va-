@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createStory } from "@/app/stories/actions";
 import { viewStory } from "@/app/stories/actions";
@@ -78,9 +78,23 @@ function Ring({
   image?: string | null;
   name?: string | null;
 }) {
-  if (image) {
+  const [broken, setBroken] = useState(false);
+  const [lastImage, setLastImage] = useState(image);
+  if (image !== lastImage) {
+    setLastImage(image);
+    setBroken(false);
+  }
+
+  if (image && !broken) {
     // eslint-disable-next-line @next/next/no-img-element
-    return <img src={image} alt="" className={`h-14 w-14 rounded-full p-[3px] ${seen ? "" : "bg-gradient-to-tr from-accent to-like"}`} />;
+    return (
+      <img
+        src={image}
+        alt=""
+        onError={() => setBroken(true)}
+        className={`h-14 w-14 rounded-full object-cover p-[3px] ${seen ? "" : "bg-gradient-to-tr from-accent to-like"}`}
+      />
+    );
   }
   return (
     <span
@@ -104,17 +118,19 @@ function StoryComposer({ onClose }: { onClose: () => void }) {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const [pending, setPending] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
-  function submit() {
+  async function submit() {
+    if (pending) return;
     setError(null);
     const form = new FormData();
     form.append("bg", bg);
     if (caption.trim()) form.append("caption", caption.trim());
     if (file) form.append("file", file);
-    startTransition(async () => {
+    setPending(true);
+    try {
       const res = await createStory(form);
       if (!res.ok) {
         setError(res.error || "Failed");
@@ -122,7 +138,9 @@ function StoryComposer({ onClose }: { onClose: () => void }) {
       }
       onClose();
       router.refresh();
-    });
+    } finally {
+      setPending(false);
+    }
   }
 
   return (
@@ -235,6 +253,7 @@ function StoryViewer({
 }) {
   const [index, setIndex] = useState(0);
   const [progress, setProgress] = useState(0);
+  const [authorPicBroken, setAuthorPicBroken] = useState(false);
   const item = group.items[index];
   const router = useRouter();
 
@@ -300,9 +319,19 @@ function StoryViewer({
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 text-white">
         <span className="flex items-center gap-2 text-sm font-bold">
-          {group.author.image && (
+          {group.author.image && !authorPicBroken && (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={group.author.image} alt="" className="h-8 w-8 rounded-full object-cover" />
+            <img
+              src={group.author.image}
+              alt=""
+              onError={() => setAuthorPicBroken(true)}
+              className="h-8 w-8 rounded-full object-cover"
+            />
+          )}
+          {(!group.author.image || authorPicBroken) && (
+            <span className="grid h-8 w-8 place-items-center rounded-full bg-white/10 text-xs font-bold">
+              {(group.author.name || "?").charAt(0).toUpperCase()}
+            </span>
           )}
           {group.author.name || "Someone"}
           <span className="font-normal text-white/60">· {timeAgo(item.createdAt)}</span>

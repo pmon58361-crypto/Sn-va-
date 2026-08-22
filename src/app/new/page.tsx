@@ -1,25 +1,34 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { PostComposer } from "@/components/posts/PostComposer";
+import { POST_CATEGORIES, type PostCategory } from "@/lib/types";
 
 export const metadata = { title: "New Post — Snívať" };
 export const dynamic = "force-dynamic";
 
-export default async function NewPostPage() {
+export default async function NewPostPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ category?: string }>;
+}) {
   const session = await auth();
   if (!session?.user?.id) redirect("/auth/signin?callbackUrl=/new");
 
+  const { category } = await searchParams;
+  const initialCategory = POST_CATEGORIES.includes(category as PostCategory)
+    ? (category as PostCategory)
+    : undefined;
+
   return (
-    <div className="mx-auto max-w-2xl px-5 py-16">
-      <p className="eyebrow mb-4">Compose</p>
-      <h1 className="display-2 mb-2 text-ink">Create a post</h1>
-      <p className="mb-10 text-ink-muted">
-        Share something with the community, offer your services, request help, or
-        post a job opening.
+    <div className="mx-auto max-w-2xl px-5 py-8 sm:py-10">
+      <h1 className="text-2xl font-extrabold tracking-tight text-ink">
+        New post
+      </h1>
+      <p className="mb-6 mt-1 text-sm text-ink-muted">
+        Share an experience, offer your skills, or post an opening.
       </p>
-      <div className="card p-8">
-        <PostComposer />
-      </div>
+
+      <PostComposer initial={initialCategory ? { category: initialCategory } : undefined} />
     </div>
   );
 }

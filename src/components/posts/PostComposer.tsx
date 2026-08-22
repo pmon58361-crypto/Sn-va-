@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useActionState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ImageUploader, type UploadedImage } from "@/components/posts/ImageUploader";
 import { savePost, type PostInput } from "@/app/actions";
@@ -9,12 +9,27 @@ import {
   CATEGORY_META,
   type PostCategory,
 } from "@/lib/types";
+import { parseTags } from "@/lib/utils";
+import {
+  UsersIcon,
+  BriefcaseIcon,
+  ClipboardIcon,
+  OfferIcon,
+  RequestIcon,
+} from "@/components/ui/Icons";
 
-const CATEGORY_FIELDS: Record<PostCategory, { showJobFields: boolean }> = {
-  COMMUNITY: { showJobFields: false },
-  JOB_OFFER: { showJobFields: true },
-  JOB_REQUEST: { showJobFields: true },
-  JOB_LISTING: { showJobFields: true },
+const CATEGORY_ICON: Record<PostCategory, React.ComponentType<{ className?: string }>> = {
+  COMMUNITY: UsersIcon,
+  JOB_OFFER: OfferIcon,
+  JOB_REQUEST: RequestIcon,
+  JOB_LISTING: ClipboardIcon,
+};
+
+const CATEGORY_HINT: Record<PostCategory, string> = {
+  COMMUNITY: "Share an experience or start a discussion.",
+  JOB_OFFER: "Tell people what work you can do.",
+  JOB_REQUEST: "Describe work you need done.",
+  JOB_LISTING: "Post a job opening people can apply to.",
 };
 
 export function PostComposer({
@@ -40,174 +55,182 @@ export function PostComposer({
     (initial?.imageUrls || []).map((url) => ({ url, name: "existing" }))
   );
 
-  // useActionState for the submit handler.
-  // NOTE: savePost calls redirect() on success, which throws a special
-  // NEXT_REDIRECT error internally. We must NOT catch that — let it propagate
-  // so Next.js can perform the navigation.
-  const [state, formAction, pending] = useActionState(
-    async (_prev: unknown, formData: FormData) => {
-      try {
-        await savePost({
-          id: postId,
-          category,
-          title,
-          content,
-          tags,
-          budget,
-          location,
-          type,
-          imageUrls: images.map((i) => i.url),
-        });
-        return null;
-      } catch (e) {
-        // Re-throw redirect signals so Next can handle navigation.
-        if (e instanceof Error && e.message === "NEXT_REDIRECT") throw e;
-        // `redirect()` from next/navigation throws a digest error; detect it.
-        const digest = (e as { digest?: string })?.digest;
-        if (typeof digest === "string" && digest.startsWith("NEXT_REDIRECT")) {
-          throw e;
-        }
-        return e instanceof Error ? e.message : "Something went wrong";
-      }
-    },
-    null
-  );
+  // Plain async submit — useActionState is React 19-only and this app
+  // runs React 18.3.1.
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const showJobFields = CATEGORY_FIELDS[category].showJobFields;
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (pending) return;
+    setPending(true);
+    setError(null);
+    try {
+      await savePost({
+        id: postId,
+        category,
+        title,
+        content,
+        tags,
+        budget,
+        location,
+        type,
+        imageUrls: images.map((i) => i.url),
+      });
+      // savePost redirects on success; Next handles the navigation.
+    } catch (err) {
+      const digest = (err as { digest?: string })?.digest;
+      if (typeof digest === "string" && digest.startsWith("NEXT_REDIRECT")) {
+        return;
+      }
+      if (err instanceof Error && err.message === "NEXT_REDIRECT") {
+        return;
+      }
+      setError(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  const isJobish = category !== "COMMUNITY";
+  const tagChips = parseTags(tags);
 
   return (
-    <form action={formAction} className="space-y-5">
-      {state && (
-        <div className="rounded-lg border border-warm text-warm bg-warm-tint px-4 py-3 text-sm">
-          {String(state)}
+    <form onSubmit={onSubmit} className="space-y-6">
+      {error && (
+        <div className="rounded-xl border border-warm bg-warm-tint px-4 py-3 text-sm text-warm">
+          {String(error)}
         </div>
       )}
 
-      {/* Category selector */}
+      {/* Category — segmented control */}
       <div>
-        <label className="mb-1.5 block text-sm font-medium text-ink-soft">
-          Category
-        </label>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {POST_CATEGORIES.map((c) => (
-            <button
-              key={c}
-              type="button"
-              disabled={!!lockedCategory}
-              onClick={() => setCategory(c)}
-              className={`rounded-lg border px-3 py-2.5 text-sm font-medium transition disabled:opacity-60 ${
-                category === c
-                  ? "border-accent bg-accent-tint text-accent"
-                  : "border-line-strong text-ink-muted hover:border-zinc-400"
-              }`}
-            >
-              {CATEGORY_META[c].label}
-            </button>
-          ))}
+          {POST_CATEGORIES.map((c) => {
+            const Icon = CATEGORY_ICON[c];
+            const active = category === c;
+            return (
+              <button
+                key={c}
+                type="button"
+                disabled={!!lockedCategory}
+                onClick={() => setCategory(c)}
+                aria-pressed={active}
+                className={`flex flex-col items-center gap-1.5 rounded-xl border px-3 py-3 text-xs font-semibold transition disabled:opacity-60 ${
+                  active
+                    ? "border-accent bg-accent-tint text-accent"
+                    : "border-line bg-surface text-ink-muted hover:border-line-strong hover:text-ink"
+                }`}
+              >
+                <Icon className="h-5 w-5" />
+                {CATEGORY_META[c].label}
+              </button>
+            );
+          })}
         </div>
-        <p className="mt-1.5 text-xs text-ink-faint">
-          {category === "COMMUNITY" && "Share an experience or start a discussion."}
-          {category === "JOB_OFFER" && "Tell people what work you can do."}
-          {category === "JOB_REQUEST" && "Describe work you need done."}
-          {category === "JOB_LISTING" && "Post a job opening people can apply to."}
-        </p>
+        <p className="mt-2 text-xs text-ink-faint">{CATEGORY_HINT[category]}</p>
       </div>
 
-      <div>
-        <label className="mb-1.5 block text-sm font-medium text-ink-soft">
-          Title
-        </label>
-        <input
-          className="input"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder={
-            category === "COMMUNITY"
-              ? "Share a title for your post…"
-              : "e.g. Senior React Developer"
-          }
-          required
-          maxLength={120}
-        />
-      </div>
+      {/* Title — headline style */}
+      <input
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder={
+          isJobish ? "e.g. Senior React Developer" : "Give it a title…"
+        }
+        required
+        maxLength={120}
+        className="w-full bg-transparent text-xl font-bold text-ink outline-none placeholder:text-ink-faint focus:outline-none"
+      />
 
-      <div>
-        <label className="mb-1.5 block text-sm font-medium text-ink-soft">
-          Details
-        </label>
-        <textarea
-          className="input min-h-[140px] resize-y"
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          placeholder="Describe what you're posting about…"
-          required
-          maxLength={5000}
-        />
-      </div>
+      {/* Details */}
+      <textarea
+        value={content}
+        onChange={(e) => setContent(e.target.value)}
+        placeholder="Describe what you're posting about…"
+        required
+        maxLength={5000}
+        rows={7}
+        className="w-full resize-y rounded-xl border border-line bg-surface px-4 py-3 text-[15px] leading-relaxed text-ink outline-none transition-colors placeholder:text-ink-faint focus:border-accent"
+      />
 
-      {showJobFields && (
-        <div className="grid gap-4 sm:grid-cols-3">
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-ink-soft">
+      {/* Job-specific fields */}
+      {isJobish && (
+        <div className="grid gap-3 rounded-xl bg-soft p-4 sm:grid-cols-3">
+          <label className="block">
+            <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-ink-faint">
               Budget / Rate
-            </label>
+            </span>
             <input
-              className="input"
               value={budget}
               onChange={(e) => setBudget(e.target.value)}
-              placeholder="$50/hr, $5k fixed…"
+              placeholder="$50/hr"
+              className="input py-2 text-sm"
             />
-          </div>
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-ink-soft">
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-ink-faint">
               Type
-            </label>
+            </span>
             <input
-              className="input"
               value={type}
               onChange={(e) => setType(e.target.value)}
-              placeholder="full-time, freelance…"
+              placeholder="full-time, freelance"
+              className="input py-2 text-sm"
             />
-          </div>
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-ink-soft">
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-ink-faint">
               Location
-            </label>
+            </span>
             <input
-              className="input"
               value={location}
               onChange={(e) => setLocation(e.target.value)}
-              placeholder="Remote, NYC…"
+              placeholder="Remote, NYC"
+              className="input py-2 text-sm"
             />
-          </div>
+          </label>
         </div>
       )}
 
+      {/* Tags with live chip preview */}
       <div>
-        <label className="mb-1.5 block text-sm font-medium text-ink-soft">
-          Tags <span className="text-ink-faint font-normal">(comma separated)</span>
-        </label>
         <input
-          className="input"
           value={tags}
           onChange={(e) => setTags(e.target.value)}
-          placeholder="react, design, remote"
+          placeholder="Tags — react, design, remote"
+          maxLength={200}
+          className="input py-2 text-sm"
         />
+        {tagChips.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {tagChips.slice(0, 8).map((t) => (
+              <span
+                key={t}
+                className="badge border border-line bg-soft text-xs font-medium text-ink-muted"
+              >
+                #{t}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
       <ImageUploader images={images} onChange={setImages} postId={postId} />
 
-      <div className="flex items-center justify-end gap-3 border-t border-line pt-5">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="btn-ghost"
-        >
-          Cancel
-        </button>
-        <button type="submit" disabled={pending} className="btn-primary">
-          {pending ? "Saving…" : postId ? "Save changes" : "Publish post"}
-        </button>
+      {/* Sticky action bar */}
+      <div className="sticky bottom-4 z-10 flex items-center justify-between gap-3 rounded-2xl border border-line bg-surface/90 px-4 py-3 shadow-lg backdrop-blur">
+        <span className="text-xs text-ink-faint">
+          {title.length}/120 · {content.length}/5000
+        </span>
+        <div className="flex items-center gap-2">
+          <button type="button" onClick={() => router.back()} className="btn-ghost px-4 py-1.5 text-sm">
+            Cancel
+          </button>
+          <button type="submit" disabled={pending} className="btn-primary px-5 py-1.5 text-sm">
+            {pending ? "Saving…" : postId ? "Save changes" : "Publish"}
+          </button>
+        </div>
       </div>
     </form>
   );

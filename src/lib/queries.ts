@@ -1,4 +1,10 @@
 import { prisma } from "@/lib/prisma";
+import {
+  buildPersonalContext,
+  rankFeed,
+  rotateFeed,
+  type FeedSort,
+} from "@/lib/feed";
 import type { PostCategory } from "@/lib/types";
 
 // Standard include shape so all post fetches return a consistent object.
@@ -46,6 +52,7 @@ export async function getPosts({
   limit = 50,
   includeClosed = false,
   viewerId,
+  sort = 'best',
 }: {
   category?: PostCategory;
   categories?: PostCategory[];
@@ -54,6 +61,7 @@ export async function getPosts({
   limit?: number;
   includeClosed?: boolean;
   viewerId?: string;
+  sort?: FeedSort;
 } = {}) {
   const where: Record<string, unknown> = {};
 
@@ -74,15 +82,43 @@ export async function getPosts({
     ];
   }
 
-  return prisma.post.findMany({
+  // Ranked feeds over-fetch so the algorithm has a pool to work with.
+  const pool = await prisma.post.findMany({
     where,
     include: {
       ...postInclude,
       ...(viewerId ? { bookmarks: { where: { userId: viewerId } } } : {}),
     },
     orderBy: { createdAt: "desc" },
-    take: limit,
+    take: sort === "best" ? Math.max(limit * 4, 200) : limit,
   });
+
+  if (sort !== "best") return pool;
+  const ctx = viewerId ? await buildPersonalContext(viewerId) : undefined;
+
+  const ids = pool.map((p) => p.id);
+  const since12 = new Date(Date.now() - 12 * 3_600_000);
+  const [r12, c12] = await Promise.all([
+    prisma.reaction.groupBy({
+      by: ["postId"],
+      where: { createdAt: { gte: since12 }, postId: { in: ids } },
+      _count: { _all: true },
+    }),
+    prisma.comment.groupBy({
+      by: ["postId"],
+      where: { createdAt: { gte: since12 }, postId: { in: ids } },
+      _count: { _all: true },
+    }),
+  ]);
+  const recent12h = new Map<string, number>();
+  for (const g of r12) recent12h.set(g.postId, g._count._all);
+  for (const g of c12)
+    recent12h.set(g.postId, (recent12h.get(g.postId) || 0) + g._count._all);
+
+  return rotateFeed(
+    rankFeed(pool, "best", new Date(), ctx, { recent12h, viewerId }),
+    { viewerId }
+  ).slice(0, limit);
 }
 
 export async function getComments(postId: string) {

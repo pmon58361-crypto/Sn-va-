@@ -21,6 +21,20 @@
   --line: #2a2a2a;          /* divider */
   --line-strong: #383838;
 
+  /* RGB channels of the colors above — lets Tailwind alpha modifiers
+     (e.g. bg-accent/10) work on CSS-variable colors. Keep in sync. */
+  --bg-rgb: 18 18 18;
+  --bg-elevated-rgb: 28 28 28;
+  --bg-soft-rgb: 10 10 10;
+  --ink-rgb: 245 245 245;
+  --ink-soft-rgb: 212 212 212;
+  --ink-muted-rgb: 154 154 154;
+  --ink-faint-rgb: 106 106 106;
+  --line-rgb: 42 42 42;
+  --line-strong-rgb: 56 56 56;
+  --accent-rgb: 47 158 107;
+  --warm-rgb: 224 136 85;
+
   /* Accent — luminous green (echoes the brand mark's teal→lime gradient) */
   --accent: #2f9e6b;
   --accent-hover: #34b577;
@@ -57,6 +71,17 @@ html.light {
   --ink-faint: #9da69f;
   --line: #e3ddd2;          /* warm divider */
   --line-strong: #d4ccbd;
+  --bg-rgb: 246 243 238;
+  --bg-elevated-rgb: 255 253 249;
+  --bg-soft-rgb: 239 234 225;
+  --ink-rgb: 26 38 32;
+  --ink-soft-rgb: 61 74 68;
+  --ink-muted-rgb: 107 119 112;
+  --ink-faint-rgb: 157 166 159;
+  --line-rgb: 227 221 210;
+  --line-strong-rgb: 212 204 189;
+  --accent-rgb: 47 158 107;
+  --warm-rgb: 201 123 58;
   --accent: #2f9e6b;
   --accent-hover: #247a52;
   --accent-soft: #5bb98c;
@@ -214,13 +239,13 @@ body {
   }
 }
 
-/* Reveal-on-scroll */
+/* Reveal-on-scroll — no `both` fill: if animations are unavailable the
+   content simply renders visible instead of staying hidden at opacity 0. */
 @keyframes reveal-up {
   from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
 }
 .reveal {
-  animation: reveal-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: reveal-up 0.8s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* Soft pulse */
@@ -271,7 +296,7 @@ body {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  /* crop into the watch face � plate text falls outside the circle */
+  /* crop into the watch face � plate text falls outside the circle */
   transform: scale(1.35);
   transform-origin: 52% 42%;
 }
@@ -350,4 +375,106 @@ html.light .gm-logo-img { filter: none; }
   width: 100%;
   height: 100%;
   filter: drop-shadow(0 2px 6px rgba(0,0,0,.85));
+}
+
+/* Landing page canvas � near-black, VC-style */
+.page-lux {
+  --bg: #08080a;
+  --bg-elevated: #101014;
+  --bg-soft: #050506;
+  --line: #1c1c22;
+  --line-strong: #2a2a33;
+  --bg-rgb: 8 8 10;
+  --bg-elevated-rgb: 16 16 20;
+  --bg-soft-rgb: 5 5 6;
+  --line-rgb: 28 28 34;
+  --line-strong-rgb: 42 42 51;
+  background: var(--bg);
+}
+.page-lux ::selection { background: rgba(201,162,75,.35); }
+
+/* ── Landing art: motion kit ─────────────────────────────────────────── */
+@keyframes marquee-x { to { transform: translateX(-50%); } }
+.animate-marquee { animation: marquee-x 30s linear infinite; }
+
+@keyframes spin-slower { to { transform: rotate(360deg); } }
+.animate-spin-slower { animation: spin-slower 26s linear infinite; }
+
+@keyframes floaty {
+  0%, 100% { transform: translateY(0px) rotate(var(--tilt, 0deg)); }
+  50% { transform: translateY(-16px) rotate(var(--tilt, 0deg)); }
+}
+.animate-floaty { animation: floaty 7s ease-in-out infinite; }
+
+@keyframes rise-dot {
+  0% { transform: translateY(20px); opacity: 0; }
+  30% { opacity: 1; }
+  100% { transform: translateY(-120px); opacity: 0; }
+}
+
+.text-outline-gold {
+  -webkit-text-stroke: 1.5px rgba(201,162,75,.55);
+  color: transparent;
+}
+.text-outline-white {
+  -webkit-text-stroke: 1px rgba(255,255,255,.22);
+  color: transparent;
+}
+
+/* ── IntersectionObserver reveals (Fx.Reveal) ─────────────────────────── */
+.io-reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity .9s cubic-bezier(.16,1,.3,1), transform .9s cubic-bezier(.16,1,.3,1);
+}
+.io-revealed { opacity: 1; transform: translateY(0); }
+
+@media (prefers-reduced-motion: reduce) {
+  .io-reveal { transition: none; opacity: 1; transform: none; }
+}
+
+/* ── Raycast-style aurora (landing + signin backdrop) ────────────────── */
+.aurora {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.aurora-blob {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(80px);
+  will-change: transform;
+}
+.aurora-a {
+  width: 55vw; height: 55vw; min-width: 480px; min-height: 480px;
+  left: -12%; top: -18%;
+  background: radial-gradient(closest-side, rgba(255,59,48,.5), transparent 72%);
+  animation: aur-a 22s ease-in-out infinite alternate;
+}
+.aurora-b {
+  width: 50vw; height: 50vw; min-width: 420px; min-height: 420px;
+  right: -14%; bottom: -22%;
+  background: radial-gradient(closest-side, rgba(255,0,128,.38), transparent 70%);
+  animation: aur-b 26s ease-in-out infinite alternate;
+}
+.aurora-c {
+  width: 34vw; height: 34vw; min-width: 300px; min-height: 300px;
+  right: 4%; top: -12%;
+  background: radial-gradient(closest-side, rgba(41,98,255,.28), transparent 70%);
+  animation: aur-c 30s ease-in-out infinite alternate;
+}
+@keyframes aur-a { from { transform: translate3d(0,0,0) scale(1); } to { transform: translate3d(14vw,10vh,0) scale(1.15); } }
+@keyframes aur-b { from { transform: translate3d(0,0,0) scale(1.05); } to { transform: translate3d(-12vw,-8vh,0) scale(.95); } }
+@keyframes aur-c { from { transform: translate3d(0,0,0); } to { transform: translate3d(-8vw,14vh,0); } }
+.aurora-streaks {
+  position: absolute; inset: -40%;
+  background: repeating-linear-gradient(115deg,
+    transparent 0px, transparent 120px,
+    rgba(255,255,255,.025) 140px, transparent 160px);
+  animation: aur-streaks 36s linear infinite alternate;
+}
+@keyframes aur-streaks { from { transform: translateX(-3%); } to { transform: translateX(3%); } }
+@media (prefers-reduced-motion: reduce) {
+  .aurora-blob, .aurora-streaks { animation: none; }
 }

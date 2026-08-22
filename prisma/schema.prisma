@@ -40,9 +40,16 @@ model User {
   sentMessages     Message[] @relation("sender")
   receivedMessages Message[] @relation("recipient")
 
+  // Notifications
+  notifications        Notification[] @relation("recipient")
+  triggeredNotifications Notification[] @relation("actor")
+
   // Stories
   stories    Story[]
   storyViews StoryView[]
+
+  // Profile highlights (curated permanent collections)
+  highlights Highlight[]
 
   // Moderation
   reports    Report[]
@@ -113,6 +120,7 @@ model Post {
   reactions    Reaction[]
   bookmarks   Bookmark[]
   reports     Report[]
+  notifications Notification[]
 
   @@index([category])
   @@index([authorId])
@@ -262,6 +270,32 @@ model StoryView {
   @@unique([storyId, userId])
 }
 
+// Instagram-style highlight: a named, permanent collection of images
+// curated from the profile. Cover defaults to the first item.
+model Highlight {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  coverUrl  String?
+  createdAt DateTime @default(now())
+
+  user  User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items HighlightItem[]
+
+  @@index([userId])
+}
+
+model HighlightItem {
+  id          String   @id @default(cuid())
+  highlightId String
+  imageUrl    String
+  createdAt   DateTime @default(now())
+
+  highlight Highlight @relation(fields: [highlightId], references: [id], onDelete: Cascade)
+
+  @@index([highlightId])
+}
+
 
 
 
@@ -279,6 +313,25 @@ model Report {
   reporter User @relation(fields: [reporterId], references: [id], onDelete: Cascade)
 
   @@unique([postId, reporterId])
+}
+
+// In-app notification. `actor` did something that concerns `user`.
+// type: "comment" | "like" | "follow" | "application" | "message"
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  actorId   String?
+  type      String
+  postId    String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User  @relation("recipient", fields: [userId], references: [id], onDelete: Cascade)
+  actor User? @relation("actor", fields: [actorId], references: [id], onDelete: Cascade)
+  post Post? @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
+  @@index([userId, createdAt])
 }
 
 
