@@ -56,6 +56,7 @@ export async function getPosts({
   includeClosed = false,
   viewerId,
   sort = 'best',
+  includeHidden = false,
 }: {
   category?: PostCategory;
   categories?: PostCategory[];
@@ -69,6 +70,8 @@ export async function getPosts({
   includeClosed?: boolean;
   viewerId?: string;
   sort?: FeedSort;
+  /** Admin surfaces only — feeds never show hidden posts. */
+  includeHidden?: boolean;
 } = {}) {
   const where: Record<string, unknown> = {};
 
@@ -79,6 +82,9 @@ export async function getPosts({
   else if (authorIds && authorIds.length) where.authorId = { in: authorIds };
 
   if (!includeClosed) where.status = "open";
+
+  // Moderation: hidden posts stay out of every feed unless explicitly asked.
+  if (!includeHidden) where.hidden = false;
 
   if (before) where.createdAt = { lt: before };
 
@@ -183,7 +189,7 @@ export async function getComments(postId: string) {
 export async function getTopTags(limit = 8): Promise<[string, number][]> {
   const taggedPosts = await prisma.post.findMany({
     take: 100,
-    where: { tags: { not: null }, status: "open" },
+    where: { tags: { not: null }, status: "open", hidden: false },
     select: { tags: true },
   });
   const tagCounts = new Map<string, number>();

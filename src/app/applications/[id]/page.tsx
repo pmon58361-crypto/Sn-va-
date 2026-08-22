@@ -36,6 +36,12 @@ export default async function ApplicationDetailPage({
   const meId = session?.user?.id;
   const isOwner = meId === post.authorId;
 
+  // Hidden by moderation: only the author and admins may open the page.
+  if (post.hidden) {
+    const isAdmin = session?.user?.role === "admin";
+    if (!isOwner && !isAdmin) notFound();
+  }
+
   const hasApplied = !!existing;
   const myStatus: string | undefined = existing?.status;
 
@@ -63,6 +69,12 @@ export default async function ApplicationDetailPage({
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
+      {post.hidden && (
+        <div className="mb-4 rounded-lg border border-warm/40 bg-warm/10 px-4 py-3 text-sm text-ink">
+          This listing is <strong>hidden</strong> pending moderator review. Only
+          you{session?.user?.role === "admin" ? " (admin)" : ""} can see it.
+        </div>
+      )}
       <PostDetail post={post} viewerId={meId} />
 
       <section className="mt-6">

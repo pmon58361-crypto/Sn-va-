@@ -25,7 +25,7 @@ export async function RightSidebar({ viewerId }: { viewerId?: string | null }) {
     prisma.post.findMany({
       take: 5,
       orderBy: { createdAt: "desc" },
-      where: { status: "open" },
+      where: { status: "open", hidden: false },
       include: {
         author: { select: { name: true, image: true } },
         _count: { select: { reactions: true, comments: true } },
@@ -33,7 +33,7 @@ export async function RightSidebar({ viewerId }: { viewerId?: string | null }) {
     }),
     prisma.post.findMany({
       take: 100,
-      where: { tags: { not: null }, status: "open" },
+      where: { tags: { not: null }, status: "open", hidden: false },
       select: { tags: true },
     }),
     viewerId

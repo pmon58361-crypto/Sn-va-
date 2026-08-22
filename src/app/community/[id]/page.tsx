@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { getPost, getComments } from "@/lib/queries";
 import { PostDetail, CommentList } from "@/components/posts/PostDetail";
 import { CommentComposer } from "@/components/posts/CommentComposer";
@@ -16,10 +17,23 @@ export default async function CommunityDetailPage({
 
   if (!post || post.category !== "COMMUNITY") notFound();
 
+  // Hidden by moderation: only the author and admins may open the page.
+  if (post.hidden) {
+    const isOwner = session?.user?.id === post.authorId;
+    const isAdmin = session?.user?.role === "admin";
+    if (!isOwner && !isAdmin) notFound();
+  }
+
   const comments = await getComments(id);
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
+      {post.hidden && (
+        <div className="mb-4 rounded-lg border border-warm/40 bg-warm/10 px-4 py-3 text-sm text-ink">
+          This post is <strong>hidden</strong> pending moderator review. Only
+          you{session?.user?.role === "admin" ? " (admin)" : ""} can see it.
+        </div>
+      )}
       <PostDetail post={post} viewerId={session?.user?.id} />
 
       <section className="mt-8">

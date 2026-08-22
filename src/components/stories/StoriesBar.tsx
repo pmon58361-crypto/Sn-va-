@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -40,9 +40,9 @@ export function StoriesBar({
         {/* Add story */}
         <button
           onClick={() => setComposerOpen(true)}
-          className="flex w-[80px] shrink-0 flex-col items-center gap-2"
+          className="flex w-[92px] shrink-0 flex-col items-center gap-2"
         >
-          <span className="grid h-[72px] w-[72px] place-items-center rounded-full border-2 border-dashed border-line-strong text-3xl font-light text-ink-secondary transition-colors hover:border-accent hover:text-accent">
+          <span className="grid h-[84px] w-[84px] place-items-center rounded-full border-2 border-dashed border-line-strong text-4xl font-light text-ink-secondary transition-colors hover:border-accent hover:text-accent">
             +
           </span>
           <span className="w-full truncate text-center text-xs text-ink-secondary">
@@ -54,7 +54,7 @@ export function StoriesBar({
           <button
             key={g.author.id}
             onClick={() => setViewing(g)}
-            className="flex w-[80px] shrink-0 flex-col items-center gap-2"
+            className="flex w-[92px] shrink-0 flex-col items-center gap-2"
           >
             <Ring seen={!g.hasUnseen} image={g.author.image} name={g.author.name} />
             <span className="w-full truncate text-center text-xs text-ink-secondary">
@@ -86,14 +86,14 @@ function Ring({
     setBroken(false);
   }
 
-  // Instagram-style ring: colored halo → thin bg gap → avatar.
+  // Instagram-style ring: colored halo â†’ thin bg gap â†’ avatar.
   const ringCls = seen
     ? "bg-line-strong"
     : "bg-[conic-gradient(from_180deg,#ffd400,#ff7a00,#f91880,#7856ff,#1d9bf0,#00ba7c,#ffd400)]";
 
   if (image && !broken) {
     return (
-      <span className={`grid h-[72px] w-[72px] place-items-center rounded-full p-[3px] ${ringCls}`}>
+      <span className={`grid h-[84px] w-[84px] place-items-center rounded-full p-[3px] ${ringCls}`}>
         <span className="h-full w-full overflow-hidden rounded-full border-[3px] border-bg">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -107,15 +107,15 @@ function Ring({
     );
   }
   return (
-    <span className={`grid h-[72px] w-[72px] place-items-center rounded-full p-[3px] ${ringCls}`}>
-      <span className="grid h-full w-full place-items-center rounded-full border-[3px] border-bg bg-bg text-xl font-bold">
+    <span className={`grid h-[84px] w-[84px] place-items-center rounded-full p-[3px] ${ringCls}`}>
+      <span className="grid h-full w-full place-items-center rounded-full border-[3px] border-bg bg-bg text-2xl font-bold">
         {(name || "?").charAt(0).toUpperCase()}
       </span>
     </span>
   );
 }
 
-// ── Composer ────────────────────────────────────────────────────────────────
+// â”€â”€ Composer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function StoryComposer({ onClose }: { onClose: () => void }) {
   const [mode, setMode] = useState<"text" | "image">("text");
@@ -157,7 +157,7 @@ function StoryComposer({ onClose }: { onClose: () => void }) {
       >
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-xl font-extrabold">Add to your story</h3>
-          <button onClick={onClose} className="rounded-full px-2 text-xl hover:bg-surface-hover">×</button>
+          <button onClick={onClose} className="rounded-full px-2 text-xl hover:bg-surface-hover">Ã—</button>
         </div>
 
         <div className="mb-4 grid grid-cols-2 gap-2 rounded-xl border border-line bg-surface-hover/50 p-1 text-sm font-bold">
@@ -238,7 +238,7 @@ function StoryComposer({ onClose }: { onClose: () => void }) {
           disabled={pending}
           className="btn-primary w-full py-2.5"
         >
-          {pending ? "Sharing…" : "Share story"}
+          {pending ? "Sharingâ€¦" : "Share story"}
         </button>
         <p className="mt-2 text-center text-xs text-ink-faint">Stories disappear after 24 hours.</p>
       </div>
@@ -246,7 +246,7 @@ function StoryComposer({ onClose }: { onClose: () => void }) {
   );
 }
 
-// ── Viewer ──────────────────────────────────────────────────────────────────
+// â”€â”€ Viewer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function StoryViewer({
   group,
@@ -271,7 +271,7 @@ function StoryViewer({
     viewStory(item.id).catch(() => {});
   }, [item?.id]);
 
-  // Progress timer: 5s per story (pauses for none — keep it simple).
+  // Progress timer: 5s per story (pauses for none â€” keep it simple).
   useEffect(() => {
     setProgress(0);
     const started = Date.now();
@@ -340,9 +340,9 @@ function StoryViewer({
             </span>
           )}
           {group.author.name || "Someone"}
-          <span className="font-normal text-white/60">· {timeAgo(item.createdAt)}</span>
+          <span className="font-normal text-white/60">Â· {timeAgo(item.createdAt)}</span>
         </span>
-        <button onClick={done} className="rounded-full px-2 text-2xl leading-none hover:bg-white/10">×</button>
+        <button onClick={done} className="rounded-full px-2 text-2xl leading-none hover:bg-white/10">Ã—</button>
       </div>
 
       {/* Content */}

@@ -76,6 +76,9 @@ export function Sidebar() {
         />
         <SidebarLink href="/bookmarks" active={isActive("/bookmarks")} icon={BookIcon} label="Bookmarks" />
         <SidebarLink href="/settings" active={isActive("/settings")} icon={SettingsIcon} label="Settings" />
+        {session.user.role === "admin" && (
+          <SidebarLink href="/admin" active={isActive("/admin")} icon={ShieldIcon} label="Moderation" />
+        )}
       </nav>
 
       <div className="my-4 h-px bg-line" />

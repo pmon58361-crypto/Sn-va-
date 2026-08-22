@@ -147,6 +147,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             select: {
               name: true,
               image: true,
+              role: true,
               settings: {
                 select: { theme: true, accent: true, background: true },
               },
@@ -155,6 +156,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           if (user) {
             session.user.name = user.name;
             session.user.image = user.image;
+            session.user.role = user.role;
             session.user.theme = user.settings?.theme;
             session.user.accent = user.settings?.accent;
             session.user.background = user.settings?.background || undefined;

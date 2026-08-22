@@ -23,11 +23,19 @@ export function QuickComposer() {
   return (
     <div className="card mb-6 p-4">
       <div className="flex items-center gap-3">
-        <Avatar
-          name={session.user.name}
-          image={session.user.image}
-          size={40}
-        />
+        <button
+          type="button"
+          onClick={() => setNoteOpen(true)}
+          title="Add a note"
+          aria-label="Add a note"
+          className="rounded-full transition-transform hover:scale-105"
+        >
+          <Avatar
+            name={session.user.name}
+            image={session.user.image}
+            size={40}
+          />
+        </button>
         <button
           onClick={() => router.push("/new")}
           onFocus={() => setFocused(true)}

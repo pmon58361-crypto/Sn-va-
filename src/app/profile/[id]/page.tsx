@@ -95,8 +95,13 @@ export default async function ProfilePage({
     year: "numeric",
   });
   const handle = "@" + (user.email?.split("@")[0] || "user");
-  const badges = deriveBadges(user.posts.map((p) => p.category));
-  const reactionTotal = user.posts.reduce(
+  // Moderation: visitors don't see hidden posts on a profile; the owner does
+  // (so they can fix or delete them). Admins see everything.
+  const visiblePosts = isOwner || session?.user?.role === "admin"
+    ? user.posts
+    : user.posts.filter((p) => !p.hidden);
+  const badges = deriveBadges(visiblePosts.map((p) => p.category));
+  const reactionTotal = visiblePosts.reduce(
     (sum, p) => sum + p._count.reactions,
     0
   );
@@ -106,14 +111,14 @@ export default async function ProfilePage({
     ? (tab as "posts" | "work" | "photos")
     : null;
   const filteredPosts = !activeTab
-    ? user.posts
+    ? visiblePosts
     : activeTab === "posts"
-    ? user.posts.filter((p) => p.images.length === 0)
+    ? visiblePosts.filter((p) => p.images.length === 0)
     : activeTab === "work"
-    ? user.posts.filter(
+    ? visiblePosts.filter(
         (p) => p.category === "JOB_OFFER" || p.category === "JOB_REQUEST"
       )
-    : user.posts.filter((p) => p.images.length > 0);
+    : visiblePosts.filter((p) => p.images.length > 0);
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-8">
@@ -246,7 +251,7 @@ export default async function ProfilePage({
       <Highlights userId={user.id} isOwner={isOwner} highlights={highlights} />
 
       {/* ───────────── Content ───────────── */}
-      {user.posts.length === 0 ? (
+      {visiblePosts.length === 0 ? (
         <div className="mt-6 rounded-2xl border border-dashed border-line-strong px-6 py-14 text-center">
           <span className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-full bg-accent/10 text-accent">
             <PlusIcon className="h-6 w-6" />
@@ -268,20 +273,20 @@ export default async function ProfilePage({
           <div className="mb-5 mt-7 flex items-center gap-1 overflow-x-auto border-b border-line pb-px">
             <FilterTab
               label="All"
-              count={user.posts.length}
+              count={visiblePosts.length}
               active={!activeTab}
               href={`/profile/${id}`}
             />
             <FilterTab
               label="Posts"
-              count={user.posts.filter((p) => p.images.length === 0).length}
+              count={visiblePosts.filter((p) => p.images.length === 0).length}
               active={activeTab === "posts"}
               href={`/profile/${id}?tab=posts`}
             />
             <FilterTab
               label="Work"
               count={
-                user.posts.filter(
+                visiblePosts.filter(
                   (p) => p.category === "JOB_OFFER" || p.category === "JOB_REQUEST"
                 ).length
               }
@@ -290,7 +295,7 @@ export default async function ProfilePage({
             />
             <FilterTab
               label="Photos"
-              count={user.posts.filter((p) => p.images.length > 0).length}
+              count={visiblePosts.filter((p) => p.images.length > 0).length}
               active={activeTab === "photos"}
               href={`/profile/${id}?tab=photos`}
             />
