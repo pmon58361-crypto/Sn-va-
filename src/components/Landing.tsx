@@ -69,51 +69,64 @@ export async function Landing() {
   return (
     <div>
       {/* ════════════════════════ HERO ════════════════════════ */}
-<section className="relative">
-        {/* Fullscreen pocket-watch � the page IS the clock */}
-        <ClockLive fullscreen>
-          <div
-            className="reveal mb-6 flex justify-center"
-            style={{ animationDelay: "0ms" }}
-          >
-            <span className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-black/40 px-4 py-1.5 text-xs font-medium tracking-wide text-white/90 backdrop-blur-sm">
-              <span className="h-1.5 w-1.5 rounded-full bg-accent pulse-dot" />
-              Dream � Grow � Connect
-            </span>
-          </div>
+<section className="relative flex min-h-[92vh] flex-col items-center justify-center px-5 text-center">
+        <div className="reveal mb-9" style={{ animationDelay: "0ms" }}>
+          <ClockLive />
+        </div>
 
-          <h1
-            className="display-serif reveal text-balance text-5xl leading-[1.05] sm:text-6xl md:text-7xl"
-            style={{ animationDelay: "100ms", textShadow: "0 2px 24px rgba(0,0,0,.8)" }}
-          >
-            Grow in public.
-            <br />
-            Find your <em>people.</em>
-          </h1>
+        <div className="reveal mb-8 flex justify-center" style={{ animationDelay: "100ms" }}>
+          <span className="inline-flex items-center gap-2 rounded-full border border-line bg-surface/70 px-4 py-1.5 text-xs font-medium tracking-wide text-ink-muted backdrop-blur-sm">
+            <span className="h-1.5 w-1.5 rounded-full bg-accent pulse-dot" />
+            Dream · Grow · Connect
+          </span>
+        </div>
 
-          <p
-            className="reveal mx-auto mt-5 max-w-xl text-base leading-relaxed text-white/80 sm:text-lg"
-            style={{ animationDelay: "220ms", textShadow: "0 1px 12px rgba(0,0,0,.9)" }}
-          >
-            Build in the open � sharing progress, wins, and failures as they
-            happen. Not LinkedIn. Not a job board. Just people growing together.
-          </p>
+        <h1
+          className="display-serif reveal max-w-4xl text-balance text-6xl leading-[1.05] sm:text-7xl md:text-8xl"
+          style={{ animationDelay: "100ms" }}
+        >
+          Grow in public.
+          <br />
+          Find your <em>people.</em>
+        </h1>
 
-          <div
-            className="reveal mt-8 flex flex-col items-center justify-center gap-3 pb-4 sm:flex-row"
-            style={{ animationDelay: "340ms" }}
+        <p
+          className="lead reveal mt-8 max-w-xl text-ink-muted"
+          style={{ animationDelay: "220ms" }}
+        >
+          Snívať is where ambitious people build in the open — sharing progress,
+          wins, and failures as they happen. Not LinkedIn. Not a job board.
+          Just people growing together.
+        </p>
+
+        <div
+          className="reveal mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row"
+          style={{ animationDelay: "340ms" }}
+        >
+          <Link href="/auth/signin" className="btn-primary px-9 py-3.5 text-base">
+            Start growing
+          </Link>
+          <Link href="/community" className="btn-outline px-9 py-3.5 text-base">
+            Explore the community
+          </Link>
+        </div>
+
+        {/* Scroll indicator */}
+        <div
+          className="reveal absolute bottom-10 left-1/2 -translate-x-1/2 scroll-bob"
+          style={{ animationDelay: "500ms" }}
+        >
+          <svg
+            className="h-6 w-6 text-ink-faint"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
           >
-            <Link href="/auth/signin" className="btn-primary px-9 py-3.5 text-base">
-              Start growing
-            </Link>
-            <Link
-              href="/community"
-              className="btn-outline border-white/30 px-9 py-3.5 text-base !text-white hover:!border-accent"
-            >
-              Explore the community
-            </Link>
-          </div>
-        </ClockLive>
+            <path d="M12 5v14M19 12l-7 7-7-7" />
+          </svg>
+        </div>
       </section>
 
       {/* ════════════════════════ THREE DOORS ════════════════════════ */}
@@ -294,5 +307,4 @@ export async function Landing() {
     </div>
   );
 }
-
 

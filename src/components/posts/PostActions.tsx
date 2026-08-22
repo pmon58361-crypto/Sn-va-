@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { toggleReaction, toggleBookmark, reportPost } from "@/app/actions";
 
@@ -36,7 +36,10 @@ export function PostActions({
     disliked: !!disliked,
     bookmarked: !!bookmarked,
   });
-  const [pending, startTransition] = useTransition();
+  // Own busy flag instead of useTransition: async server actions in
+  // startTransition can leave isPending stuck on React 18.3 + Next 15,
+  // which disabled every button after the first click until a reload.
+  const [pending, setPending] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [reported, setReported] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -44,11 +47,12 @@ export function PostActions({
   const detailHref =
     locationPath(postId);
 
-  function react(type: "like" | "dislike") {
+  async function react(type: "like" | "dislike") {
     if (!signedIn) {
       window.location.href = "/auth/signin";
       return;
     }
+    if (pending) return;
     // Mirrors the server invariant: one reaction per user per post.
     // Switching replaces the opposite (and moves its count);
     // clicking the active reaction removes it.
@@ -74,31 +78,34 @@ export function PostActions({
         likes: hadLike ? s.likes - 1 : s.likes,
       };
     });
-    startTransition(async () => {
-      try {
-        await toggleReaction(postId, type);
-      } catch {
-        // revalidation reconciles
-      }
-    });
+    setPending(true);
+    try {
+      await toggleReaction(postId, type);
+    } catch {
+      // revalidation reconciles
+    } finally {
+      setPending(false);
+    }
   }
 
-  function mark(e: React.MouseEvent) {
+  async function mark(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
     if (!signedIn) {
       window.location.href = "/auth/signin";
       return;
     }
+    if (pending) return;
     const next = !state.bookmarked;
     setState((s) => ({ ...s, bookmarked: next }));
-    startTransition(async () => {
-      try {
-        await toggleBookmark(postId);
-      } catch {
-        setState((s) => ({ ...s, bookmarked: !next }));
-      }
-    });
+    setPending(true);
+    try {
+      await toggleBookmark(postId);
+    } catch {
+      setState((s) => ({ ...s, bookmarked: !next }));
+    } finally {
+      setPending(false);
+    }
   }
 
   async function share() {
@@ -109,15 +116,18 @@ export function PostActions({
     } catch {}
   }
 
-  function submitReport(reason: string) {
-    startTransition(async () => {
-      try {
-        await reportPost(postId, reason);
-        setReported(true);
-        setReportOpen(false);
-        setTimeout(() => setReported(false), 2500);
-      } catch {}
-    });
+  async function submitReport(reason: string) {
+    if (pending) return;
+    setPending(true);
+    try {
+      await reportPost(postId, reason);
+      setReported(true);
+      setReportOpen(false);
+      setTimeout(() => setReported(false), 2500);
+    } catch {
+    } finally {
+      setPending(false);
+    }
   }
 
   const icon = variant === "detail" ? "h-[22px] w-[22px]" : "h-5 w-5";
