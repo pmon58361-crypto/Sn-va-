@@ -24,10 +24,11 @@ export function Avatar({
   }
   return (
     <div
-      className="flex items-center justify-center rounded-full bg-accent-tint text-accent font-semibold"
+      className="flex items-center justify-center rounded-full bg-surface-hover text-ink-secondary font-semibold border border-line"
       style={{ width: size, height: size, fontSize: size * 0.4 }}
     >
       {initials(name)}
     </div>
   );
 }
+

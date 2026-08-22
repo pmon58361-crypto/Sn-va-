@@ -17,10 +17,12 @@ export default async function CommunityPage({
   searchParams: Promise<{ q?: string }>;
 }) {
   const { q } = await searchParams;
-  const [posts, session] = await Promise.all([
-    getPosts({ category: "COMMUNITY", search: q }),
-    auth(),
-  ]);
+  const session = await auth();
+  const posts = await getPosts({
+    category: "COMMUNITY",
+    search: q,
+    viewerId: session?.user?.id,
+  });
 
   const storyGroups = await getActiveStories(session?.user?.id);
 
@@ -121,4 +123,5 @@ export default async function CommunityPage({
     </div>
   );
 }
+
 

@@ -156,20 +156,26 @@ export async function applyToJob(postId: string, message: string) {
 }
 
 // Toggle a heart (like) on a post. One per user per post. Click again to remove.
-export async function toggleReaction(postId: string) {
+// Toggle "like" (heart) or "dislike" (heartbreak). Mutually exclusive:
+// reacting with one removes the other. Same type again = remove.
+export async function toggleReaction(
+  postId: string,
+  type: "like" | "dislike" = "like"
+) {
   const session = await auth();
   if (!session?.user?.id) throw new Error("Unauthorized");
+  const me = session.user.id;
 
   const existing = await prisma.reaction.findUnique({
-    where: { postId_userId: { postId, userId: session.user.id } },
+    where: { postId_userId: { postId, userId: me } },
   });
 
-  if (existing) {
+  if (!existing) {
+    await prisma.reaction.create({ data: { postId, userId: me, type } });
+  } else if (existing.type === type) {
     await prisma.reaction.delete({ where: { id: existing.id } });
   } else {
-    await prisma.reaction.create({
-      data: { postId, userId: session.user.id, type: "like" },
-    });
+    await prisma.reaction.update({ where: { id: existing.id }, data: { type } });
   }
 
   revalidatePath(`/community`);
@@ -179,6 +185,76 @@ export async function toggleReaction(postId: string) {
   revalidatePath(`/applications`);
   revalidatePath(`/applications/${postId}`);
   revalidatePath(`/`);
+}
+
+// Bookmark / unbookmark a post.
+export async function toggleBookmark(postId: string): Promise<{ bookmarked: boolean }> {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Unauthorized");
+  const me = session.user.id;
+
+  const post = await prisma.post.findUnique({
+    where: { id: postId },
+    select: { id: true },
+  });
+  if (!post) throw new Error("Post not found");
+
+  const existing = await prisma.bookmark.findUnique({
+    where: { userId_postId: { userId: me, postId } },
+  });
+  if (existing) {
+    await prisma.bookmark.delete({ where: { id: existing.id } });
+    return { bookmarked: false };
+  }
+  await prisma.bookmark.create({ data: { userId: me, postId } });
+  return { bookmarked: true };
+}
+
+// Follow / unfollow a user.
+export async function toggleFollow(targetUserId: string): Promise<{ following: boolean }> {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Unauthorized");
+  const me = session.user.id;
+  if (me === targetUserId) throw new Error("Cannot follow yourself");
+
+  const target = await prisma.user.findUnique({
+    where: { id: targetUserId },
+    select: { id: true },
+  });
+  if (!target) throw new Error("User not found");
+
+  const existing = await prisma.follow.findUnique({
+    where: { followerId_followingId: { followerId: me, followingId: targetUserId } },
+  });
+  if (existing) {
+    await prisma.follow.delete({ where: { id: existing.id } });
+    return { following: false };
+  }
+  await prisma.follow.create({
+    data: { followerId: me, followingId: targetUserId },
+  });
+  revalidatePath(`/profile/${targetUserId}`);
+  return { following: true };
+}
+
+// Report a post for moderation. One report per user per post.
+export async function reportPost(postId: string, reason: string) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Unauthorized");
+
+  const post = await prisma.post.findUnique({
+    where: { id: postId },
+    select: { id: true },
+  });
+  if (!post) throw new Error("Post not found");
+  const trimmed = reason.trim();
+  if (!trimmed) throw new Error("Reason required");
+
+  await prisma.report.upsert({
+    where: { postId_reporterId: { postId, reporterId: session.user.id } },
+    update: { reason: trimmed },
+    create: { postId, reporterId: session.user.id, reason: trimmed },
+  });
 }
 
 export async function togglePostStatus(id: string) {
@@ -196,3 +272,4 @@ export async function togglePostStatus(id: string) {
   });
   revalidatePath(sectionPath(post.category));
 }
+

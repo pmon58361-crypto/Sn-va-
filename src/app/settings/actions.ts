@@ -11,6 +11,7 @@ export type SettingsInput = {
   image: string;
   theme: string;
   accent: string;
+  background: string;
   emailNotifications: boolean;
   publicProfile: boolean;
   showEmail: boolean;
@@ -21,6 +22,7 @@ export async function saveSettings(input: SettingsInput) {
   if (!session?.user?.id) throw new Error("Unauthorized");
 
   const accentOk = /^#[0-9a-fA-F]{6}$/.test(input.accent);
+  const bgOk = /^#[0-9a-fA-F]{6}$/.test(input.background ?? "");
   const themeOk = input.theme === "light" || input.theme === "dark";
 
   await prisma.user.update({
@@ -38,6 +40,7 @@ export async function saveSettings(input: SettingsInput) {
     update: {
       theme: themeOk ? input.theme : "light",
       accent: accentOk ? input.accent : "#2f9e6b",
+        background: bgOk ? input.background.toUpperCase() : null,
       emailNotifications: input.emailNotifications,
       publicProfile: input.publicProfile,
       showEmail: input.showEmail,
@@ -46,6 +49,7 @@ export async function saveSettings(input: SettingsInput) {
       userId: session.user.id,
       theme: themeOk ? input.theme : "light",
       accent: accentOk ? input.accent : "#2f9e6b",
+        background: bgOk ? input.background.toUpperCase() : null,
       emailNotifications: input.emailNotifications,
       publicProfile: input.publicProfile,
       showEmail: input.showEmail,
@@ -58,3 +62,4 @@ export async function saveSettings(input: SettingsInput) {
   revalidatePath("/applications");
   return { ok: true };
 }
+

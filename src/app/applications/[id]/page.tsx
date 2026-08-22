@@ -17,7 +17,8 @@ export default async function ApplicationDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const post = await getPost(id);
+  const session0 = await auth();
+  const post = await getPost(id, session0?.user?.id);
 
   if (!post || post.category !== "JOB_LISTING") notFound();
 
@@ -108,3 +109,4 @@ export default async function ApplicationDetailPage({
     </div>
   );
 }
+

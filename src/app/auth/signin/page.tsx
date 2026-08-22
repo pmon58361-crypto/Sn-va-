@@ -69,18 +69,16 @@ export default function SignInPage() {
   ];
 
   return (
-    <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-md flex-col justify-center px-5 py-16">
-      <div className="card p-10 reveal" style={{ boxShadow: "var(--shadow-lg)" }}>
-        <div className="mb-8 text-center">
-          <div className="mb-4 flex justify-center">
-            <Logo size={42} />
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight text-ink">
-            Welcome back
-          </h1>
-          <p className="mt-2 text-sm text-ink-muted">
-            Sign in to grow your strand.
-          </p>
+    <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-md flex-col items-center justify-center px-5 py-16">
+      {/* Animated pocket-watch splash — no text, responsive */}
+      <div className="splash-clock mb-10 select-none" aria-hidden>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/clock.jpg" alt="" className="clock-swing rounded-full shadow-2xl" />
+      </div>
+
+      <div className="card w-full p-8 reveal" style={{ boxShadow: "var(--shadow-lg)" }}>
+        <div className="mb-7 flex justify-center">
+          <Logo size={46} />
         </div>
 
         {error && (

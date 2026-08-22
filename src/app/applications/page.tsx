@@ -14,7 +14,7 @@ export default async function ApplicationsPage({
 }) {
   const { q } = await searchParams;
   const [posts, session] = await Promise.all([
-    getPosts({ category: "JOB_LISTING", search: q }),
+    getPosts({ category: "JOB_LISTING", search: q, viewerId: (await auth())?.user?.id }),
     auth(),
   ]);
 
@@ -65,3 +65,4 @@ export default async function ApplicationsPage({
     </div>
   );
 }
+

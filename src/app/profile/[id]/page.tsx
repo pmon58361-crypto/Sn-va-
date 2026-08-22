@@ -2,7 +2,9 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { isFollowing } from "@/lib/social";
 import { Avatar } from "@/components/ui/Avatar";
+import { FollowButton } from "@/components/profile/FollowButton";
 import { MapPinIcon, MailIcon, CalendarIcon } from "@/components/ui/Icons";
 
 export const dynamic = "force-dynamic";
@@ -28,7 +30,9 @@ export default async function ProfilePage({
             _count: { select: { comments: true, reactions: true } },
           },
         },
-        _count: { select: { posts: true } },
+          _count: {
+            select: { posts: true, followers: true, following: true },
+          },
       },
     }),
     auth(),
@@ -39,6 +43,7 @@ export default async function ProfilePage({
   const settings = user.settings;
   const isPublic = settings?.publicProfile ?? true;
   const isOwner = session?.user?.id === user.id;
+  const viewerIsFollowing = await isFollowing(session?.user?.id, user.id);
   const joinDate = new Date(user.createdAt).toLocaleDateString(undefined, {
     month: "short",
     year: "numeric",
@@ -55,16 +60,9 @@ export default async function ProfilePage({
       {/* ───────────── Profile header ───────────── */}
       <div className="pb-8">
         <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-start sm:gap-10">
-          {/* Avatar — larger, gradient-ringed */}
+          {/* Avatar */}
           <div className="shrink-0">
-            <div
-              className="rounded-full p-[3px]"
-              style={{ background: "linear-gradient(140deg, #006655, #66cc66)" }}
-            >
-              <div className="rounded-full bg-bg p-[2px]">
-                <Avatar name={user.name} image={user.image} size={120} />
-              </div>
-            </div>
+            <Avatar name={user.name} image={user.image} size={120} />
           </div>
 
           {/* Identity + actions */}
@@ -84,6 +82,11 @@ export default async function ProfilePage({
                 >
                   Edit profile
                 </Link>
+              ) : isPublic ? (
+                <FollowButton
+                  targetUserId={user.id}
+                  following={viewerIsFollowing}
+                />
               ) : (
                 <span className="badge shrink-0 bg-accent-tint px-4 py-2 text-accent">
                   Member
@@ -145,7 +148,8 @@ export default async function ProfilePage({
         {/* Stats — larger numbers, lighter labels */}
         <div className="mt-8 flex items-center justify-center gap-10 border-y border-line py-5 sm:justify-start sm:gap-14">
           <Stat label="Posts" value={user._count.posts} />
-          <Stat label="Connections" value={0} />
+          <Stat label="Following" value={user._count.following} />
+          <Stat label="Followers" value={user._count.followers} />
           <Stat label="Reactions" value={reactionTotal} />
         </div>
       </div>
@@ -306,3 +310,7 @@ function PostGrid({ posts }: { posts: GridPost[] }) {
     </div>
   );
 }
+
+
+
+

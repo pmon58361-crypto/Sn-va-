@@ -24,6 +24,12 @@ function ThemeApplier() {
   }, [session?.user?.theme]);
 
   useEffect(() => {
+    const storedBg = localStorage.getItem("background");
+    const bg = session?.user?.background || storedBg || null;
+    applyBackground(bg);
+  }, [session?.user?.background]);
+
+  useEffect(() => {
     const storedAccent = localStorage.getItem("accent");
     const accent = session?.user?.accent || storedAccent || DEFAULT_ACCENT;
     applyAccent(accent);
@@ -37,6 +43,23 @@ function systemPrefersDark() {
     typeof window !== "undefined" &&
     window.matchMedia("(prefers-color-scheme: dark)").matches
   );
+}
+
+// Apply a custom background: sets --bg plus derived elevated/soft surfaces.
+export function applyBackground(hex: string | null) {
+  const root = document.documentElement.style;
+  if (!hex) {
+    root.removeProperty("--user-bg");
+    root.removeProperty("--bg");
+    root.removeProperty("--bg-elevated");
+    root.removeProperty("--bg-soft");
+    return;
+  }
+  const dark = !document.documentElement.classList.contains("light");
+  root.setProperty("--user-bg", hex);
+  root.setProperty("--bg", hex);
+  root.setProperty("--bg-elevated", shade(hex, dark ? 10 : 6));
+  root.setProperty("--bg-soft", shade(hex, dark ? -35 : -5));
 }
 
 // Apply the accent and derive its tint/hover shades so a single hex drives
@@ -89,3 +112,5 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     </SessionProvider>
   );
 }
+
+

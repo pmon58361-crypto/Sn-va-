@@ -20,7 +20,7 @@ export default async function JobsPage({
   const isRequest = tab === "requests";
   const category = isRequest ? "JOB_REQUEST" : "JOB_OFFER";
   const [posts, session] = await Promise.all([
-    getPosts({ category, search: q }),
+    getPosts({ category, search: q, viewerId: (await auth())?.user?.id }),
     auth(),
   ]);
 
@@ -108,3 +108,4 @@ export default async function JobsPage({
     </div>
   );
 }
+

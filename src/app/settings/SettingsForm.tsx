@@ -2,10 +2,19 @@
 
 import { useState, useEffect, useTransition } from "react";
 import { saveSettings, type SettingsInput } from "./actions";
-import { applyAccent } from "@/components/ThemeProvider";
+import { applyAccent, applyBackground } from "@/components/ThemeProvider";
 import { SunIcon, MoonIcon, CheckIcon } from "@/components/ui/Icons";
 
 // First entry is the brand default (luminous green). Users may pick any.
+const BG_PRESETS = [
+  "#121212", // true black
+  "#15202b", // midnight blue
+  "#1a1a2e", // deep violet night
+  "#0d1f1a", // forest floor
+  "#2b1d17", // espresso
+  "#f6f3ee", // warm cream (light)
+];
+
 const ACCENTS = [
   "#2f9e6b", // brand green
   "#0891b2", // cyan
@@ -24,6 +33,7 @@ export function SettingsForm({ initial }: { initial: SettingsInput }) {
   const [image, setImage] = useState(initial.image);
   const [theme, setTheme] = useState(initial.theme);
   const [accent, setAccent] = useState(initial.accent);
+  const [background, setBackground] = useState(initial.background ?? "");
   const [emailNotifications, setEmailNotifications] = useState(initial.emailNotifications);
   const [publicProfile, setPublicProfile] = useState(initial.publicProfile);
   const [showEmail, setShowEmail] = useState(initial.showEmail);
@@ -44,6 +54,12 @@ export function SettingsForm({ initial }: { initial: SettingsInput }) {
   }, [accent]);
 
   useEffect(() => {
+    applyBackground(background || null);
+    if (background) localStorage.setItem("background", background);
+    else localStorage.removeItem("background");
+  }, [background]);
+
+  useEffect(() => {
     if (!savedFlash) return;
     const t = setTimeout(() => setSavedFlash(false), 2500);
     return () => clearTimeout(t);
@@ -55,7 +71,7 @@ export function SettingsForm({ initial }: { initial: SettingsInput }) {
     startTransition(async () => {
       try {
         await saveSettings({
-          name, bio, location, image, theme, accent,
+          name, bio, location, image, theme, accent, background,
           emailNotifications, publicProfile, showEmail,
         });
         setSavedFlash(true);
@@ -138,6 +154,47 @@ export function SettingsForm({ initial }: { initial: SettingsInput }) {
                   className="h-8 w-12 cursor-pointer rounded border-0 bg-transparent p-0"
                 />
               </label>
+            </div>
+          </div>
+
+          <div>
+            <p className="mb-2 text-sm font-medium text-ink-soft">Background color</p>
+            <p className="mb-3 text-xs text-ink-faint">
+              Tints the whole app. Leave empty for the theme default.
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              {BG_PRESETS.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setBackground(c)}
+                  className={`h-8 w-8 rounded-full border border-line-strong ring-2 ring-offset-2 ring-offset-[var(--bg)] transition ${
+                    background.toLowerCase() === c.toLowerCase()
+                      ? "ring-accent"
+                      : "ring-transparent"
+                  }`}
+                  style={{ backgroundColor: c }}
+                  aria-label={`background ${c}`}
+                />
+              ))}
+              <label className="ml-2 flex items-center gap-2 text-sm text-ink-muted">
+                Custom
+                <input
+                  type="color"
+                  value={background || "#121212"}
+                  onChange={(e) => setBackground(e.target.value)}
+                  className="h-8 w-12 cursor-pointer rounded border-0 bg-transparent p-0"
+                />
+              </label>
+              {background && (
+                <button
+                  type="button"
+                  onClick={() => setBackground("")}
+                  className="btn-ghost px-3 py-1.5 text-xs"
+                >
+                  Reset
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -264,3 +321,5 @@ function Toggle({
     </div>
   );
 }
+
+

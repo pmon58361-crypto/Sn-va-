@@ -26,6 +26,7 @@ export default async function SettingsPage() {
     image: user.image || "",
     theme: s?.theme || "light",
     accent: s?.accent || "#2f9e6b",
+    background: s?.background ?? "",
     emailNotifications: s?.emailNotifications ?? true,
     publicProfile: s?.publicProfile ?? true,
     showEmail: s?.showEmail ?? false,
@@ -42,3 +43,4 @@ export default async function SettingsPage() {
     </div>
   );
 }
+

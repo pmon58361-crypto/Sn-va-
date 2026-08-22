@@ -25,12 +25,16 @@ export type PostWithRelations = Awaited<
   images: { id: string; url: string; order: number }[];
   reactions: { id: string; type: string; userId: string }[];
   _count: { comments: number; applications: number; images: number };
+  bookmarks?: { userId: string }[];
 };
 
-export async function getPost(id: string) {
+export async function getPost(id: string, viewerId?: string) {
   return prisma.post.findUnique({
     where: { id },
-    include: postInclude,
+    include: {
+      ...postInclude,
+      ...(viewerId ? { bookmarks: { where: { userId: viewerId } } } : {}),
+    },
   });
 }
 
@@ -41,6 +45,7 @@ export async function getPosts({
   search,
   limit = 50,
   includeClosed = false,
+  viewerId,
 }: {
   category?: PostCategory;
   categories?: PostCategory[];
@@ -48,6 +53,7 @@ export async function getPosts({
   search?: string;
   limit?: number;
   includeClosed?: boolean;
+  viewerId?: string;
 } = {}) {
   const where: Record<string, unknown> = {};
 
@@ -59,16 +65,21 @@ export async function getPosts({
   if (!includeClosed) where.status = "open";
 
   if (search) {
+    // mode:"insensitive" is required on PostgreSQL (SQLite was case-insensitive
+    // by default; Postgres "contains" is case-sensitive without it).
     where.OR = [
-      { title: { contains: search } },
-      { content: { contains: search } },
-      { tags: { contains: search } },
+      { title: { contains: search, mode: "insensitive" } },
+      { content: { contains: search, mode: "insensitive" } },
+      { tags: { contains: search, mode: "insensitive" } },
     ];
   }
 
   return prisma.post.findMany({
     where,
-    include: postInclude,
+    include: {
+      ...postInclude,
+      ...(viewerId ? { bookmarks: { where: { userId: viewerId } } } : {}),
+    },
     orderBy: { createdAt: "desc" },
     take: limit,
   });
@@ -85,3 +96,6 @@ export async function getComments(postId: string) {
     orderBy: { createdAt: "desc" },
   });
 }
+
+
+

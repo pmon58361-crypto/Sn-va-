@@ -5,7 +5,7 @@ import {
   BriefcaseIcon,
   ChevronLeftIcon,
 } from "@/components/ui/Icons";
-import { ReactionBar } from "@/components/posts/ReactionBar";
+import { PostActions } from "@/components/posts/PostActions";
 import { timeAgo, formatDate, parseTags } from "@/lib/utils";
 import { CATEGORY_META } from "@/lib/types";
 import { reactionCounts, type PostWithRelations } from "@/lib/queries";
@@ -31,6 +31,11 @@ export function PostDetail({
   const viewerReaction = viewerId
     ? allReactions.find((r) => r.userId === viewerId)?.type ?? null
     : null;
+  const bookmarked = Array.isArray(
+    (post as { bookmarks?: { userId: string }[] }).bookmarks
+  )
+    ? (post as { bookmarks: { userId: string }[] }).bookmarks.length > 0
+    : false;
 
   return (
     <article className="fade-in">
@@ -159,13 +164,17 @@ export function PostDetail({
           </div>
         )}
 
-        {/* Reaction bar */}
+        {/* Action row */}
         <div className="flex items-center gap-2 border-t border-line px-6 py-4">
-          <ReactionBar
+          <PostActions
             postId={post.id}
             likes={likes}
             dislikes={dislikes}
-            viewerReaction={viewerReaction as "like" | "dislike" | null}
+            comments={post._count?.comments || 0}
+            liked={viewerReaction === "like"}
+            disliked={viewerReaction === "dislike"}
+            bookmarked={bookmarked}
+            signedIn={!!viewerId}
             variant="detail"
           />
         </div>
@@ -210,3 +219,4 @@ export function CommentList({
     </div>
   );
 }
+

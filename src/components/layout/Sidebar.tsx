@@ -66,7 +66,7 @@ export function Sidebar() {
         ))}
         {/* Not-yet-built features — disabled, not faked */}
         <SidebarLink href="/dm" active={isActive("/dm")} icon={MessageIcon} label="DM's" />
-        <SidebarLink href="#" icon={BookIcon} label="Bookmarks" disabled active={false} />
+        <SidebarLink href="/bookmarks" active={isActive("/bookmarks")} icon={BookIcon} label="Bookmarks" />
         <SidebarLink href="/settings" active={isActive("/settings")} icon={SettingsIcon} label="Settings" />
       </nav>
 
@@ -158,4 +158,5 @@ function SidebarLink({
     </Link>
   );
 }
+
 

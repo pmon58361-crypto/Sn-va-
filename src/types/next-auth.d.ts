@@ -7,6 +7,7 @@ declare module "next-auth" {
       provider?: string;
       theme?: string;
       accent?: string;
+      background?: string;
     } & DefaultSession["user"];
   }
   interface User {
@@ -20,5 +21,7 @@ declare module "next-auth/jwt" {
     provider?: string;
     theme?: string;
     accent?: string;
+    background?: string;
   }
 }
+
