@@ -51,6 +51,9 @@ function buildProviders() {
         });
         if (!user) return null;
 
+        // Banned accounts can't sign in (any provider).
+        if (user.bannedAt) return null;
+
         // Demo account password check (only credentials-provider users store a password hash
         // by convention — we keep it on a dedicated Account row's token).
         const demoEmail = (process.env.DEMO_EMAIL || "demo@snivat.local").toLowerCase();
@@ -108,6 +111,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   pages: { signIn: "/auth/signin" },
   providers: buildProviders(),
   callbacks: {
+    async signIn({ user }) {
+      // OAuth path: block banned accounts at sign-in too.
+      if (user?.id) {
+        const row = await prisma.user.findUnique({
+          where: { id: user.id },
+          select: { bannedAt: true },
+        });
+        if (row?.bannedAt) return false;
+      }
+      return true;
+    },
     async jwt({ token, user, account }) {
       if (user) {
         token.id = user.id as string;

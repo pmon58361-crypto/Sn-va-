@@ -55,7 +55,7 @@ export type PersonalContext = {
   tagAffinity: Map<string, number>;
 };
 
-const AFFINITY_WINDOW_DAYS = 90;
+export const AFFINITY_WINDOW_DAYS = 90;
 
 export async function buildPersonalContext(
   viewerId: string
@@ -71,7 +71,16 @@ export async function buildPersonalContext(
       select: { post: { select: { authorId: true, tags: true } } },
     }),
   ]);
+  return buildPersonalContextFromRows(reactions, comments, viewerId);
+}
 
+// Same aggregation as buildPersonalContext but over rows the caller already
+// fetched — lets getPosts fold affinity into its single parallel query wave.
+export function buildPersonalContextFromRows(
+  reactions: { post: { authorId: string | null; tags: string | null } | null }[],
+  comments: { post: { authorId: string | null; tags: string | null } | null }[],
+  viewerId: string
+): PersonalContext {
   const authors = new Map<string, number>();
   const tags = new Map<string, number>();
   for (const p of [

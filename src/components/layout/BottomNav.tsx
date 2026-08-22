@@ -36,7 +36,7 @@ export function BottomNav() {
       : "/auth/signin";
 
   const tabs: Tab[] = [
-    { href: "/community", label: "Feed", icon: UsersIcon },
+    { href: "/community", label: "Home", icon: UsersIcon },
     { href: "/jobs", label: "Jobs", icon: BriefcaseIcon },
     { href: "/new", label: "New", icon: PlusIcon, primary: true },
     { href: "/applications", label: "Apps", icon: ClipboardIcon },

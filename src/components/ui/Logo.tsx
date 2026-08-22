@@ -49,7 +49,7 @@ export function Logo({
   withWordmark?: boolean;
 }) {
   return (
-    <Link href="/" className="group flex items-center gap-2.5" aria-label="Snívať home">
+    <Link href="/community" className="group flex items-center gap-2.5" aria-label="Snívať home">
       <LogoMark size={size} />
       {withWordmark && (
         <span className="text-[1.15rem] font-bold tracking-tight">

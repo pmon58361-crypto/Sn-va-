@@ -4,7 +4,6 @@ import type { Metadata } from "next";
 import { Inter, Instrument_Serif } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import { DNABackground } from "@/components/DNABackground";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { BottomNav } from "@/components/layout/BottomNav";
@@ -49,7 +48,8 @@ export default function RootLayout({
       </head>
       <body className="min-h-screen">
         <ThemeProvider>
-          <DNABackground />
+          {/* DNA canvas background removed: 60fps full-screen redraw kept
+              the CPU busy on every page for a texture nobody reads. */}
           {/* Mobile top bar (below lg breakpoint) */}
           <div className="lg:hidden">
             <Navbar />

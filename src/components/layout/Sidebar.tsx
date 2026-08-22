@@ -16,6 +16,7 @@ import {
   BookIcon,
   BellIcon,
   CompassIcon,
+  PlusIcon,
 } from "@/components/ui/Icons";
 import { NotificationsBadge } from "./NotificationsBadge";
 
@@ -37,8 +38,8 @@ export function Sidebar() {
 
   return (
     <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-line px-3 py-5 lg:flex">
-      {/* Logo */}
-      <Link href="/" className="mb-6 flex items-center gap-2.5 px-3">
+      {/* Logo — goes to your home feed */}
+      <Link href="/community" aria-label="Home" className="mb-6 flex items-center gap-2.5 px-3">
         <LogoMark size={32} />
         <span className="text-lg font-bold tracking-tight">
           <span className="text-ink">Sní</span>
@@ -79,13 +80,15 @@ export function Sidebar() {
 
       <div className="my-4 h-px bg-line" />
 
-      {/* Create button — S symbol only */}
+      {/* Create button — plus badge */}
       <Link
         href="/new"
-        className="mb-2 flex items-center justify-center rounded-xl py-2.5 text-accent transition hover:bg-accent/10"
         aria-label="Create post"
+        className="mb-2 flex items-center justify-center"
       >
-        <LogoMark size={28} />
+        <span className="grid h-10 w-10 place-items-center rounded-full bg-accent text-white shadow-md transition hover:bg-accent-hover sm:rounded-xl">
+          <PlusIcon className="h-5 w-5" />
+        </span>
       </Link>
 
       {/* User card at bottom — click goes straight to your profile */}

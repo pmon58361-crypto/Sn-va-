@@ -4,6 +4,7 @@ import { PostCard, EmptyState } from "@/components/posts/PostCard";
 import { SectionHeader } from "@/components/posts/SectionHeader";
 import { OfferIcon, RequestIcon } from "@/components/ui/Icons";
 import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
 
 export const metadata = { title: "Jobs — Snívať" };
 export const dynamic = "force-dynamic";
@@ -19,13 +20,17 @@ export default async function JobsPage({
   const { tab, q } = await searchParams;
   const isRequest = tab === "requests";
   const category = isRequest ? "JOB_REQUEST" : "JOB_OFFER";
-  const [posts, session] = await Promise.all([
-    getPosts({ category, search: q, viewerId: (await auth())?.user?.id }),
-    auth(),
-  ]);
 
-  const offerCount = (await getPosts({ category: "JOB_OFFER", includeClosed: true })).length;
-  const requestCount = (await getPosts({ category: "JOB_REQUEST", includeClosed: true })).length;
+  const session = await auth();
+  const meId = session?.user?.id;
+
+  // Tab badges are plain counts — fetching two full ranked feeds just to
+  // read .length used to cost ~8 extra DB round trips here.
+  const [posts, offerCount, requestCount] = await Promise.all([
+    getPosts({ category, search: q, viewerId: meId }),
+    prisma.post.count({ where: { category: "JOB_OFFER" } }),
+    prisma.post.count({ where: { category: "JOB_REQUEST" } }),
+  ]);
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-16">
@@ -101,7 +106,7 @@ export default async function JobsPage({
       ) : (
         <div className="space-y-5 fade-in">
           {posts.map((p) => (
-            <PostCard key={p.id} post={p} viewerId={session?.user?.id} />
+            <PostCard key={p.id} post={p} viewerId={meId} />
           ))}
         </div>
       )}

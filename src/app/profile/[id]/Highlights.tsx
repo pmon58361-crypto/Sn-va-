@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createHighlight, deleteHighlight } from "@/app/highlights/actions";
+import { cdnUrl } from "@/lib/cdn";
 
 export type HighlightPreview = {
   id: string;
@@ -55,7 +56,7 @@ export function Highlights({
             {h.coverUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={h.coverUrl}
+                src={cdnUrl(h.coverUrl, 160)}
                 alt=""
                 className={`${CIRCLE} rounded-full border border-line object-cover`}
               />
@@ -224,7 +225,7 @@ function ViewModal({
             // eslint-disable-next-line @next/next/no-img-element
             <img
               key={it.id}
-              src={it.imageUrl}
+              src={cdnUrl(it.imageUrl, 320)}
               alt=""
               loading="lazy"
               className="aspect-square w-full rounded-lg border border-line object-cover"

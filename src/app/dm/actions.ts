@@ -1,16 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { createNotification } from "@/lib/notify";
+import { requireActiveUser, requireUserId } from "@/lib/session";
 
 // Send a direct message. Creates the message and clears read state on the
 // recipient's side naturally (their unread count is computed per-thread).
 export async function sendMessage(recipientId: string, content: string) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Unauthorized");
-  const me = session.user.id;
+  const me = (await requireActiveUser()).id;
 
   if (me === recipientId) throw new Error("Cannot message yourself");
   if (!content.trim()) throw new Error("Message required");
@@ -43,13 +41,12 @@ export async function sendMessage(recipientId: string, content: string) {
 
 // Mark every unread message in a thread (from `otherUserId` to me) as read.
 export async function markThreadRead(otherUserId: string) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Unauthorized");
+  const me = await requireUserId(); // read-state only — no ban check needed
 
   await prisma.message.updateMany({
     where: {
       senderId: otherUserId,
-      recipientId: session.user.id,
+      recipientId: me,
       readAt: null,
     },
     data: { readAt: new Date() },

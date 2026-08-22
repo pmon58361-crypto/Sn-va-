@@ -1,27 +1,27 @@
-@tailwind base;
+﻿@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 /*
- * Snívať design language.
+ * SnÃ­vaÅ¥ design language.
  * Dark-first: true-black canvas (#121212), luminous green accent,
  * crisp white text. Light theme available via html.light override.
  * The living DNA field provides organic color movement behind content.
  */
 
 :root {
-  /* Core palette — dark-first (black canvas) */
+  /* Core palette â€” dark-first (black canvas) */
   --bg: #121212;            /* true black canvas */
   --bg-elevated: #1c1c1c;   /* card / elevated surface */
   --bg-soft: #0a0a0a;       /* recessed areas */
-  --ink: #f5f5f5;           /* primary text — near white */
+  --ink: #f5f5f5;           /* primary text â€” near white */
   --ink-soft: #d4d4d4;
   --ink-muted: #9a9a9a;
   --ink-faint: #6a6a6a;
   --line: #2a2a2a;          /* divider */
   --line-strong: #383838;
 
-  /* RGB channels of the colors above — lets Tailwind alpha modifiers
+  /* RGB channels of the colors above â€” lets Tailwind alpha modifiers
      (e.g. bg-accent/10) work on CSS-variable colors. Keep in sync. */
   --bg-rgb: 18 18 18;
   --bg-elevated-rgb: 28 28 28;
@@ -35,7 +35,7 @@
   --accent-rgb: 47 158 107;
   --warm-rgb: 224 136 85;
 
-  /* Accent — luminous green (echoes the brand mark's teal→lime gradient) */
+  /* Accent â€” luminous green (echoes the brand mark's tealâ†’lime gradient) */
   --accent: #2f9e6b;
   --accent-hover: #34b577;
   --accent-soft: #5bb98c;
@@ -60,7 +60,7 @@
     Helvetica, Arial, sans-serif;
 }
 
-/* Light theme override — opt-in via html.light */
+/* Light theme override â€” opt-in via html.light */
 html.light {
   --bg: #f6f3ee;            /* warm cream */
   --bg-elevated: #fffdf9;   /* paper white */
@@ -201,7 +201,7 @@ body {
     color: var(--accent);
   }
 
-  /* Display headline scale — huge, lots of breathing room */
+  /* Display headline scale â€” huge, lots of breathing room */
   @media (min-width: 768px) {
   .display-serif {
     font-family: var(--font-display), Georgia, serif;
@@ -216,19 +216,19 @@ body {
 
 .display-1 {
     @apply font-bold tracking-tight;
-    font-size: clamp(2.75rem, 8vw, 5.5rem);   /* 44px → 88px */
+    font-size: clamp(2.75rem, 8vw, 5.5rem);   /* 44px â†’ 88px */
     line-height: 1.0;
     letter-spacing: -0.035em;
   }
   .display-2 {
     @apply font-bold tracking-tight;
-    font-size: clamp(2.25rem, 5vw, 3.75rem);  /* 36px → 60px */
+    font-size: clamp(2.25rem, 5vw, 3.75rem);  /* 36px â†’ 60px */
     line-height: 1.05;
     letter-spacing: -0.03em;
   }
   .display-3 {
     @apply font-bold tracking-tight;
-    font-size: clamp(1.75rem, 3vw, 2.5rem);   /* 28px → 40px */
+    font-size: clamp(1.75rem, 3vw, 2.5rem);   /* 28px â†’ 40px */
     line-height: 1.1;
     letter-spacing: -0.025em;
   }
@@ -239,7 +239,7 @@ body {
   }
 }
 
-/* Reveal-on-scroll — no `both` fill: if animations are unavailable the
+/* Reveal-on-scroll â€” no `both` fill: if animations are unavailable the
    content simply renders visible instead of staying hidden at opacity 0. */
 @keyframes reveal-up {
   from { opacity: 0; transform: translateY(20px); }
@@ -296,7 +296,7 @@ body {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  /* crop into the watch face � plate text falls outside the circle */
+  /* crop into the watch face ï¿½ plate text falls outside the circle */
   transform: scale(1.35);
   transform-origin: 52% 42%;
 }
@@ -377,7 +377,7 @@ html.light .gm-logo-img { filter: none; }
   filter: drop-shadow(0 2px 6px rgba(0,0,0,.85));
 }
 
-/* Landing page canvas � near-black, VC-style */
+/* Landing page canvas ï¿½ near-black, VC-style */
 .page-lux {
   --bg: #08080a;
   --bg-elevated: #101014;
@@ -393,7 +393,7 @@ html.light .gm-logo-img { filter: none; }
 }
 .page-lux ::selection { background: rgba(201,162,75,.35); }
 
-/* ── Landing art: motion kit ─────────────────────────────────────────── */
+/* â”€â”€ Landing art: motion kit â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 @keyframes marquee-x { to { transform: translateX(-50%); } }
 .animate-marquee { animation: marquee-x 30s linear infinite; }
 
@@ -421,7 +421,7 @@ html.light .gm-logo-img { filter: none; }
   color: transparent;
 }
 
-/* ── IntersectionObserver reveals (Fx.Reveal) ─────────────────────────── */
+/* â”€â”€ IntersectionObserver reveals (Fx.Reveal) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .io-reveal {
   opacity: 0;
   transform: translateY(28px);
@@ -433,7 +433,7 @@ html.light .gm-logo-img { filter: none; }
   .io-reveal { transition: none; opacity: 1; transform: none; }
 }
 
-/* ── Raycast-style aurora (landing + signin backdrop) ────────────────── */
+/* â”€â”€ Raycast-style aurora (landing + signin backdrop) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .aurora {
   position: absolute;
   inset: 0;
@@ -449,19 +449,19 @@ html.light .gm-logo-img { filter: none; }
 .aurora-a {
   width: 55vw; height: 55vw; min-width: 480px; min-height: 480px;
   left: -12%; top: -18%;
-  background: radial-gradient(closest-side, rgba(255,59,48,.5), transparent 72%);
+  background: radial-gradient(closest-side, rgba(16,185,129,.38), transparent 72%);
   animation: aur-a 22s ease-in-out infinite alternate;
 }
 .aurora-b {
   width: 50vw; height: 50vw; min-width: 420px; min-height: 420px;
   right: -14%; bottom: -22%;
-  background: radial-gradient(closest-side, rgba(255,0,128,.38), transparent 70%);
+  background: radial-gradient(closest-side, rgba(79,70,229,.26), transparent 70%);
   animation: aur-b 26s ease-in-out infinite alternate;
 }
 .aurora-c {
   width: 34vw; height: 34vw; min-width: 300px; min-height: 300px;
   right: 4%; top: -12%;
-  background: radial-gradient(closest-side, rgba(41,98,255,.28), transparent 70%);
+  background: radial-gradient(closest-side, rgba(251,146,60,.14), transparent 70%);
   animation: aur-c 30s ease-in-out infinite alternate;
 }
 @keyframes aur-a { from { transform: translate3d(0,0,0) scale(1); } to { transform: translate3d(14vw,10vh,0) scale(1.15); } }
@@ -477,4 +477,21 @@ html.light .gm-logo-img { filter: none; }
 @keyframes aur-streaks { from { transform: translateX(-3%); } to { transform: translateX(3%); } }
 @media (prefers-reduced-motion: reduce) {
   .aurora-blob, .aurora-streaks { animation: none; }
+}
+
+/* ── Landing: safe reveal + gradient ink ─────────────────────────────── */
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(18px); }
+}
+.rise-in {
+  animation: rise-in 0.9s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+.grad-ink {
+  background: linear-gradient(100deg, #6ee7b7 0%, #34d399 40%, #93c5fd 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.hairline {
+  border-color: rgba(255, 255, 255, 0.08);
 }

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { getArchivedStories } from "@/lib/stories";
+import { cdnUrl } from "@/lib/cdn";
 import { timeAgo } from "@/lib/utils";
 
 export const metadata = { title: "Story archive — Snívať" };
@@ -42,7 +43,7 @@ export default async function ArchivePage() {
             >
               {s.imageUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={s.imageUrl} alt="" className="aspect-[9/16] w-full object-cover" />
+                <img src={cdnUrl(s.imageUrl, 480)} alt="" className="aspect-[9/16] w-full object-cover" />
               ) : (
                 <div
                   className="grid aspect-[9/16] place-items-center p-4 text-center text-sm font-semibold text-white"

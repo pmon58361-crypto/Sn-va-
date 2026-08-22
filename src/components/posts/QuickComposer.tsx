@@ -4,16 +4,19 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Avatar } from "@/components/ui/Avatar";
+import { NoteModal } from "@/components/stories/NoteModal";
 
 /**
  * Compact inline composer that sits at the top of the social feed.
  * Clicking it routes to the full /new composer. Mirrors the
  * "What's on your mind?" pattern from Facebook.
+ * The Story button opens an Instagram-Notes-style quick note modal.
  */
 export function QuickComposer() {
   const { data: session } = useSession();
   const router = useRouter();
   const [focused, setFocused] = useState(false);
+  const [noteOpen, setNoteOpen] = useState(false);
 
   if (!session?.user) return null;
 
@@ -43,8 +46,14 @@ export function QuickComposer() {
           Create
         </span>
         <div className="ml-auto flex items-center gap-1.5">
+          <button
+            title="Share a quick note"
+            onClick={() => setNoteOpen(true)}
+            className="inline-flex items-center gap-1.5 rounded-full border border-line-strong px-3.5 py-1.5 text-xs font-semibold text-ink-muted transition hover:border-accent hover:bg-accent-tint hover:text-accent"
+          >
+            Story
+          </button>
           {[
-            { label: "Story", hint: "Share an experience", href: "/new?category=COMMUNITY" },
             { label: "Offer", hint: "Offer your skills", href: "/new?category=JOB_OFFER" },
             { label: "Job", hint: "Post an opening", href: "/new?category=JOB_LISTING" },
           ].map(({ label, hint, href }) => (
@@ -59,7 +68,14 @@ export function QuickComposer() {
           ))}
         </div>
       </div>
+
+      {noteOpen && (
+        <NoteModal
+          name={session.user.name}
+          image={session.user.image}
+          onClose={() => setNoteOpen(false)}
+        />
+      )}
     </div>
   );
 }
-

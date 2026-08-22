@@ -19,7 +19,8 @@ model User {
   location      String?
   // OAuth provider used for this account (credentials, github, google, ...)
   provider      String    @default("credentials")
-  role          String    @default("member")
+  role          String    @default("member") // member | admin
+  bannedAt      DateTime? // set = writes blocked + sign-in refused
   createdAt     DateTime  @default(now())
 
   accounts      Account[]
@@ -52,7 +53,8 @@ model User {
   highlights Highlight[]
 
   // Moderation
-  reports    Report[]
+  reports    Report[] @relation("reporter")
+  modActions Report[] @relation("moderator")
 }
 
 model Account {
@@ -109,6 +111,8 @@ model Post {
   location  String?
   type      String? // e.g. full-time, part-time, contract, freelance
   status    String      @default("open") // open | closed
+  // Moderation: hidden posts are excluded from feeds but kept for review.
+  hidden    Boolean     @default(false)
   authorId  String
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
@@ -143,11 +147,12 @@ model Reaction {
 }
 
 model PostImage {
-  id      String @id @default(cuid())
-  postId  String
-  url     String
-  caption String?
-  order   Int    @default(0)
+  id        String   @id @default(cuid())
+  postId    String
+  url       String
+  caption   String?
+  order     Int      @default(0)
+  createdAt DateTime @default(now()) // drives per-user daily upload caps
 
   post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
 
@@ -163,6 +168,8 @@ model Comment {
 
   post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
   author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  reports Report[]
 
   @@index([postId])
 }
@@ -238,6 +245,8 @@ model Message {
   sender    User @relation("sender", fields: [senderId], references: [id], onDelete: Cascade)
   recipient User @relation("recipient", fields: [recipientId], references: [id], onDelete: Cascade)
 
+  reports Report[]
+
   @@index([senderId, recipientId])
   @@index([recipientId, readAt])
 }
@@ -254,6 +263,7 @@ model Story {
 
   author User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
   views  StoryView[]
+  reports Report[]
 
   @@index([authorId, expiresAt])
 }
@@ -301,18 +311,34 @@ model HighlightItem {
 
 
 
-// User-submitted post reports (moderation queue).
+// User-submitted reports (moderation queue).
+//
+// Polymorphic-lite: one row targets exactly one of POST / COMMENT / MESSAGE /
+// STORY (targetType + the matching FK). "One report per user per target" is
+// enforced in reportTarget() via findFirst, not a DB unique — nullable FKs
+// don't collide in Postgres unique indexes.
 model Report {
-  id         String   @id @default(cuid())
-  postId     String
+  id         String     @id @default(cuid())
+  targetType String     @default("POST") // POST | COMMENT | MESSAGE | STORY
+  postId     String?
+  commentId  String?
+  messageId  String?
+  storyId    String?
   reporterId String
+  moderatorId String? // admin who actioned this report
   reason     String
-  createdAt  DateTime @default(now())
+  status     String     @default("open") // open | dismissed | actioned
+  createdAt  DateTime   @default(now())
 
-  post     Post @relation(fields: [postId], references: [id], onDelete: Cascade)
-  reporter User @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  post      Post?     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  comment   Comment?  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  message   Message?  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  story     Story?    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  reporter  User      @relation("reporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  moderator User?     @relation("moderator", fields: [moderatorId], references: [id])
 
-  @@unique([postId, reporterId])
+  @@index([status])
+  @@index([postId])
 }
 
 // In-app notification. `actor` did something that concerns `user`.

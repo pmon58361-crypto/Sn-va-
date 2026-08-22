@@ -75,6 +75,23 @@ export function SignInForm({ oauthProviders }: { oauthProviders: string[] }) {
     }
   }
 
+  async function handleDemo2() {
+    if (loading) return;
+    setError(null);
+    setLoading("credentials");
+    try {
+      await signIn("credentials", {
+        email: "demo2@snivat.local",
+        password: "demo1234",
+        callbackUrl: "/community",
+        redirect: true,
+      });
+    } catch {
+      setError("Sign-in failed. Is the Demo User 2 account seeded?");
+      setLoading(null);
+    }
+  }
+
   return (
     <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-5 py-16">
       {/* Raycast-style animated aurora field */}
@@ -128,6 +145,14 @@ export function SignInForm({ oauthProviders }: { oauthProviders: string[] }) {
               className="w-full rounded-xl bg-[#c9a24b] py-3 text-sm font-bold text-black transition hover:brightness-110 disabled:opacity-50"
             >
               {loading === "credentials" ? "Signing in…" : "Continue as Demo User"}
+            </button>
+            <button
+              type="button"
+              onClick={handleDemo2}
+              disabled={!!loading}
+              className="w-full rounded-xl border border-white/15 py-3 text-sm font-semibold text-white/80 transition hover:border-[#c9a24b]/60 hover:text-white disabled:opacity-50"
+            >
+              Continue as Demo User 2
             </button>
           </form>
 

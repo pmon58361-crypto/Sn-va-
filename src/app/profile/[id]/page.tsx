@@ -5,8 +5,16 @@ import { prisma } from "@/lib/prisma";
 import { isFollowing } from "@/lib/social";
 import { Avatar } from "@/components/ui/Avatar";
 import { FollowButton } from "@/components/profile/FollowButton";
-import { MapPinIcon, MailIcon, CalendarIcon, SettingsIcon } from "@/components/ui/Icons";
+import {
+  MapPinIcon,
+  MailIcon,
+  CalendarIcon,
+  SettingsIcon,
+  PlusIcon,
+  BookIcon,
+} from "@/components/ui/Icons";
 import { CATEGORY_META } from "@/lib/types";
+import { cdnUrl } from "@/lib/cdn";
 import { Highlights } from "./Highlights";
 
 export const dynamic = "force-dynamic";
@@ -35,9 +43,9 @@ export default async function ProfilePage({
             _count: { select: { comments: true, reactions: true } },
           },
         },
-          _count: {
-            select: { posts: true, followers: true, following: true },
-          },
+        _count: {
+          select: { posts: true, followers: true, following: true },
+        },
       },
     }),
     auth(),
@@ -67,12 +75,15 @@ export default async function ProfilePage({
     );
   }
 
-  const viewerIsFollowing = await isFollowing(session?.user?.id, user.id);
-  const highlightRows = await prisma.highlight.findMany({
-    where: { userId: id },
-    orderBy: { createdAt: "desc" },
-    include: { items: { select: { id: true, imageUrl: true } } },
-  });
+  // Independent reads — single round-trip wave.
+  const [viewerIsFollowing, highlightRows] = await Promise.all([
+    isFollowing(session?.user?.id, user.id),
+    prisma.highlight.findMany({
+      where: { userId: id },
+      orderBy: { createdAt: "desc" },
+      include: { items: { select: { id: true, imageUrl: true } } },
+    }),
+  ]);
   const highlights = highlightRows.map((h) => ({
     id: h.id,
     title: h.title,
@@ -106,26 +117,58 @@ export default async function ProfilePage({
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-8">
-      {/* ───────────── Profile header ───────────── */}
-      <div className="pb-8">
-        <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-start sm:gap-10">
-          {/* Avatar */}
-          <div className="shrink-0">
-            <Avatar name={user.name} image={user.image} size={120} />
+      {/* ───────────── Profile header card ───────────── */}
+      <section className="card overflow-hidden">
+        {/* Soft accent-tinted banner */}
+        <div
+          className="h-24 w-full"
+          style={{
+            background: `linear-gradient(120deg, rgba(var(--accent-rgb), 0.22) 0%, transparent 55%), var(--bg-elevated)`,
+          }}
+        />
+
+        <div className="px-5 pb-5 sm:px-6">
+          {/* Avatar overlapping the banner */}
+          <div className="-mt-12 mb-4">
+            <span className="inline-block rounded-full border-4 border-[var(--bg-elevated)] shadow-lg">
+              <Avatar name={user.name} image={user.image} size={96} />
+            </span>
           </div>
 
-          {/* Identity + actions */}
-          <div className="min-w-0 flex-1">
-            {/* Name + edit button inline — no floating isolation */}
-            <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-center sm:gap-4">
-              <div className="min-w-0">
-                <h1 className="truncate text-2xl font-bold text-ink">
-                  {user.name || "Anonymous"}
-                </h1>
-                <p className="text-sm text-ink-faint">{handle}</p>
-              </div>
+          {/* Name + handle | actions */}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <h1 className="truncate text-2xl font-bold leading-tight text-ink">
+                {user.name || "Anonymous"}
+              </h1>
+              <p className="mt-0.5 text-sm text-ink-faint">{handle}</p>
+
+              {/* Badges — activity-derived, not fake */}
+              {badges.length > 0 && (
+                <div className="mt-2.5 flex flex-wrap items-center gap-2">
+                  {badges.map((b) => (
+                    <span
+                      key={b}
+                      className="badge bg-accent/10 text-xs text-accent"
+                    >
+                      {b}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="flex shrink-0 items-center gap-2">
               {isOwner ? (
-                <div className="flex shrink-0 items-center gap-2">
+                <>
+                  <Link
+                    href="/bookmarks"
+                    aria-label="Saved posts"
+                    title="Saved posts"
+                    className="btn-outline grid h-10 w-10 place-items-center px-0"
+                  >
+                    <BookIcon className="h-4 w-4" />
+                  </Link>
                   <Link
                     href="/settings"
                     aria-label="Settings"
@@ -140,7 +183,7 @@ export default async function ProfilePage({
                   >
                     View archive
                   </Link>
-                </div>
+                </>
               ) : isPublic ? (
                 <FollowButton
                   targetUserId={user.id}
@@ -152,73 +195,62 @@ export default async function ProfilePage({
                 </span>
               )}
             </div>
+          </div>
 
-            {/* Badges — activity-derived, not fake */}
-            {badges.length > 0 && (
-              <div className="mt-3 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
-                {badges.map((b) => (
-                  <span
-                    key={b}
-                    className="badge bg-soft text-xs text-ink-muted"
-                  >
-                    {b}
-                  </span>
-                ))}
-              </div>
-            )}
+          {/* Bio — prominent, left-aligned under identity */}
+          {user.bio ? (
+            <p className="mt-4 whitespace-pre-wrap text-[15px] leading-relaxed text-ink-soft">
+              {user.bio}
+            </p>
+          ) : isOwner ? (
+            <p className="mt-4 text-sm text-ink-faint">
+              No bio yet.{" "}
+              <Link href="/settings" className="text-accent hover:underline">
+                Add one
+              </Link>
+              .
+            </p>
+          ) : null}
 
-            {/* Bio — prominent, right under the handle */}
-            {user.bio ? (
-              <p className="mt-4 whitespace-pre-wrap text-center text-sm leading-relaxed text-ink-soft sm:text-left">
-                {user.bio}
-              </p>
-            ) : isOwner ? (
-              <p className="mt-4 text-center text-sm text-ink-faint sm:text-left">
-                No bio yet.{" "}
-                <Link href="/settings" className="text-accent hover:underline">
-                  Add one
-                </Link>
-                .
-              </p>
-            ) : null}
-
-            {/* Meta row */}
-            <div className="mt-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm text-ink-muted sm:justify-start">
-              {user.location && (
-                <span className="inline-flex items-center gap-1.5">
-                  <MapPinIcon className="h-4 w-4" />
-                  {user.location}
-                </span>
-              )}
-              {settings?.showEmail && (
-                <span className="inline-flex items-center gap-1.5">
-                  <MailIcon className="h-4 w-4" />
-                  {user.email}
-                </span>
-              )}
+          {/* Meta row */}
+          <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-ink-muted">
+            {user.location && (
               <span className="inline-flex items-center gap-1.5">
-                <CalendarIcon className="h-4 w-4" />
-                Joined {joinDate}
+                <MapPinIcon className="h-4 w-4" />
+                {user.location}
               </span>
-            </div>
+            )}
+            {settings?.showEmail && (
+              <span className="inline-flex items-center gap-1.5">
+                <MailIcon className="h-4 w-4" />
+                {user.email}
+              </span>
+            )}
+            <span className="inline-flex items-center gap-1.5">
+              <CalendarIcon className="h-4 w-4" />
+              Joined {joinDate}
+            </span>
           </div>
         </div>
 
-        {/* Stats — larger numbers, lighter labels */}
-        <div className="mt-8 flex items-center justify-center gap-10 border-y border-line py-5 sm:justify-start sm:gap-14">
+        {/* Stats strip — divided footer of the header card */}
+        <div className="grid grid-cols-4 divide-x divide-line border-t border-line bg-[var(--bg-soft)] py-4">
           <Stat label="Posts" value={user._count.posts} />
           <Stat label="Following" value={user._count.following} />
           <Stat label="Followers" value={user._count.followers} />
           <Stat label="Reactions" value={reactionTotal} />
         </div>
-      </div>
+      </section>
 
       {/* Highlights row (Instagram-style circles) */}
       <Highlights userId={user.id} isOwner={isOwner} highlights={highlights} />
 
       {/* ───────────── Content ───────────── */}
       {user.posts.length === 0 ? (
-        <div className="card p-16 text-center">
+        <div className="mt-6 rounded-2xl border border-dashed border-line-strong px-6 py-14 text-center">
+          <span className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-full bg-accent/10 text-accent">
+            <PlusIcon className="h-6 w-6" />
+          </span>
           <p className="text-sm text-ink-muted">
             {isOwner
               ? "You haven't posted yet. Share something with the community."
@@ -233,7 +265,7 @@ export default async function ProfilePage({
       ) : (
         <>
           {/* Filter bar — tabs are links that really filter */}
-          <div className="mb-5 flex items-center gap-1 overflow-x-auto border-b border-line pb-px">
+          <div className="mb-5 mt-7 flex items-center gap-1 overflow-x-auto border-b border-line pb-px">
             <FilterTab
               label="All"
               count={user.posts.length}
@@ -277,12 +309,12 @@ export default async function ProfilePage({
   );
 }
 
-// ── Stats: big number, tiny label ──
+// ── Stat cell inside the divided strip ──
 function Stat({ label, value }: { label: string; value: number }) {
   return (
-    <div className="text-center sm:text-left">
-      <div className="text-xl font-bold text-ink">{value}</div>
-      <div className="text-xs uppercase tracking-wider text-ink-faint">
+    <div className="text-center">
+      <div className="text-xl font-bold tabular-nums text-ink">{value}</div>
+      <div className="text-[11px] uppercase tracking-wider text-ink-faint">
         {label}
       </div>
     </div>
@@ -315,7 +347,7 @@ function FilterTab({
         <span className="ml-1.5 text-xs text-ink-faint">{count}</span>
       )}
       {active && (
-        <span className="absolute -bottom-px left-0 right-0 h-0.5 bg-accent" />
+        <span className="absolute -bottom-px left-0 right-0 h-0.5 rounded-full bg-accent" />
       )}
     </Link>
   );
@@ -337,6 +369,7 @@ type GridPost = {
   id: string;
   title: string;
   category: string;
+  createdAt: Date;
   images: { id: string; url: string; order: number }[];
 };
 
@@ -345,6 +378,15 @@ type GridPost = {
 function postHref(p: GridPost): string {
   const meta = CATEGORY_META[p.category as keyof typeof CATEGORY_META];
   return `/${meta?.section || "community"}/${p.id}`;
+}
+
+function relativeDate(d: Date): string {
+  const diff = Date.now() - d.getTime();
+  const days = Math.floor(diff / 86_400_000);
+  if (days <= 0) return "today";
+  if (days === 1) return "yesterday";
+  if (days < 30) return `${days}d ago`;
+  return d.toLocaleDateString(undefined, { month: "short", year: "numeric" });
 }
 
 function PostGrid({ posts }: { posts: GridPost[] }) {
@@ -363,7 +405,7 @@ function PostGrid({ posts }: { posts: GridPost[] }) {
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={p.images[0].url}
+                src={cdnUrl(p.images[0].url, 480)}
                 alt={p.title}
                 className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                 loading="lazy"
@@ -379,23 +421,31 @@ function PostGrid({ posts }: { posts: GridPost[] }) {
 
       {textOnly.length > 0 && (
         <div className="space-y-3">
-          {textOnly.map((p) => (
-            <Link
-              key={p.id}
-              href={postHref(p)}
-              className="card card-hover block p-5"
-            >
-              <h3 className="text-base font-semibold text-ink group-hover:text-accent">
-                {p.title}
-              </h3>
-            </Link>
-          ))}
+          {textOnly.map((p) => {
+            const meta =
+              CATEGORY_META[p.category as keyof typeof CATEGORY_META];
+            return (
+              <Link
+                key={p.id}
+                href={postHref(p)}
+                className="card card-hover group block p-5"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="truncate text-base font-semibold text-ink transition-colors group-hover:text-accent">
+                    {p.title}
+                  </h3>
+                  <span className="badge shrink-0 bg-accent/10 text-xs text-accent">
+                    {meta?.label || p.category}
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-ink-faint">
+                  {relativeDate(p.createdAt)}
+                </p>
+              </Link>
+            );
+          })}
         </div>
       )}
     </div>
   );
 }
-
-
-
-

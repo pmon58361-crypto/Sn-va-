@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import {
-  buildPersonalContext,
+  AFFINITY_WINDOW_DAYS,
+  buildPersonalContextFromRows,
   rankFeed,
   rotateFeed,
   type FeedSort,
@@ -48,7 +49,9 @@ export async function getPosts({
   category,
   categories,
   authorId,
+  authorIds,
   search,
+  before,
   limit = 50,
   includeClosed = false,
   viewerId,
@@ -57,7 +60,11 @@ export async function getPosts({
   category?: PostCategory;
   categories?: PostCategory[];
   authorId?: string;
+  /** "Following"-style feeds: restrict to these authors (me + follows). */
+  authorIds?: string[];
   search?: string;
+  /** Chronological cursor for Load more: only posts older than this. */
+  before?: Date;
   limit?: number;
   includeClosed?: boolean;
   viewerId?: string;
@@ -69,8 +76,11 @@ export async function getPosts({
   if (categories && categories.length) where.category = { in: categories };
 
   if (authorId) where.authorId = authorId;
+  else if (authorIds && authorIds.length) where.authorId = { in: authorIds };
 
   if (!includeClosed) where.status = "open";
+
+  if (before) where.createdAt = { lt: before };
 
   if (search) {
     // mode:"insensitive" is required on PostgreSQL (SQLite was case-insensitive
@@ -82,34 +92,69 @@ export async function getPosts({
     ];
   }
 
-  // Ranked feeds over-fetch so the algorithm has a pool to work with.
-  const pool = await prisma.post.findMany({
-    where,
-    include: {
-      ...postInclude,
-      ...(viewerId ? { bookmarks: { where: { userId: viewerId } } } : {}),
-    },
-    orderBy: { createdAt: "desc" },
-    take: sort === "best" ? Math.max(limit * 4, 200) : limit,
-  });
+  // Plain chronological feeds need exactly one query. Following circles and
+  // cursor pages also skip the ranker: recency is the point of a following
+  // feed, and ranking doesn't compose with createdAt cursors.
+  if (sort !== "best" || before || (authorIds && authorIds.length > 0)) {
+    return prisma.post.findMany({
+      where,
+      include: {
+        ...postInclude,
+        ...(viewerId ? { bookmarks: { where: { userId: viewerId } } } : {}),
+      },
+      orderBy: { createdAt: "desc" },
+      take: limit,
+    });
+  }
 
-  if (sort !== "best") return pool;
-  const ctx = viewerId ? await buildPersonalContext(viewerId) : undefined;
-
-  const ids = pool.map((p) => p.id);
+  // Ranked feed: over-fetch a pool so ranking has something to work with.
+  // Every supporting query (personal affinity + 12h velocity) runs in the
+  // SAME round trip as the pool — sequential awaits here used to cost 3+
+  // extra Neon round trips per page load, which dominated latency.
+  // The groupBy velocity filters by time only (not pool ids); extra map
+  // entries are harmless because lookups are per-post-id.
+  const poolTake = Math.max(limit * 4, 200);
   const since12 = new Date(Date.now() - 12 * 3_600_000);
-  const [r12, c12] = await Promise.all([
+  const sinceAffinity = new Date(
+    Date.now() - AFFINITY_WINDOW_DAYS * 86_400_000
+  );
+
+  const [pool, myReactions, myComments, r12, c12] = await Promise.all([
+    prisma.post.findMany({
+      where,
+      include: {
+        ...postInclude,
+        ...(viewerId ? { bookmarks: { where: { userId: viewerId } } } : {}),
+      },
+      orderBy: { createdAt: "desc" },
+      take: poolTake,
+    }),
+    viewerId
+      ? prisma.reaction.findMany({
+          where: { userId: viewerId, createdAt: { gte: sinceAffinity } },
+          select: { post: { select: { authorId: true, tags: true } } },
+        })
+      : Promise.resolve([] as never[]),
+    viewerId
+      ? prisma.comment.findMany({
+          where: { authorId: viewerId, createdAt: { gte: sinceAffinity } },
+          select: { post: { select: { authorId: true, tags: true } } },
+        })
+      : Promise.resolve([] as never[]),
     prisma.reaction.groupBy({
       by: ["postId"],
-      where: { createdAt: { gte: since12 }, postId: { in: ids } },
+      where: { createdAt: { gte: since12 } },
       _count: { _all: true },
     }),
     prisma.comment.groupBy({
       by: ["postId"],
-      where: { createdAt: { gte: since12 }, postId: { in: ids } },
+      where: { createdAt: { gte: since12 } },
       _count: { _all: true },
     }),
   ]);
+
+  const ctx = viewerId ? buildPersonalContextFromRows(myReactions, myComments, viewerId) : undefined;
+
   const recent12h = new Map<string, number>();
   for (const g of r12) recent12h.set(g.postId, g._count._all);
   for (const g of c12)
@@ -131,6 +176,26 @@ export async function getComments(postId: string) {
     },
     orderBy: { createdAt: "desc" },
   });
+}
+
+// Top tags across recent posts, ranked by frequency. Shared by the
+// community topic-chip row and the RightSidebar trending list.
+export async function getTopTags(limit = 8): Promise<[string, number][]> {
+  const taggedPosts = await prisma.post.findMany({
+    take: 100,
+    where: { tags: { not: null }, status: "open" },
+    select: { tags: true },
+  });
+  const tagCounts = new Map<string, number>();
+  for (const p of taggedPosts) {
+    if (!p.tags) continue;
+    for (const t of p.tags.split(",").map((s) => s.trim()).filter(Boolean)) {
+      tagCounts.set(t, (tagCounts.get(t) || 0) + 1);
+    }
+  }
+  return Array.from(tagCounts.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit);
 }
 
 

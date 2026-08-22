@@ -1,9 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { auth } from "@/auth";
+import { requireActiveUser, requireUserId } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { cloudinary } from "@/lib/cloudinary";
+import { destroyAssets } from "@/lib/storage";
 import type { UploadApiResponse } from "cloudinary";
 import { MAX_IMAGE_BYTES, ALLOWED_IMAGE_TYPES } from "@/lib/types";
 
@@ -14,9 +15,7 @@ const STORY_TTL_HOURS = 24;
 export async function createStory(
   form: FormData
 ): Promise<{ ok: boolean; error?: string }> {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Unauthorized");
-  const me = session.user.id;
+  const me = (await requireActiveUser()).id;
 
   const caption = (form.get("caption") as string | null)?.trim() || null;
   const bg = (form.get("bg") as string | null)?.trim() || null;
@@ -73,30 +72,30 @@ export async function createStory(
 
 // Mark a story viewed (drives seen/unseen rings).
 export async function viewStory(storyId: string) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Unauthorized");
+  const me = await requireUserId(); // fires per story tap — keep it cheap
 
   await prisma.storyView.upsert({
     where: {
-      storyId_userId: { storyId, userId: session.user.id },
+      storyId_userId: { storyId, userId: me },
     },
     update: {},
-    create: { storyId, userId: session.user.id },
+    create: { storyId, userId: me },
   });
 }
 
 // Delete my own story immediately.
 export async function deleteStory(storyId: string) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Unauthorized");
+  const me = (await requireActiveUser()).id;
 
   const story = await prisma.story.findUnique({
     where: { id: storyId },
-    select: { authorId: true },
+    select: { authorId: true, imageUrl: true },
   });
-  if (!story || story.authorId !== session.user.id) throw new Error("Forbidden");
+  if (!story || story.authorId !== me) throw new Error("Forbidden");
 
   await prisma.story.delete({ where: { id: storyId } });
+  // Story photos are only referenced by the story row — free the upload.
+  if (story.imageUrl) await destroyAssets([story.imageUrl]);
   revalidatePath("/community");
 }
 

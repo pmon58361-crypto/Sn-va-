@@ -3,6 +3,7 @@
 import { useCallback, useRef, useState } from "react";
 import { UploadIcon, TrashIcon, PlusIcon } from "@/components/ui/Icons";
 import { MAX_IMAGES_PER_POST, MAX_IMAGE_BYTES } from "@/lib/types";
+import { cdnUrl } from "@/lib/cdn";
 
 export type UploadedImage = { url: string; name: string };
 
@@ -139,7 +140,7 @@ export function ImageUploader({
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={img.url}
+                  src={cdnUrl(img.url, 200)}
                   alt={img.name}
                   className="h-full w-full object-cover"
                 />

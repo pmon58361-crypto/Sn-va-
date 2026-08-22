@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createStory } from "@/app/stories/actions";
 import { viewStory } from "@/app/stories/actions";
+import { cdnUrl } from "@/lib/cdn";
 import { timeAgo } from "@/lib/utils";
 
 export type StoryGroup = {
@@ -35,13 +36,13 @@ export function StoriesBar({
 
   return (
     <div className="border-b border-line px-4 py-3">
-      <div className="flex items-center gap-3.5 overflow-x-auto pb-1">
+      <div className="flex items-center gap-4 overflow-x-auto pb-1">
         {/* Add story */}
         <button
           onClick={() => setComposerOpen(true)}
-          className="flex w-[64px] shrink-0 flex-col items-center gap-1.5"
+          className="flex w-[80px] shrink-0 flex-col items-center gap-2"
         >
-          <span className="grid h-14 w-14 place-items-center rounded-full border-2 border-dashed border-line-strong text-2xl font-light text-ink-secondary">
+          <span className="grid h-[72px] w-[72px] place-items-center rounded-full border-2 border-dashed border-line-strong text-3xl font-light text-ink-secondary transition-colors hover:border-accent hover:text-accent">
             +
           </span>
           <span className="w-full truncate text-center text-xs text-ink-secondary">
@@ -53,7 +54,7 @@ export function StoriesBar({
           <button
             key={g.author.id}
             onClick={() => setViewing(g)}
-            className="flex w-[64px] shrink-0 flex-col items-center gap-1.5"
+            className="flex w-[80px] shrink-0 flex-col items-center gap-2"
           >
             <Ring seen={!g.hasUnseen} image={g.author.image} name={g.author.name} />
             <span className="w-full truncate text-center text-xs text-ink-secondary">
@@ -85,24 +86,29 @@ function Ring({
     setBroken(false);
   }
 
+  // Instagram-style ring: colored halo → thin bg gap → avatar.
+  const ringCls = seen
+    ? "bg-line-strong"
+    : "bg-[conic-gradient(from_180deg,#ffd400,#ff7a00,#f91880,#7856ff,#1d9bf0,#00ba7c,#ffd400)]";
+
   if (image && !broken) {
-    // eslint-disable-next-line @next/next/no-img-element
     return (
-      <img
-        src={image}
-        alt=""
-        onError={() => setBroken(true)}
-        className={`h-14 w-14 rounded-full object-cover p-[3px] ${seen ? "" : "bg-gradient-to-tr from-accent to-like"}`}
-      />
+      <span className={`grid h-[72px] w-[72px] place-items-center rounded-full p-[3px] ${ringCls}`}>
+        <span className="h-full w-full overflow-hidden rounded-full border-[3px] border-bg">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={image}
+            alt=""
+            onError={() => setBroken(true)}
+            className="h-full w-full rounded-full object-cover"
+          />
+        </span>
+      </span>
     );
   }
   return (
-    <span
-      className={`grid h-14 w-14 place-items-center rounded-full p-[3px] ${
-        seen ? "bg-line-strong" : "bg-gradient-to-tr from-accent to-like"
-      }`}
-    >
-      <span className="grid h-full w-full place-items-center rounded-full bg-bg text-lg font-bold">
+    <span className={`grid h-[72px] w-[72px] place-items-center rounded-full p-[3px] ${ringCls}`}>
+      <span className="grid h-full w-full place-items-center rounded-full border-[3px] border-bg bg-bg text-xl font-bold">
         {(name || "?").charAt(0).toUpperCase()}
       </span>
     </span>
@@ -355,7 +361,7 @@ function StoryViewer({
         {isImage ? (
           <figure className="max-h-full max-w-md">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={item.imageUrl!} alt="" className="max-h-[75vh] rounded-2xl object-contain" />
+            <img src={cdnUrl(item.imageUrl, 900)} alt="" className="max-h-[75vh] rounded-2xl object-contain" />
             {item.caption && (
               <figcaption className="mt-3 text-center text-lg font-semibold text-white">
                 {item.caption}

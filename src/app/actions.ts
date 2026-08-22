@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { createNotification } from "@/lib/notify";
+import { requireActiveUser } from "@/lib/session";
+import { destroyAssets } from "@/lib/storage";
 import {
   POST_CATEGORIES,
   MAX_IMAGES_PER_POST,
@@ -34,8 +36,8 @@ export type PostInput = {
 };
 
 export async function savePost(input: PostInput) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Unauthorized");
+  // Ban-aware: suspended users can't create or edit content.
+  const me = await requireActiveUser();
 
   // Basic validation
   if (!POST_CATEGORIES.includes(input.category)) {
@@ -59,22 +61,28 @@ export async function savePost(input: PostInput) {
   };
 
   if (input.id) {
-    // Update existing — pin to a local const so TS narrows the type from
+    // Update existing â€” pin to a local const so TS narrows the type from
     // string | undefined to string (input is a parameter and not narrowed).
     const postId = input.id;
     const existing = await prisma.post.findUnique({
       where: { id: postId },
       select: { authorId: true },
     });
-    if (!existing || existing.authorId !== session.user.id) {
+    if (!existing || existing.authorId !== me.id) {
       throw new Error("Not found or forbidden");
     }
     await prisma.post.update({
       where: { id: postId },
       data,
     });
-    // Replace images
+    // Replace images â€” free the replaced uploads so they don't linger
+    // as orphaned Cloudinary assets forever.
+    const old = await prisma.postImage.findMany({
+      where: { postId },
+      select: { url: true },
+    });
     await prisma.postImage.deleteMany({ where: { postId } });
+    await destroyAssets(old.map((o) => o.url));
     if (input.imageUrls.length) {
       await prisma.postImage.createMany({
         data: input.imageUrls.map((url, i) => ({
@@ -89,7 +97,7 @@ export async function savePost(input: PostInput) {
   } else {
     // Create new
     const post = await prisma.post.create({
-      data: { ...data, authorId: session.user.id },
+      data: { ...data, authorId: me.id },
     });
     if (input.imageUrls.length) {
       await prisma.postImage.createMany({
@@ -106,28 +114,31 @@ export async function savePost(input: PostInput) {
 }
 
 export async function deletePost(id: string) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Unauthorized");
+  const me = await requireActiveUser();
 
   const post = await prisma.post.findUnique({
     where: { id },
-    select: { authorId: true, category: true },
+    select: {
+      authorId: true,
+      category: true,
+      images: { select: { url: true } },
+    },
   });
   if (!post) throw new Error("Not found");
-  if (post.authorId !== session.user.id) throw new Error("Forbidden");
+  if (post.authorId !== me.id) throw new Error("Forbidden");
 
   await prisma.post.delete({ where: { id } });
+  await destroyAssets(post.images.map((i) => i.url));
   revalidatePath(sectionPath(post.category));
   redirect(sectionPath(post.category));
 }
 
 export async function addComment(postId: string, content: string) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Unauthorized");
+  const me = await requireActiveUser();
   if (!content.trim()) throw new Error("Comment required");
 
   await prisma.comment.create({
-    data: { postId, authorId: session.user.id, content: content.trim() },
+    data: { postId, authorId: me.id, content: content.trim() },
   });
 
   // Notify the post author (skipped when you comment on your own post).
@@ -138,7 +149,7 @@ export async function addComment(postId: string, content: string) {
   if (post) {
     await createNotification({
       userId: post.authorId,
-      actorId: session.user.id,
+      actorId: me.id,
       type: "comment",
       postId,
     });
@@ -150,8 +161,7 @@ export async function addComment(postId: string, content: string) {
 }
 
 export async function applyToJob(postId: string, message: string) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Unauthorized");
+  const me = await requireActiveUser();
 
   const post = await prisma.post.findUnique({
     where: { id: postId },
@@ -161,19 +171,19 @@ export async function applyToJob(postId: string, message: string) {
     throw new Error("Invalid listing");
   }
   if (post.status !== "open") throw new Error("Listing closed");
-  if (post.authorId === session.user.id) {
+  if (post.authorId === me.id) {
     throw new Error("You cannot apply to your own listing");
   }
 
   // upsert prevents double-applications (unique [postId, userId])
   const wasNew = !(await prisma.application.findUnique({
-    where: { postId_userId: { postId, userId: session.user.id } },
+    where: { postId_userId: { postId, userId: me.id } },
     select: { id: true },
   }));
   await prisma.application.upsert({
-    where: { postId_userId: { postId, userId: session.user.id } },
+    where: { postId_userId: { postId, userId: me.id } },
     update: { message: message.trim() },
-    create: { postId, userId: session.user.id, message: message.trim() },
+    create: { postId, userId: me.id, message: message.trim() },
   });
 
   // Notify the listing author on a first-time application only.
@@ -185,7 +195,7 @@ export async function applyToJob(postId: string, message: string) {
     if (full) {
       await createNotification({
         userId: full.authorId,
-        actorId: session.user.id,
+        actorId: me.id,
         type: "application",
         postId,
       });
@@ -202,9 +212,7 @@ export async function toggleReaction(
   postId: string,
   type: "like" | "dislike" = "like"
 ) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Unauthorized");
-  const me = session.user.id;
+  const me = (await requireActiveUser()).id;
 
   const existing = await prisma.reaction.findUnique({
     where: { postId_userId: { postId, userId: me } },
@@ -244,9 +252,7 @@ export async function toggleReaction(
 
 // Bookmark / unbookmark a post.
 export async function toggleBookmark(postId: string): Promise<{ bookmarked: boolean }> {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Unauthorized");
-  const me = session.user.id;
+  const me = (await requireActiveUser()).id;
 
   const post = await prisma.post.findUnique({
     where: { id: postId },
@@ -267,9 +273,7 @@ export async function toggleBookmark(postId: string): Promise<{ bookmarked: bool
 
 // Follow / unfollow a user.
 export async function toggleFollow(targetUserId: string): Promise<{ following: boolean }> {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Unauthorized");
-  const me = session.user.id;
+  const me = (await requireActiveUser()).id;
   if (me === targetUserId) throw new Error("Cannot follow yourself");
 
   const target = await prisma.user.findUnique({
@@ -302,8 +306,7 @@ export async function setApplicationStatus(
   applicationId: string,
   status: "accepted" | "rejected"
 ) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Unauthorized");
+  const me = await requireActiveUser();
   if (status !== "accepted" && status !== "rejected") {
     throw new Error("Invalid status");
   }
@@ -313,7 +316,7 @@ export async function setApplicationStatus(
     include: { post: { select: { id: true, authorId: true } } },
   });
   if (!application) throw new Error("Not found");
-  if (application.post.authorId !== session.user.id) throw new Error("Forbidden");
+  if (application.post.authorId !== me.id) throw new Error("Forbidden");
 
   await prisma.application.update({
     where: { id: applicationId },
@@ -323,7 +326,7 @@ export async function setApplicationStatus(
   // The applicant finds out the moment a decision is made.
   await createNotification({
     userId: application.userId,
-    actorId: session.user.id,
+    actorId: me.id,
     type: status === "accepted" ? "application_accepted" : "application_rejected",
     postId: application.post.id,
   });
@@ -331,34 +334,111 @@ export async function setApplicationStatus(
   revalidatePath(`/applications/${application.post.id}`);
 }
 
-// Report a post for moderation. One report per user per post.
-export async function reportPost(postId: string, reason: string) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Unauthorized");
+// ── Reporting (posts, comments, DMs, stories) ────────────────────────────────
 
-  const post = await prisma.post.findUnique({
-    where: { id: postId },
-    select: { id: true },
+export type ReportTargetType = "POST" | "COMMENT" | "MESSAGE" | "STORY";
+
+const REPORT_FK: Record<ReportTargetType, string> = {
+  POST: "postId",
+  COMMENT: "commentId",
+  MESSAGE: "messageId",
+  STORY: "storyId",
+};
+
+// Auto-hide a post once enough DISTINCT reporters pile up. Pure logic —
+// no paid moderation APIs.
+export async function maybeAutoHidePost(postId: string): Promise<boolean> {
+  const threshold = Math.max(
+    1,
+    Number(process.env.AUTO_HIDE_THRESHOLD || 3)
+  );
+  const reporters = await prisma.report.count({
+    where: { postId, status: { not: "dismissed" } },
   });
-  if (!post) throw new Error("Post not found");
-  const trimmed = reason.trim();
+  if (reporters < threshold) return false;
+  const updated = await prisma.post.updateMany({
+    where: { id: postId, hidden: false },
+    data: { hidden: true },
+  });
+  return updated.count > 0;
+}
+
+/**
+ * Report any piece of content for moderation.
+ * One report per user per target (find-then-write — nullable FKs can't
+ * form a Postgres unique constraint). Re-reporting updates the reason.
+ */
+export async function reportTarget(input: {
+  targetType: ReportTargetType;
+  targetId: string;
+  reason: string;
+}): Promise<{ ok: boolean }> {
+  const me = await requireActiveUser();
+
+  const trimmed = input.reason.trim();
   if (!trimmed) throw new Error("Reason required");
 
-  await prisma.report.upsert({
-    where: { postId_reporterId: { postId, reporterId: session.user.id } },
-    update: { reason: trimmed },
-    create: { postId, reporterId: session.user.id, reason: trimmed },
+  const fk = REPORT_FK[input.targetType];
+  if (!fk) throw new Error("Invalid target type");
+
+  // Target must exist and be live.
+  let exists = false;
+  switch (input.targetType) {
+    case "POST":
+      exists = !!(await prisma.post.findUnique({ where: { id: input.targetId }, select: { id: true } }));
+      break;
+    case "COMMENT":
+      exists = !!(await prisma.comment.findUnique({ where: { id: input.targetId }, select: { id: true } }));
+      break;
+    case "MESSAGE":
+      exists = !!(await prisma.message.findUnique({ where: { id: input.targetId }, select: { id: true } }));
+      break;
+    case "STORY":
+      exists = !!(await prisma.story.findUnique({ where: { id: input.targetId }, select: { id: true } }));
+      break;
+  }
+  if (!exists) throw new Error("Not found");
+
+  const scopedWhere = { reporterId: me.id, [fk]: input.targetId };
+  const existing = await prisma.report.findFirst({
+    where: scopedWhere,
+    select: { id: true },
   });
+
+  if (existing) {
+    await prisma.report.update({
+      where: { id: existing.id },
+      data: { reason: trimmed },
+    });
+  } else {
+    await prisma.report.create({
+      data: {
+        targetType: input.targetType,
+        ...scopedWhere,
+        reason: trimmed,
+      } as never,
+    });
+  }
+
+  if (input.targetType === "POST") {
+    await maybeAutoHidePost(input.targetId);
+  }
+
+  return { ok: true };
+}
+
+/** Back-compat wrapper — post cards still call this. */
+export async function reportPost(postId: string, reason: string) {
+  return reportTarget({ targetType: "POST", targetId: postId, reason });
 }
 
 export async function togglePostStatus(id: string) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Unauthorized");
+  const me = await requireActiveUser();
   const post = await prisma.post.findUnique({
     where: { id },
     select: { authorId: true, status: true, category: true },
   });
-  if (!post || post.authorId !== session.user.id) throw new Error("Forbidden");
+  if (!post || post.authorId !== me.id) throw new Error("Forbidden");
 
   await prisma.post.update({
     where: { id },

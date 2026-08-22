@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { cdnUrl } from "@/lib/cdn";
 
 type GridImage = { id: string; url: string; order: number };
 type GridPost = { category: string; id: string; title: string };
@@ -65,7 +66,7 @@ export function ImageGrid({
       <div className="bg-soft">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={images[0].url}
+          src={cdnUrl(images[0].url, 1080)}
           alt={post.title}
           className="mx-auto max-h-[70vh] w-full cursor-zoom-in object-contain"
           onClick={() => setOpen(0)}
@@ -128,7 +129,7 @@ export function ImageGrid({
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={images[open].url}
+            src={cdnUrl(images[open].url, 1400)}
             alt={post.title}
             className="max-h-[92vh] max-w-full rounded-lg object-contain shadow-2xl"
             onClick={(e) => e.stopPropagation()}
@@ -177,7 +178,7 @@ function GridImg({ src, alt }: { src: string; alt: string }) {
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={src}
+      src={cdnUrl(src, 720)}
       alt={alt}
       className="h-full w-full object-cover"
       loading="lazy"

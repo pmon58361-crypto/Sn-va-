@@ -5,11 +5,14 @@ import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Logo } from "@/components/ui/Logo";
 import { Avatar } from "@/components/ui/Avatar";
+import { NotificationsBadge } from "./NotificationsBadge";
 import {
   UsersIcon,
   BriefcaseIcon,
   ClipboardIcon,
   CompassIcon,
+  MessageIcon,
+  BellIcon,
 } from "@/components/ui/Icons";
 
 const NAV = [
@@ -25,6 +28,35 @@ export function Navbar() {
 
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(href + "/");
+
+  // Compact icon link for actions that have no room for a label on mobile.
+  function IconLink({
+    href,
+    label,
+    children,
+    badge,
+  }: {
+    href: string;
+    label: string;
+    children: React.ReactNode;
+    badge?: React.ReactNode;
+  }) {
+    return (
+      <Link
+        href={href}
+        aria-label={label}
+        title={label}
+        className={`relative grid h-9 w-9 place-items-center rounded-full transition-colors ${
+          isActive(href)
+            ? "text-accent bg-accent/10"
+            : "text-ink-muted hover:text-ink hover:bg-line/60"
+        }`}
+      >
+        {children}
+        {badge}
+      </Link>
+    );
+  }
 
   return (
     <header className="sticky top-0 z-40 border-b border-line/70 bg-bg/80 backdrop-blur-xl">
@@ -55,10 +87,30 @@ export function Navbar() {
         <div className="flex items-center gap-2">
           {status === "authenticated" ? (
             <>
-              <Link href="/people" className="btn-primary hidden sm:inline-flex">
+              {/* DMs + notifications — reachable on every screen size */}
+              <IconLink href="/dm" label="Messages">
+                <MessageIcon className="h-5 w-5" />
+              </IconLink>
+              <IconLink
+                href="/notifications"
+                label="Notifications"
+                badge={
+                  <NotificationsBadge className="absolute -right-1 -top-1" />
+                }
+              >
+                <BellIcon className="h-5 w-5" />
+              </IconLink>
+
+              {/* Find people — icon-only when narrow, full pill from md up */}
+              <Link
+                href="/people"
+                aria-label="Find people"
+                className="btn-primary !px-3"
+              >
                 <CompassIcon className="h-4 w-4" />
-                Find people
+                <span className="hidden md:inline">Find people</span>
               </Link>
+
               {/* Tapping the avatar goes straight to your profile. */}
               <Link
                 href={`/profile/${session.user.id}`}

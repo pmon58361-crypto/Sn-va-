@@ -6,7 +6,9 @@ import {
   ChevronLeftIcon,
 } from "@/components/ui/Icons";
 import { PostActions } from "@/components/posts/PostActions";
+import { OwnerControls } from "@/components/posts/OwnerControls";
 import { timeAgo, formatDate, parseTags } from "@/lib/utils";
+import { cdnUrl } from "@/lib/cdn";
 import { CATEGORY_META } from "@/lib/types";
 import { reactionCounts, type PostWithRelations } from "@/lib/queries";
 
@@ -84,6 +86,12 @@ export function PostDetail({
             </span>
           </div>
 
+          {viewerId === post.authorId && (
+            <div className="mb-3 flex justify-end">
+              <OwnerControls postId={post.id} category={post.category} />
+            </div>
+          )}
+
           <h1 className="mb-2 text-2xl font-bold text-ink">
             {post.title}
           </h1>
@@ -152,7 +160,7 @@ export function PostDetail({
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={img.url}
+                  src={cdnUrl(img.url, 1080)}
                   alt={`image ${i + 1}`}
                   className={`mx-auto w-full object-contain ${
                     post.images.length === 1 ? "max-h-[700px]" : "max-h-[400px]"

@@ -5,14 +5,17 @@ import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { applyToJob } from "@/app/actions";
 
-// Shows either the apply form or the user's existing application state.
+// Shows either the apply form or the user's existing application state,
+// including the listing owner's accept/reject decision.
 export function ApplyForm({
   postId,
   hasApplied,
+  myStatus,
   isOwner,
 }: {
   postId: string;
   hasApplied: boolean;
+  myStatus?: string;
   isOwner: boolean;
 }) {
   const { status } = useSession();
@@ -57,10 +60,63 @@ export function ApplyForm({
     );
   }
 
+  if (submitted && myStatus === "accepted") {
+    return (
+      <div
+        className="card p-4 text-sm"
+        style={{ backgroundColor: "var(--accent-tint)" }}
+      >
+        <p className="font-semibold text-accent">
+          Your application was accepted.
+        </p>
+        <p className="mt-1 text-ink-muted">
+          The poster will reach out to you from here.
+        </p>
+      </div>
+    );
+  }
+
+  if (submitted && myStatus === "rejected") {
+    return (
+      <div className="card p-4 text-sm">
+        <p className="font-semibold text-ink-muted">
+          Your application wasn&apos;t accepted this time.
+        </p>
+        <p className="mt-1 text-ink-faint">
+          Keep going — more openings land here all the time.
+        </p>
+      </div>
+    );
+  }
+
   if (submitted) {
     return (
-      <div className="card border-warm text-warm bg-warm-tint p-4 text-sm">
-        ✓ You&apos;ve applied to this job. The poster will be in touch.
+      <div className="space-y-3">
+        <div className="card p-4 text-sm">
+          <p className="font-semibold text-ink">Application sent.</p>
+          <p className="mt-1 text-ink-muted">
+            Still pending — the poster hasn&apos;t responded yet. You can
+            update your message below.
+          </p>
+        </div>
+        <form onSubmit={onSubmit} className="card p-4">
+          <label className="mb-1.5 block text-sm font-medium text-ink-soft">
+            Update your message
+          </label>
+          <textarea
+            name="message"
+            required
+            maxLength={2000}
+            className="input min-h-[100px] resize-y"
+            placeholder="Refine your pitch…"
+          />
+          {error && <p className="mt-1 text-xs text-warm">{error}</p>}
+          <div className="mt-3 flex justify-end">
+            <button type="submit" disabled={pending} className="btn-outline px-4 py-1.5 text-xs">
+              {pending ? "Saving…" : "Update application"}
+            </button>
+          </div>
+        </form>
       </div>
     );
   }

@@ -18,23 +18,26 @@ export default async function ApplicationDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const session0 = await auth();
-  const post = await getPost(id, session0?.user?.id);
+  const session = await auth();
+
+  // Post fetch + "did I apply" check are independent — one round trip.
+  const [post, existing] = await Promise.all([
+    getPost(id, session?.user?.id),
+    session?.user?.id
+      ? prisma.application.findUnique({
+          where: { postId_userId: { postId: id, userId: session.user.id } },
+          select: { status: true },
+        })
+      : Promise.resolve(null),
+  ]);
 
   if (!post || post.category !== "JOB_LISTING") notFound();
 
-  const session = await auth();
-  const isOwner = session?.user?.id === post.authorId;
+  const meId = session?.user?.id;
+  const isOwner = meId === post.authorId;
 
-  // Did the current user already apply?
-  let hasApplied = false;
-  if (session?.user?.id) {
-    const existing = await prisma.application.findUnique({
-      where: { postId_userId: { postId: id, userId: session.user.id } },
-      select: { id: true },
-    });
-    hasApplied = !!existing;
-  }
+  const hasApplied = !!existing;
+  const myStatus: string | undefined = existing?.status;
 
   // Owner sees all applicants
   type ApplicationWithUser = {
@@ -60,7 +63,7 @@ export default async function ApplicationDetailPage({
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
-      <PostDetail post={post} viewerId={session?.user?.id} />
+      <PostDetail post={post} viewerId={meId} />
 
       <section className="mt-6">
         <h2 className="mb-4 text-lg font-semibold text-ink">
@@ -119,7 +122,12 @@ export default async function ApplicationDetailPage({
             </div>
           )
         ) : (
-          <ApplyForm postId={post.id} hasApplied={hasApplied} isOwner={false} />
+          <ApplyForm
+            postId={post.id}
+            hasApplied={hasApplied}
+            myStatus={myStatus}
+            isOwner={false}
+          />
         )}
       </section>
     </div>
