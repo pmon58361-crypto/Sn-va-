@@ -30,6 +30,8 @@ export function BottomNav() {
   const { status, data: session } = useSession();
 
   if (status === "loading") return null;
+  // Guests see the marketing site, not app chrome.
+  if (status === "unauthenticated") return null;
 
   const profileHref =
     status === "authenticated" && session?.user?.id

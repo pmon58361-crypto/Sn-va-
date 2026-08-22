@@ -37,12 +37,32 @@ function buildProviders() {
     Credentials({
       name: "Demo login",
       credentials: {
+        code: { label: "Access code", type: "text" },
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
         const email = credentials?.email as string | undefined;
         const password = credentials?.password as string | undefined;
+
+        // --- Access-code path: entering DEMO_CODE signs in the demo account.
+        // The code lives only server-side, so it never ships to the client.
+        const code = (credentials?.code as string | undefined)?.trim();
+        if (code) {
+          const expected = process.env.DEMO_CODE;
+          if (!expected || code !== expected.trim()) return null;
+
+          const demoEmail = (
+            process.env.DEMO_EMAIL || "demo@snivat.local"
+          ).toLowerCase();
+          const user = await prisma.user.findUnique({
+            where: { email: demoEmail },
+          });
+          if (!user || user.bannedAt) return null;
+          return { id: user.id, name: user.name, email: user.email, image: user.image };
+        }
+
+        // --- Legacy email + password path ---
         if (!email || !password) return null;
 
         // Find user. For the seeded demo account we validate the password.

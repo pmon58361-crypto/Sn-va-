@@ -104,3 +104,57 @@ lives in Vercel env vars (needs ercel login to pull).
 - Routes smoke: public 200; auth-gated 307; /admin redirects non-admins.
 - Live-DB test: 4 distinct reports flipped hidden=true, then cleanup OK.
 - cdnUrl passthrough confirmed against real rows.
+
+---
+
+## LOGO - 2026-08-23
+
+- Final mark shipped: waxing crescent + wish-star, gold gradient
+  (#f5e6b8->#c9a24b) on night tile (#1a1d22->#0d0e11), rx 29.
+  Geometry verified numerically: 19px limb thickness reads at 16px;
+  star sits fully inside the hollow without touching the gold.
+- public/logo.svg = mark; src/app/icon.svg = same (favicon);
+  public/logo-lockup.svg = horizontal lockup with correct UTF-8
+  "Snívat" wordmark (old one had mojibake text).
+- Earlier drafts kept as public/logo-a|b|c.svg for reference.
+
+---
+
+## LOGO v2 - 2026-08-23
+
+- Replaced crescent concept (read "sleep app", not the brand) with an
+  S-monogram mark: one drifting monoline gold S + 4-point sparkle as
+  its "period" — revives the V2 "S." wordmark identity, fuses name
+  initial with the dream spark.
+- Same night tile (#1a1d22->#0d0e11) and gold ramp (#f5e6b8->#c9a24b)
+  so it sits flush beside the Sní/white+vat/gold wordmark everywhere.
+- Updated: public/logo.svg, src/app/icon.svg, public/logo-lockup.svg.
+  All XML-validated. Crescent variant retired (user rejected).
+
+---
+
+## LOGO v3 (fancy S) - 2026-08-23
+
+- Rebuilt mark as a sculpted two-part S: two tapered gold hooks
+  (filled crescents, knife-edge tips) counter-rotated 180deg around
+  center, dream-spark suspended in the central void. Reads as a
+  luxury monogram instead of a handwritten stroke.
+- Flat fills (#e6c065 body, #fff7e0 spark) with per-hook gradient
+  direction in logo.svg; lockup uses flat fills + shared masks
+  (mask coords are pre-translate group space).
+- Files: public/logo.svg, src/app/icon.svg, public/logo-lockup.svg.
+  All XML-valid; geometry numerically verified (no hook overlap,
+  spark centered in void, no corner clipping).
+
+---
+
+## LOGO v4 (final direction) - 2026-08-23
+
+- Pill-segment S abandoned (rendered as digit 5 - two rounds of fixes
+  could not escape the 5 anatomy). Constellation + crescent + pills all
+  archived as logo-a/b/c/moon.svg lineage.
+- FINAL: typeset mark - high-contrast serif S (Instrument Serif stack,
+  Georgia fallback) in gold vertical ramp on night tile, 4-point
+  dream-spark as the period. Revives V2's literal "S." identity with
+  editorial typography matching the landing.
+- public/logo.svg, src/app/icon.svg, public/logo-lockup.svg updated.

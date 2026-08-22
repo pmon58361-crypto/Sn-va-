@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="256" height="256" role="img" aria-label="Snívať logo concept C">
+  <defs>
+    <linearGradient id="s-c" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#2f9e6b"/>
+      <stop offset="1" stop-color="#7ab85c"/>
+    </linearGradient>
+  </defs>
+  <!-- Deep charcoal tile -->
+  <rect width="128" height="128" rx="30" fill="#101210"/>
+  <!-- Flowing S -->
+  <path d="M84 36 C72 24 44 26 42 44 C40 60 62 62 74 68 C90 76 88 96 66 98 C52 99.5 41 92 38 83"
+        fill="none" stroke="url(#s-c)" stroke-width="17" stroke-linecap="round"/>
+  <!-- Accent dot: "Snívať." period -->
+  <circle cx="97" cy="99" r="8" fill="#c9a24b"/>
+</svg>

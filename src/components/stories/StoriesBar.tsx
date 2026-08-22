@@ -2,11 +2,11 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { createStory } from "@/app/stories/actions";
-import { viewStory } from "@/app/stories/actions";
+import { createStory, viewStory } from "@/app/stories/actions";
 import { cdnUrl } from "@/lib/cdn";
-import { ReportMenu } from "@/components/moderation/ReportMenu";
 import { timeAgo } from "@/lib/utils";
+import { Avatar } from "@/components/ui/Avatar";
+import { XIcon } from "@/components/ui/Icons";
 
 export type StoryGroup = {
   author: { id: string; name: string | null; image: string | null };
@@ -37,13 +37,15 @@ export function StoriesBar({
 
   return (
     <div className="border-b border-line px-4 py-3">
-      <div className="flex items-center gap-4 overflow-x-auto pb-1">
+      <div className="flex items-center gap-3.5 overflow-x-auto pb-1">
         {/* Add story */}
         <button
           onClick={() => setComposerOpen(true)}
-          className="flex w-[92px] shrink-0 flex-col items-center gap-2"
+          className="flex w-[64px] shrink-0 flex-col items-center"
         >
-          <span className="grid h-[84px] w-[84px] place-items-center rounded-full border-2 border-dashed border-line-strong text-4xl font-light text-ink-secondary transition-colors hover:border-accent hover:text-accent">
+          {/* Same reserved slot as note bubbles keeps all rows aligned */}
+          <span className="mb-1 h-8 shrink-0" aria-hidden />
+          <span className="grid h-14 w-14 place-items-center rounded-full border-2 border-dashed border-line-strong text-2xl font-light text-ink-secondary">
             +
           </span>
           <span className="w-full truncate text-center text-xs text-ink-secondary">
@@ -51,26 +53,50 @@ export function StoriesBar({
           </span>
         </button>
 
-        {groups.map((g) => (
-          <button
-            key={g.author.id}
-            onClick={() => setViewing(g)}
-            className="flex w-[92px] shrink-0 flex-col items-center gap-2"
-          >
-            <Ring seen={!g.hasUnseen} image={g.author.image} name={g.author.name} />
-            <span className="w-full truncate text-center text-xs text-ink-secondary">
-              {g.author.id === meId ? "You" : g.author.name || "Someone"}
-            </span>
-          </button>
-        ))}
+        {groups.map((g) => {
+          // Latest story drives the IG-notes-style bubble above the ring.
+          const latest = g.items[g.items.length - 1];
+          const showNote = !!latest && !latest.imageUrl && !!latest.caption;
+          return (
+            <button
+              key={g.author.id}
+              onClick={() => setViewing(g)}
+              className="flex w-[64px] shrink-0 flex-col items-center"
+            >
+              {/* Reserved slot: note bubble sits above the ring without shifting rows */}
+              <span className="mb-1 flex h-8 items-end justify-center">
+                {showNote && (
+                  <span className="relative inline-block max-w-[64px]">
+                    <span
+                      className="block truncate rounded-lg border border-line-strong px-2 py-1 text-[11px] font-medium text-white"
+                      style={{ background: latest!.bg || "#262626" }}
+                    >
+                      {latest!.caption}
+                    </span>
+                    <span
+                      aria-hidden
+                      className="absolute -bottom-0.5 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rotate-45 rounded-[1px]"
+                      style={{ background: latest!.bg || "#262626", borderTop: "1px solid rgba(255,255,255,0.15)", borderLeft: "1px solid rgba(255,255,255,0.15)" }}
+                    />
+                  </span>
+                )}
+              </span>
+              <Ring seen={!g.hasUnseen} image={g.author.image} name={g.author.name} />
+              <span className="w-full truncate text-center text-xs text-ink-secondary">
+                {g.author.id === meId ? "You" : g.author.name || "Someone"}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       {composerOpen && <StoryComposer onClose={() => setComposerOpen(false)} />}
-      {viewing && <StoryViewer group={viewing} meId={meId} onClose={() => setViewing(null)} />}
+      {viewing && <StoryViewer group={viewing} onClose={() => setViewing(null)} />}
     </div>
   );
 }
 
+// Instagram-style ring: colored halo, thin bg gap, avatar.
 function Ring({
   seen,
   image,
@@ -87,36 +113,31 @@ function Ring({
     setBroken(false);
   }
 
-  // Instagram-style ring: colored halo â†’ thin bg gap â†’ avatar.
-  const ringCls = seen
-    ? "bg-line-strong"
-    : "bg-[conic-gradient(from_180deg,#ffd400,#ff7a00,#f91880,#7856ff,#1d9bf0,#00ba7c,#ffd400)]";
-
   if (image && !broken) {
+    // eslint-disable-next-line @next/next/no-img-element
     return (
-      <span className={`grid h-[84px] w-[84px] place-items-center rounded-full p-[3px] ${ringCls}`}>
-        <span className="h-full w-full overflow-hidden rounded-full border-[3px] border-bg">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={image}
-            alt=""
-            onError={() => setBroken(true)}
-            className="h-full w-full rounded-full object-cover"
-          />
-        </span>
-      </span>
+      <img
+        src={image}
+        alt=""
+        onError={() => setBroken(true)}
+        className={`h-14 w-14 rounded-full object-cover p-[3px] ${seen ? "" : "bg-gradient-to-tr from-accent to-like"}`}
+      />
     );
   }
   return (
-    <span className={`grid h-[84px] w-[84px] place-items-center rounded-full p-[3px] ${ringCls}`}>
-      <span className="grid h-full w-full place-items-center rounded-full border-[3px] border-bg bg-bg text-2xl font-bold">
+    <span
+      className={`grid h-14 w-14 place-items-center rounded-full p-[3px] ${
+        seen ? "bg-line-strong" : "bg-gradient-to-tr from-accent to-like"
+      }`}
+    >
+      <span className="grid h-full w-full place-items-center rounded-full bg-bg text-lg font-bold">
         {(name || "?").charAt(0).toUpperCase()}
       </span>
     </span>
   );
 }
 
-// â”€â”€ Composer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+/* ---------------- Composer ---------------- */
 
 function StoryComposer({ onClose }: { onClose: () => void }) {
   const [mode, setMode] = useState<"text" | "image">("text");
@@ -158,7 +179,9 @@ function StoryComposer({ onClose }: { onClose: () => void }) {
       >
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-xl font-extrabold">Add to your story</h3>
-          <button onClick={onClose} className="rounded-full px-2 text-xl hover:bg-surface-hover">Ã—</button>
+          <button onClick={onClose} aria-label="Close" className="rounded-full p-1 hover:bg-surface-hover">
+            <XIcon className="h-5 w-5" />
+          </button>
         </div>
 
         <div className="mb-4 grid grid-cols-2 gap-2 rounded-xl border border-line bg-surface-hover/50 p-1 text-sm font-bold">
@@ -239,7 +262,7 @@ function StoryComposer({ onClose }: { onClose: () => void }) {
           disabled={pending}
           className="btn-primary w-full py-2.5"
         >
-          {pending ? "Sharingâ€¦" : "Share story"}
+          {pending ? "Sharing..." : "Share story"}
         </button>
         <p className="mt-2 text-center text-xs text-ink-faint">Stories disappear after 24 hours.</p>
       </div>
@@ -247,15 +270,13 @@ function StoryComposer({ onClose }: { onClose: () => void }) {
   );
 }
 
-// â”€â”€ Viewer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+/* ---------------- Viewer ---------------- */
 
 function StoryViewer({
   group,
-  meId,
   onClose,
 }: {
   group: StoryGroup;
-  meId?: string | null;
   onClose: () => void;
 }) {
   const [index, setIndex] = useState(0);
@@ -272,7 +293,7 @@ function StoryViewer({
     viewStory(item.id).catch(() => {});
   }, [item?.id]);
 
-  // Progress timer: 5s per story (pauses for none â€” keep it simple).
+  // Progress timer: 5s per story.
   useEffect(() => {
     setProgress(0);
     const started = Date.now();
@@ -285,6 +306,7 @@ function StoryViewer({
       }
     }, 50);
     return () => clearInterval(iv);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [index]);
 
   useEffect(() => {
@@ -293,7 +315,7 @@ function StoryViewer({
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [onClose]);
 
   function next() {
     if (index < group.items.length - 1) setIndex((i) => i + 1);
@@ -341,17 +363,11 @@ function StoryViewer({
             </span>
           )}
           {group.author.name || "Someone"}
-          <span className="font-normal text-white/60">Â· {timeAgo(item.createdAt)}</span>
+          <span className="font-normal text-white/60">{timeAgo(item.createdAt)}</span>
         </span>
-        {!item.isMine && (
-          <ReportMenu
-            targetType="STORY"
-            targetId={item.id}
-            label="Report story"
-            className="[&_button]:!text-white/60 [&_button:hover]:!text-white"
-          />
-        )}
-        <button onClick={done} className="rounded-full px-2 text-2xl leading-none hover:bg-white/10">Ã—</button>
+        <button onClick={done} aria-label="Close" className="rounded-full p-1 hover:bg-white/10">
+          <XIcon className="h-6 w-6" />
+        </button>
       </div>
 
       {/* Content */}
@@ -370,7 +386,7 @@ function StoryViewer({
         {isImage ? (
           <figure className="max-h-full max-w-md">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={cdnUrl(item.imageUrl, 900)} alt="" className="max-h-[75vh] rounded-2xl object-contain" />
+            <img src={cdnUrl(item.imageUrl!, 900)} alt="" className="max-h-[75vh] rounded-2xl object-contain" />
             {item.caption && (
               <figcaption className="mt-3 text-center text-lg font-semibold text-white">
                 {item.caption}
@@ -378,15 +394,31 @@ function StoryViewer({
             )}
           </figure>
         ) : (
-          <div
-            className="grid min-h-[50vh] w-full max-w-md place-items-center rounded-3xl p-10 text-center text-2xl font-extrabold text-white"
-            style={{ background: item.bg || "#1d9bf0" }}
-          >
-            {item.caption}
+          /* Text notes float as a small bubble tucked onto the avatar -- IG-notes style */
+          <div className="flex flex-col items-center">
+            <div className="relative z-10 mb-[-14px] flex justify-center">
+              <div
+                className="max-w-[230px] rounded-2xl px-4 py-2.5 text-center text-sm font-semibold text-white shadow-xl"
+                style={{ background: item.bg || "#1d9bf0" }}
+              >
+                {item.caption}
+              </div>
+              <span
+                aria-hidden
+                className="absolute -bottom-1 right-8 h-2.5 w-2.5 rotate-45 rounded-[2px]"
+                style={{ background: item.bg || "#1d9bf0" }}
+              />
+            </div>
+            <Avatar name={group.author.name} image={group.author.image} size={84} />
           </div>
         )}
 
-        {item.isMine && (
+        {item.isMine && !isImage && (
+          <span className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-white/10 px-3 py-1 text-xs text-white/80">
+            {item.viewCount} {item.viewCount === 1 ? "view" : "views"}
+          </span>
+        )}
+        {item.isMine && isImage && (
           <span className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-white/10 px-3 py-1 text-xs text-white/80">
             {item.viewCount} {item.viewCount === 1 ? "view" : "views"}
           </span>

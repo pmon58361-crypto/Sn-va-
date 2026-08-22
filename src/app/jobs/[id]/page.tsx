@@ -1,10 +1,28 @@
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import { getPost, getComments } from "@/lib/queries";
 import { PostDetail, CommentList } from "@/components/posts/PostDetail";
 import { CommentComposer } from "@/components/posts/CommentComposer";
 import { auth } from "@/auth";
+import { buildPostMetadata } from "@/lib/og";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const post = await getPost(id);
+  if (!post) return {};
+  return buildPostMetadata({
+    title: post.title,
+    content: post.content,
+    imageUrl: post.images[0]?.url,
+    hidden: post.hidden,
+  });
+}
 
 export default async function JobDetailPage({
   params,

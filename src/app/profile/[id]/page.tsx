@@ -1,8 +1,10 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import type { Metadata } from "next";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { isFollowing } from "@/lib/social";
+import { absoluteUrl } from "@/lib/og";
 import { Avatar } from "@/components/ui/Avatar";
 import { FollowButton } from "@/components/profile/FollowButton";
 import {
@@ -18,6 +20,45 @@ import { cdnUrl } from "@/lib/cdn";
 import { Highlights } from "./Highlights";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const user = await prisma.user.findUnique({
+    where: { id },
+    select: {
+      name: true,
+      bio: true,
+      image: true,
+      settings: { select: { publicProfile: true } },
+    },
+  });
+  // Private profiles get no rich preview — that's the point of private.
+  if (!user || user.settings?.publicProfile === false) return {};
+
+  const name = user.name || "Someone";
+  const description = user.bio?.slice(0, 160) || "On Snívať — dream, grow, connect.";
+  const image = absoluteUrl(user.image);
+  return {
+    title: `${name} — Snívať`,
+    description,
+    openGraph: {
+      title: name,
+      description,
+      images: image ? [{ url: image }] : undefined,
+      type: "profile",
+    },
+    twitter: {
+      card: image ? "summary_large_image" : "summary",
+      title: name,
+      description,
+      images: image ? [image] : undefined,
+    },
+  };
+}
 
 export default async function ProfilePage({
   params,

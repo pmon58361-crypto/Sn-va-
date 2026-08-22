@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import type { Metadata } from "next";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getPost } from "@/lib/queries";
@@ -9,8 +10,25 @@ import { Avatar } from "@/components/ui/Avatar";
 import { MailIcon } from "@/components/ui/Icons";
 import { formatDate } from "@/lib/utils";
 import { ApplicationActions } from "./ApplicationActions";
+import { buildPostMetadata } from "@/lib/og";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const post = await getPost(id);
+  if (!post) return {};
+  return buildPostMetadata({
+    title: post.title,
+    content: post.content,
+    imageUrl: post.images[0]?.url,
+    hidden: post.hidden,
+  });
+}
 
 export default async function ApplicationDetailPage({
   params,

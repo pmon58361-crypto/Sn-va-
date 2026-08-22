@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 128" width="880" height="256" role="img" aria-label="Snívať — Dream. Grow. Connect.">
+  <defs>
+    <linearGradient id="nightTL" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1b1e24"/>
+      <stop offset="1" stop-color="#0c0d10"/>
+    </linearGradient>
+    <linearGradient id="goldSTL" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f7ecc9"/>
+      <stop offset="0.55" stop-color="#e6c065"/>
+      <stop offset="1" stop-color="#c99b3f"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="440" height="128" rx="29" fill="url(#nightTL)"/>
+
+  <!-- mark: typeset serif S + spark period -->
+  <g transform="translate(6,-4)">
+    <text x="52" y="99"
+          text-anchor="middle"
+          font-family="'Instrument Serif', 'Playfair Display', Georgia, 'Times New Roman', serif"
+          font-size="112"
+          fill="url(#goldSTL)">S</text>
+    <path d="M95 90 C96 95.4 98.2 97.6 103.5 98.6 C98.2 99.6 96 101.8 95 107.2 C94 101.8 91.8 99.6 86.5 98.6 C91.8 97.6 94 95.4 95 90 Z" fill="#fff7e0"/>
+  </g>
+
+  <!-- wordmark -->
+  <text x="128" y="83" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="60" font-weight="800" letter-spacing="-1.5"><tspan fill="#f5f2ea">Sní</tspan><tspan fill="#e8c56a">vať</tspan></text>
+</svg>

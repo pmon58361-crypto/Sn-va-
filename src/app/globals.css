@@ -507,3 +507,46 @@ html.light .gm-logo-img { filter: none; }
 .cursor-blink { animation: blink-cursor 1.1s steps(1) infinite; }
 @keyframes log-line { from { opacity: 0; transform: translateX(-10px); } }
 .log-line { animation: log-line 0.5s cubic-bezier(0.16, 1, 0.3, 1) backwards; }
+
+/* ── Animated wave backdrop ──────────────────────────────────────────── */
+@keyframes wave-drift { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.wave-band {
+  position: absolute;
+  inset: auto 0 -2px 0;
+  height: 200px;
+  overflow: hidden;
+  pointer-events: none;
+}
+.wave-band svg {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 100%;
+  width: 200%;
+  animation: wave-drift linear infinite;
+}
+.wave-1 { animation-duration: 8s; opacity: 0.5; }
+.wave-2 { animation-duration: 16s; opacity: 0.4; }
+.wave-3 { animation-duration: 11s; opacity: 0.45; }
+.wave-4 { animation-duration: 6s; opacity: 0.35; }
+
+/* ── Full-viewport bleed for marketing backdrops ───────────────────────
+   The app shell caps content at 1400px; decorative layers on / and
+   /auth/signin must still paint edge-to-edge. clip on body absorbs the
+   extra width without creating a horizontal scrollbar or breaking sticky. */
+body { overflow-x: clip; }
+.abs-bleed {
+  left: calc(50% - 50vw);
+  right: auto;
+  width: 100vw;
+}
+.wave-band.abs-bleed {
+  left: calc(50% - 50vw);
+  right: auto;
+  width: 100vw;
+}
+
+/* Flood the page background past the 1400px app-shell column.
+   Shadow paints outside layout (no overflow change); body overflow-x:clip
+   keeps it from creating scrollbars. */
+.page-flood { box-shadow: 0 0 0 200vmax #0a0a0b; }

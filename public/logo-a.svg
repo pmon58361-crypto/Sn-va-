@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="256" height="256" role="img" aria-label="Snívať logo concept A">
+  <defs>
+    <linearGradient id="gold-a" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f0d48a"/>
+      <stop offset="1" stop-color="#c9a24b"/>
+    </linearGradient>
+  </defs>
+  <!-- Night tile -->
+  <rect width="128" height="128" rx="30" fill="#16181b"/>
+  <!-- Main dream-sparkle -->
+  <path d="M58 26 C61 47 69 55 90 58 C69 61 61 69 58 90 C55 69 47 61 26 58 C47 55 55 47 58 26 Z" fill="url(#gold-a)"/>
+  <!-- Secondary sparkle -->
+  <path d="M95 22 C96.5 32 100 35.5 110 37 C100 38.5 96.5 42 95 52 C93.5 42 90 38.5 80 37 C90 35.5 93.5 32 95 22 Z" fill="#e8c56a" opacity="0.85"/>
+</svg>

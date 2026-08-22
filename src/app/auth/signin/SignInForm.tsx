@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
@@ -59,135 +59,142 @@ export function SignInForm({ oauthProviders }: { oauthProviders: string[] }) {
     }
   }
 
-  async function handleDemo(e: React.FormEvent<HTMLFormElement>) {
+  async function handleAccessCode(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (loading) return;
     const fd = new FormData(e.currentTarget);
-    const email = (fd.get("email") as string) || "";
-    const password = (fd.get("password") as string) || "";
+    const code = (fd.get("code") as string) || "";
     setError(null);
     setLoading("credentials");
     try {
-      await signIn("credentials", { email, password, callbackUrl: "/community", redirect: true });
+      await signIn("credentials", { code, callbackUrl: "/community", redirect: true });
     } catch {
-      setError("Wrong email or password.");
+      setError("access denied: code not recognized");
       setLoading(null);
     }
   }
 
-  async function handleDemo2() {
-    if (loading) return;
-    setError(null);
-    setLoading("credentials");
-    try {
-      await signIn("credentials", {
-        email: "demo2@snivat.local",
-        password: "demo1234",
-        callbackUrl: "/community",
-        redirect: true,
-      });
-    } catch {
-      setError("Sign-in failed. Is the Demo User 2 account seeded?");
-      setLoading(null);
-    }
-  }
+  // Instant entry with the public demo account (documented in README).
+  // REMOVED: this bypassed the access-code gate. Demo access now requires
+  // DEMO_CODE â€” see handleAccessCode above. Re-add deliberately if a free
+  // preview mode is ever wanted.
 
   return (
-    <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-5 py-16">
-      {/* Raycast-style animated aurora field */}
-      <div aria-hidden className="aurora">
-        <span className="aurora-blob aurora-a" />
-        <span className="aurora-blob aurora-b" />
-        <span className="aurora-streaks" />
+    <>
+      <style dangerouslySetInnerHTML={{ __html: "body{background:#0a0a0b!important}" }} />
+      <main className="page-flood relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-[#0a0a0b] px-5 py-16">
+      {/* terminal grid + waves */}
+      <div aria-hidden className="term-grid pointer-events-none absolute inset-0 abs-bleed" />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        style={{ background: "radial-gradient(ellipse 70% 55% at 50% 35%, transparent 30%, #0a0a0b 80%)" }}
+      />
+      <div aria-hidden className="wave-band abs-bleed z-0">
+        <svg className="wave-2" viewBox="0 0 2880 200" preserveAspectRatio="none">
+          <path d="M0,120 C240,60 480,170 720,105 C960,45 1200,175 1440,115 C1680,55 1920,170 2160,105 C2400,45 2640,175 2880,115 L2880,200 L0,200 Z" fill="rgba(201,162,75,0.15)" />
+        </svg>
+        <svg className="wave-3" viewBox="0 0 2880 200" preserveAspectRatio="none">
+          <path d="M0,70 C240,130 480,25 720,85 C960,140 1200,30 1440,90 C1680,145 1920,35 2160,95 C2400,150 2640,30 2880,80 L2880,200 L0,200 Z" fill="rgba(245,158,11,0.13)" />
+        </svg>
+        <svg className="wave-1" viewBox="0 0 2880 200" preserveAspectRatio="none">
+          <path d="M0,96 C240,160 480,32 720,96 C960,160 1200,32 1440,96 C1680,160 1920,32 2160,96 C2400,160 2640,32 2880,96 L2880,200 L0,200 Z" fill="rgba(251,191,36,0.12)" />
+        </svg>
+        <svg className="wave-4" viewBox="0 0 2880 200" preserveAspectRatio="none">
+          <path d="M0,140 C240,100 480,155 720,125 C960,90 1200,150 1440,135 C1680,95 1920,155 2160,130 C2400,95 2640,150 2880,140 L2880,200 L0,200 Z" fill="rgba(252,211,77,0.10)" />
+        </svg>
       </div>
 
-      <div className="reveal relative w-full max-w-md">
+      <div className="reveal relative z-10 w-full max-w-md min-w-0">
         <div className="mb-8 flex flex-col items-center gap-4 text-center">
           <Logo size={52} />
           <div>
-            <h1 className="display-serif text-3xl">
-              Welcome <em>back.</em>
-            </h1>
-            <p className="mt-2 text-sm text-white/50">
-              Sign in to share what you're building.
+            <p className="font-mono text-xs text-white/40">
+              <span className="text-amber-300">$</span> ssh demo@snÃ­vaÅ¥.dev
+            </p>
+            <h1 className="mt-2 text-3xl font-black tracking-tight">Welcome back.</h1>
+            <p className="mt-1.5 text-sm text-white/50">
+              Sign in to share what you&apos;re building.
             </p>
           </div>
         </div>
 
-        <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-8 shadow-2xl backdrop-blur-xl">
-          {error && (
-            <div className="mb-5 rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-              {error}
-            </div>
-          )}
+        <div className="overflow-hidden rounded-xl border border-white/10 bg-black/70 shadow-[0_0_80px_-20px_rgba(245,158,11,0.22)] backdrop-blur">
+          <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+            <span className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-full bg-white/15" />
+              <span className="h-2.5 w-2.5 rounded-full bg-white/15" />
+              <span className="h-2.5 w-2.5 rounded-full bg-amber-400/70" />
+            </span>
+            <span className="font-mono text-xs text-white/40">auth --in</span>
+            <span className="w-10" />
+          </div>
 
-          {/* Demo credentials — always available */}
-          <form onSubmit={handleDemo} className="space-y-3">
-            <input
-              name="email"
-              type="email"
-              required
-              defaultValue="demo@snivat.local"
-              placeholder="Email"
-              className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-white placeholder:text-white/30 outline-none transition focus:border-[#c9a24b]/60"
-            />
-            <input
-              name="password"
-              type="password"
-              required
-              defaultValue="demo1234"
-              placeholder="Password"
-              className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-white placeholder:text-white/30 outline-none transition focus:border-[#c9a24b]/60"
-            />
-            <button
-              type="submit"
-              disabled={loading === "credentials"}
-              className="w-full rounded-xl bg-[#c9a24b] py-3 text-sm font-bold text-black transition hover:brightness-110 disabled:opacity-50"
-            >
-              {loading === "credentials" ? "Signing in…" : "Continue as Demo User"}
-            </button>
-            <button
-              type="button"
-              onClick={handleDemo2}
-              disabled={!!loading}
-              className="w-full rounded-xl border border-white/15 py-3 text-sm font-semibold text-white/80 transition hover:border-[#c9a24b]/60 hover:text-white disabled:opacity-50"
-            >
-              Continue as Demo User 2
-            </button>
-          </form>
-
-          {oauthProviders.length > 0 && (
-            <>
-              <div className="my-6 flex items-center gap-4">
-                <span className="h-px flex-1 bg-white/10" />
-                <span className="text-[11px] uppercase tracking-[0.2em] text-white/35">or</span>
-                <span className="h-px flex-1 bg-white/10" />
+          <div className="p-6 sm:p-8">
+            {error && (
+              <div className="mb-5 rounded-lg border border-red-400/30 bg-red-500/10 px-4 py-3 font-mono text-sm text-red-300">
+                // {error}
               </div>
+            )}
 
-              <div className="space-y-3">
-                {oauthProviders.map((id) => (
-                  <button
-                    key={id}
-                    onClick={() => handleOAuth(id)}
-                    disabled={!!loading}
-                    className="flex w-full items-center justify-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-5 py-3 text-sm font-medium text-white/85 transition hover:border-white/30 hover:bg-white/[0.07] disabled:opacity-50"
-                  >
-                    {MARKS[id]}
-                    {loading === id ? "Connecting…" : `Continue with ${NAMES[id] ?? id}`}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
+            {/* Demo credentials â€” always available */}
+            <form onSubmit={handleAccessCode} className="space-y-3">
+              <input
+                name="code"
+                type="password"
+                required
+                autoComplete="off"
+                placeholder="access code"
+                className="w-full rounded-lg border border-white/10 bg-black/50 px-4 py-3 text-center font-mono text-sm tracking-[0.35em] text-white placeholder:tracking-normal placeholder:text-white/30 outline-none transition focus:border-amber-400/60"
+              />
+              <button
+                type="submit"
+                disabled={loading === "credentials"}
+                className="w-full rounded-lg bg-white py-3 text-sm font-bold text-black transition hover:bg-white/90 disabled:opacity-50"
+              >
+                {loading === "credentials" ? "Checking" : "Enter with access code"}
+              </button>
+              <p className="text-center font-mono text-xs text-white/30">
+                // have a code? that is your way in
+              </p>
+            </form>
+
+            
+
+            {oauthProviders.length > 0 && (
+              <>
+                <div className="my-6 flex items-center gap-4">
+                  <span className="h-px flex-1 bg-white/10" />
+                  <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-white/35">or</span>
+                  <span className="h-px flex-1 bg-white/10" />
+                </div>
+
+                <div className="space-y-3">
+                  {oauthProviders.map((id) => (
+                    <button
+                      key={id}
+                      onClick={() => handleOAuth(id)}
+                      disabled={!!loading}
+                      className="flex w-full items-center justify-center gap-3 rounded-lg border border-white/10 bg-white/[0.03] px-5 py-3 text-sm font-medium text-white/85 transition hover:border-white/30 hover:bg-white/[0.07] disabled:opacity-50"
+                    >
+                      {MARKS[id]}
+                      {loading === id ? "Connectingâ€¦" : `Continue with ${NAMES[id] ?? id}`}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         </div>
 
-        <p className="mt-6 text-center text-xs leading-relaxed text-white/35">
+        <p className="mt-6 text-center font-mono text-xs leading-relaxed text-white/35">
           By continuing you agree to our terms.{" "}
-          <Link href="/" className="text-[#c9a24b] hover:underline">
-            Back home
+          <Link href="/" className="text-amber-300/90 hover:text-amber-200 hover:underline">
+            cd ~/home
           </Link>
         </p>
       </div>
     </main>
+    </>
   );
 }

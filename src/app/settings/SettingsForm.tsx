@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { signOut } from "next-auth/react";
 import { saveSettings, type SettingsInput } from "./actions";
 import { applyAccent, applyBackground } from "@/components/ThemeProvider";
@@ -68,6 +68,45 @@ export function SettingsForm({ initial }: { initial: SettingsInput }) {
     const t = setTimeout(() => setPreviewUrl(form.image.trim()), 400);
     return () => clearTimeout(t);
   }, [form.image]);
+
+  // Avatar upload from device storage -> /api/upload (Cloudinary in prod).
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const avatarFileRef = useRef<HTMLInputElement>(null);
+
+  async function handleAvatarFile(file: File) {
+    setUploadError(null);
+    const okTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+    if (!okTypes.includes(file.type)) {
+      setUploadError("Only JPG, PNG, WebP or GIF allowed.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError("Image must be under 5MB.");
+      return;
+    }
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("files", file);
+      const res = await fetch("/api/upload", { method: "POST", body: fd });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error || `Upload failed (${res.status})`);
+      }
+      const data: { urls?: string[]; errors?: string[] } = await res.json();
+      if (!data.urls?.length) {
+        throw new Error(data.errors?.[0] || "Upload failed");
+      }
+      // Uploaded URL passes the server's own avatar validation (it IS an image).
+      set("image", data.urls[0]);
+      setPreviewUrl(data.urls[0]);
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  }
 
   // Appearance applies instantly; persistence happens on Save (unchanged).
   useEffect(() => {
@@ -201,18 +240,42 @@ export function SettingsForm({ initial }: { initial: SettingsInput }) {
                 className="h-14 w-14 shrink-0 rounded-2xl border border-line object-cover transition-opacity"
               />
               <div className="min-w-0 flex-1">
-                <input
-                  className={`input ${urlError ? "!border-warm" : ""}`}
-                  value={form.image}
-                  onChange={(e) => set("image", e.target.value)}
-                  placeholder="https://…jpg/png/webp"
-                />
+                <div className="flex gap-2">
+                  <input
+                    className={`input flex-1 ${urlError ? "!border-warm" : ""}`}
+                    value={form.image}
+                    onChange={(e) => set("image", e.target.value)}
+                    placeholder="https://…jpg/png/webp"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => avatarFileRef.current?.click()}
+                    disabled={uploading}
+                    className="btn-outline shrink-0 px-4 py-2 text-sm"
+                    title="Upload an image from your device"
+                  >
+                    {uploading ? "Uploading…" : "Upload"}
+                  </button>
+                  <input
+                    ref={avatarFileRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) handleAvatarFile(f);
+                      e.target.value = "";
+                    }}
+                  />
+                </div>
                 <p
                   className={`mt-1 text-xs ${
-                    urlError ? "text-warm" : "text-ink-faint"
+                    urlError || uploadError ? "text-warm" : "text-ink-faint"
                   }`}
                 >
-                  {urlError ?? "Direct image link · preview updates as you type"}
+                  {urlError ??
+                    uploadError ??
+                    "Upload from your device or paste a direct image link."}
                 </p>
               </div>
             </div>

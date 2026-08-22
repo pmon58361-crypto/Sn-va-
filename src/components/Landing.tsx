@@ -1,4 +1,4 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { Logo } from "@/components/ui/Logo";
 import { getPosts } from "@/lib/queries";
 import { prisma } from "@/lib/prisma";
@@ -7,7 +7,7 @@ import { timeAgo } from "@/lib/utils";
 // ─────────────────────────────────────────────────────────────────────────
 // THE FRONT — builder terminal.
 // Hairline grid · monospace metadata · live activity log from the real DB.
-// The product is the decoration. Zero client JS.
+// Brass/gold identity. The product is the decoration. Zero client JS.
 // ─────────────────────────────────────────────────────────────────────────
 
 const NAV = [
@@ -55,14 +55,18 @@ export async function Landing() {
   const proof = posts.slice(0, 3);
 
   return (
-    <div className="relative min-h-screen bg-[#0a0a0b] text-white">
+    <>
+      {/* Force the document background to match the landing canvas so the
+          area outside the app-shell column is perfectly seamless. */}
+      <style dangerouslySetInnerHTML={{ __html: "body{background:#0a0a0b!important}" }} />
+
       {/* ── NAV ──────────────────────────────────────────────────────── */}
       <header className="fixed inset-x-0 top-0 z-50 border-b border-white/[0.07] bg-[#0a0a0b]/80 backdrop-blur-xl">
         <nav className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5">
           <div className="flex items-center gap-4">
             <Logo />
-            <span className="hidden items-center gap-1.5 rounded-full border border-emerald-400/25 bg-emerald-400/10 px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-widest text-emerald-300 sm:flex">
-              <span className="pulse-dot inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
+            <span className="hidden items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-400/10 px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-widest text-amber-300 sm:flex">
+              <span className="pulse-dot inline-block h-1.5 w-1.5 rounded-full bg-amber-400" />
               live
             </span>
           </div>
@@ -91,20 +95,36 @@ export async function Landing() {
       </header>
 
       {/* ── HERO ─────────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden pt-16">
+      <section className="relative pt-16">
         {/* hairline grid backdrop */}
-        <div aria-hidden className="term-grid pointer-events-none absolute inset-0" />
+        <div aria-hidden className="term-grid pointer-events-none absolute inset-0 abs-bleed" />
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0"
+          className="pointer-events-none absolute inset-0 abs-bleed"
           style={{ background: "radial-gradient(ellipse 70% 55% at 30% 40%, transparent 30%, #0a0a0b 78%)" }}
         />
 
-        <div className="relative mx-auto grid max-w-6xl items-center gap-14 px-5 pb-24 pt-20 lg:grid-cols-[1.05fr_460px] lg:pt-28">
+        {/* animated signal waves — four layered drifts */}
+        <div aria-hidden className="wave-band abs-bleed z-0">
+          <svg className="wave-2" viewBox="0 0 2880 200" preserveAspectRatio="none">
+            <path d="M0,120 C240,60 480,170 720,105 C960,45 1200,175 1440,115 C1680,55 1920,170 2160,105 C2400,45 2640,175 2880,115 L2880,200 L0,200 Z" fill="rgba(201,162,75,0.15)" />
+          </svg>
+          <svg className="wave-3" viewBox="0 0 2880 200" preserveAspectRatio="none">
+            <path d="M0,70 C240,130 480,25 720,85 C960,140 1200,30 1440,90 C1680,145 1920,35 2160,95 C2400,150 2640,30 2880,80 L2880,200 L0,200 Z" fill="rgba(245,158,11,0.13)" />
+          </svg>
+          <svg className="wave-1" viewBox="0 0 2880 200" preserveAspectRatio="none">
+            <path d="M0,96 C240,160 480,32 720,96 C960,160 1200,32 1440,96 C1680,160 1920,32 2160,96 C2400,160 2640,32 2880,96 L2880,200 L0,200 Z" fill="rgba(251,191,36,0.12)" />
+          </svg>
+          <svg className="wave-4" viewBox="0 0 2880 200" preserveAspectRatio="none">
+            <path d="M0,140 C240,100 480,155 720,125 C960,90 1200,150 1440,135 C1680,95 1920,155 2160,130 C2400,95 2640,150 2880,140 L2880,200 L0,200 Z" fill="rgba(252,211,77,0.10)" />
+          </svg>
+        </div>
+
+        <div className="relative z-10 mx-auto grid max-w-6xl min-w-0 w-full items-center gap-14 px-5 pb-14 pt-12 sm:pb-20 sm:pt-16 lg:min-h-[calc(100svh-4rem)] lg:grid-cols-[1.05fr_460px] lg:py-0">
           {/* copy */}
           <div>
             <p className="font-mono text-xs text-white/40">
-              <span className="text-emerald-300">$</span> snívať --status
+              <span className="text-amber-300">$</span> snívať --status
             </p>
             <p className="mt-2 font-mono text-xs text-white/55">
               community: online · stories: live · jobs: open
@@ -113,7 +133,7 @@ export async function Landing() {
             <h1 className="mt-8 select-none text-5xl font-black leading-[1.02] tracking-[-0.03em] sm:text-6xl lg:text-7xl">
               Build in public.
               <br />
-              <span className="font-mono text-[0.62em] font-bold tracking-tight text-emerald-300">
+              <span className="font-mono text-[0.62em] font-bold tracking-tight text-amber-300">
                 dream_out_loud
                 <span aria-hidden className="cursor-blink">▌</span>
               </span>
@@ -147,12 +167,12 @@ export async function Landing() {
           </div>
 
           {/* terminal panel */}
-          <div className="overflow-hidden rounded-xl border border-white/10 bg-black/70 shadow-[0_0_80px_-20px_rgba(52,211,153,0.25)] backdrop-blur">
+          <div className="min-w-0 overflow-hidden rounded-xl border border-white/10 bg-black/70 shadow-[0_0_80px_-20px_rgba(245,158,11,0.22)] backdrop-blur">
             <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
               <span className="flex items-center gap-1.5">
                 <span className="h-2.5 w-2.5 rounded-full bg-white/15" />
                 <span className="h-2.5 w-2.5 rounded-full bg-white/15" />
-                <span className="h-2.5 w-2.5 rounded-full bg-emerald-400/60" />
+                <span className="h-2.5 w-2.5 rounded-full bg-amber-400/70" />
               </span>
               <span className="font-mono text-xs text-white/40">tail -f community.log</span>
               <span className="w-10" />
@@ -165,18 +185,18 @@ export async function Landing() {
                   <Link
                     key={p.id}
                     href={catHref(p.category, p.id)}
-                    className="log-line block truncate transition-colors hover:text-emerald-200"
+                    className="log-line block truncate transition-colors hover:text-amber-200"
                     style={{ animationDelay: `${i * 120 + 150}ms` }}
                   >
                     <span className="text-white/30">[{utcHM(p.createdAt)}]</span>{" "}
-                    <span className="text-emerald-300">@{p.author?.name || "someone"}</span>{" "}
+                    <span className="text-amber-300">@{p.author?.name || "someone"}</span>{" "}
                     <span className="text-white/50">{catVerb(p.category)}</span>{" "}
                     <span className="text-white/85">&quot;{p.title}&quot;</span>
                   </Link>
                 ))
               )}
               <p className="text-white/40">
-                <span className="text-emerald-300">$</span>{" "}
+                <span className="text-amber-300">$</span>{" "}
                 <span aria-hidden className="cursor-blink">▌</span>
               </p>
             </div>
@@ -189,7 +209,7 @@ export async function Landing() {
         <div className="mx-auto max-w-6xl">
           <div className="mb-12 flex flex-wrap items-end justify-between gap-4">
             <div>
-              <p className="font-mono text-xs uppercase tracking-[0.3em] text-emerald-300/80">
+              <p className="font-mono text-xs uppercase tracking-[0.3em] text-amber-300/80">
                 ./living-proof
               </p>
               <h2 className="mt-3 text-3xl font-black tracking-tight sm:text-5xl">
@@ -211,16 +231,16 @@ export async function Landing() {
                 <Link
                   key={p.id}
                   href={`/community/${p.id}`}
-                  className="group flex h-full flex-col rounded-xl border border-white/[0.08] bg-white/[0.03] p-6 transition-all duration-300 hover:-translate-y-1 hover:border-emerald-300/40 hover:bg-white/[0.05]"
+                  className="group flex h-full flex-col rounded-xl border border-white/[0.08] bg-white/[0.03] p-6 transition-all duration-300 hover:-translate-y-1 hover:border-amber-300/40 hover:bg-white/[0.05]"
                 >
                   <p className="mb-4 flex items-center gap-2 font-mono text-xs text-white/40">
-                    <span className="text-emerald-300/80">{String(i + 1).padStart(2, "0")}</span>
+                    <span className="text-amber-300/80">{String(i + 1).padStart(2, "0")}</span>
                     <span>@{p.author?.name || "someone"}</span>
                     <span className="ml-auto">{timeAgo(p.createdAt)}</span>
                   </p>
                   <h3 className="font-bold leading-snug">{p.title}</h3>
                   <p className="mt-2 line-clamp-3 flex-1 text-sm leading-relaxed text-white/50">{p.content}</p>
-                  <span className="mt-4 font-mono text-xs text-white/30 transition-colors group-hover:text-emerald-300">
+                  <span className="mt-4 font-mono text-xs text-white/30 transition-colors group-hover:text-amber-300">
                     read more →
                   </span>
                 </Link>
@@ -234,25 +254,25 @@ export async function Landing() {
       <section className="border-t border-white/[0.07] px-5 py-24">
         <div className="mx-auto max-w-6xl">
           {[
-            { n: "01", href: "/community", cmd: "cd community", d: "Show your work while it's still becoming. Someone a step behind you needs to see it." },
-            { n: "02", href: "/jobs", cmd: "cd jobs", d: "Offer what you do, or find who does it. No middle layer between you and the work." },
-            { n: "03", href: "/applications", cmd: "cd applications", d: "Open positions, applied to in one breath. Friction removed." },
+            { n: "01", href: "/community", d: "Show your work while it's still becoming. Someone a step behind you needs to see it." },
+            { n: "02", href: "/jobs", d: "Offer what you do, or find who does it. No middle layer between you and the work." },
+            { n: "03", href: "/applications", d: "Open positions, applied to in one breath. Friction removed." },
           ].map((row) => (
             <Link
               key={row.n}
               href={row.href}
               className="group flex flex-col gap-3 border-t border-white/[0.07] py-10 transition-colors last:border-b hover:bg-white/[0.02] sm:flex-row sm:items-center sm:gap-10"
             >
-              <span className="shrink-0 font-mono text-sm text-white/25 transition-colors group-hover:text-emerald-300 sm:w-16">
+              <span className="shrink-0 font-mono text-sm text-white/25 transition-colors group-hover:text-amber-300 sm:w-16">
                 {row.n}
               </span>
               <div className="flex-1">
-                <h2 className="font-mono text-2xl font-bold text-white/90 transition-colors group-hover:text-emerald-300 sm:text-3xl">
-                  ~/{row.cmd.replace("cd ", "")}
+                <h2 className="font-mono text-2xl font-bold text-white/90 transition-colors group-hover:text-amber-300 sm:text-3xl">
+                  ~/{row.href.replace("/", "")}
                 </h2>
                 <p className="mt-2 max-w-md leading-relaxed text-white/45">{row.d}</p>
               </div>
-              <span aria-hidden className="shrink-0 font-mono text-xl text-white/15 transition-all duration-500 group-hover:translate-x-2 group-hover:text-emerald-300">
+              <span aria-hidden className="shrink-0 font-mono text-xl text-white/15 transition-all duration-500 group-hover:translate-x-2 group-hover:text-amber-300">
                 →
               </span>
             </Link>
@@ -261,11 +281,11 @@ export async function Landing() {
       </section>
 
       {/* ── FINAL CTA ────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden border-t border-white/[0.07] px-5 py-32 text-center">
-        <div aria-hidden className="term-grid pointer-events-none absolute inset-0 opacity-60" />
+      <section className="relative border-t border-white/[0.07] px-5 py-32 text-center">
+        <div aria-hidden className="term-grid pointer-events-none absolute inset-0 abs-bleed opacity-60" />
         <div className="relative z-10">
           <p className="font-mono text-xs text-white/40">
-            <span className="text-emerald-300">$</span> git commit -m &quot;my story starts now&quot;
+            <span className="text-amber-300">$</span> git commit -m &quot;my story starts now&quot;
           </p>
           <h2 className="mx-auto mt-6 max-w-2xl text-4xl font-black tracking-tight sm:text-6xl">
             Every post becomes proof.
@@ -284,6 +304,6 @@ export async function Landing() {
           </p>
         </div>
       </section>
-    </div>
+    </>
   );
 }

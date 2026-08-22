@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="256" height="256" role="img" aria-label="Snívať logo concept B">
+  <defs>
+    <linearGradient id="night-b" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#232a52"/>
+      <stop offset="1" stop-color="#6d5bb8"/>
+    </linearGradient>
+    <linearGradient id="moon-b" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f5e9c8"/>
+      <stop offset="1" stop-color="#c9a24b"/>
+    </linearGradient>
+    <mask id="cut-b">
+      <rect width="128" height="128" fill="#fff"/>
+      <circle cx="84" cy="50" r="36" fill="#000"/>
+    </mask>
+  </defs>
+  <rect width="128" height="128" rx="30" fill="url(#night-b)"/>
+  <!-- Crescent moon -->
+  <circle cx="60" cy="68" r="42" fill="url(#moon-b)" mask="url(#cut-b)"/>
+  <!-- Star near the opening -->
+  <path d="M92 78 C93.2 85.4 95.8 88 103 89.2 C95.8 90.4 93.2 93 92 100.4 C90.8 93 88.2 90.4 81 89.2 C88.2 88 90.8 85.4 92 78 Z" fill="#fff" opacity="0.9"/>
+</svg>
