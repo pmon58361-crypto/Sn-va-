@@ -10,6 +10,7 @@ import {
 import { getPosts } from "@/lib/queries";
 import { Avatar } from "@/components/ui/Avatar";
 import { timeAgo } from "@/lib/utils";
+import { ClockLive } from "@/components/ClockLive";
 
 // Landing page content. Rendered by src/app/page.tsx when the visitor is signed out.
 // Premium editorial rebrand — serif display, generous space, real feed preview.
@@ -68,8 +69,12 @@ export async function Landing() {
   return (
     <div>
       {/* ════════════════════════ HERO ════════════════════════ */}
-      <section className="relative flex min-h-[92vh] flex-col items-center justify-center px-5 text-center">
-        <div className="reveal mb-8 flex justify-center" style={{ animationDelay: "0ms" }}>
+<section className="relative flex min-h-[92vh] flex-col items-center justify-center px-5 text-center">
+        <div className="reveal mb-9" style={{ animationDelay: "0ms" }}>
+          <ClockLive />
+        </div>
+
+        <div className="reveal mb-8 flex justify-center" style={{ animationDelay: "100ms" }}>
           <span className="inline-flex items-center gap-2 rounded-full border border-line bg-surface/70 px-4 py-1.5 text-xs font-medium tracking-wide text-ink-muted backdrop-blur-sm">
             <span className="h-1.5 w-1.5 rounded-full bg-accent pulse-dot" />
             Dream · Grow · Connect
@@ -302,3 +307,4 @@ export async function Landing() {
     </div>
   );
 }
+

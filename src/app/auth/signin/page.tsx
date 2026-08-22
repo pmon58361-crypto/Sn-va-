@@ -4,6 +4,7 @@ import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { useState } from "react";
 import { Logo } from "@/components/ui/Logo";
+import { ClockLive } from "@/components/ClockLive";
 
 export default function SignInPage() {
   const [error, setError] = useState<string | null>(null);
@@ -71,9 +72,8 @@ export default function SignInPage() {
   return (
     <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-md flex-col items-center justify-center px-5 py-16">
       {/* Animated pocket-watch splash — no text, responsive */}
-      <div className="splash-clock mb-10 select-none" aria-hidden>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/clock.jpg" alt="" className="clock-swing rounded-full shadow-2xl" />
+      <div className="mb-10 select-none" aria-hidden>
+        <ClockLive />
       </div>
 
       <div className="card w-full p-8 reveal" style={{ boxShadow: "var(--shadow-lg)" }}>
@@ -113,3 +113,4 @@ export default function SignInPage() {
     </div>
   );
 }
+

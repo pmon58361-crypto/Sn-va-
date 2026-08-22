@@ -290,3 +290,37 @@ body {
 /* -- Logo mark: invert for dark canvas ---------------------------------- */
 .gm-logo-img { filter: invert(1); }
 html.light .gm-logo-img { filter: none; }
+
+/* -- Live clock (landing hero + splash) --------------------------------- */
+.clock-live {
+  position: relative;
+  width: clamp(150px, 20vw, 230px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  overflow: hidden;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, #c9a24b 35%, transparent),
+    0 0 44px color-mix(in srgb, #c9a24b 22%, transparent),
+    var(--shadow-lg);
+}
+.clock-live img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(1.55);
+  transform-origin: 52% 51%;
+  user-select: none;
+  pointer-events: none;
+}
+.clock-live .hands {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,.7));
+}
+
+/* Legacy splash container now uses the live clock too */
+.splash-clock { width: clamp(190px, 46vw, 300px); }
