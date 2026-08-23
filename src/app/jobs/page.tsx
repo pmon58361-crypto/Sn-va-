@@ -1,9 +1,8 @@
 ﻿import Link from "next/link";
 import { getPosts } from "@/lib/queries";
 import { PostCard, EmptyState } from "@/components/posts/PostCard";
-import { SectionHeader } from "@/components/posts/SectionHeader";
 import { FilterBar, type FilterGroup } from "@/components/posts/FilterBar";
-import { OfferIcon, RequestIcon } from "@/components/ui/Icons";
+import { OfferIcon, RequestIcon, PlusIcon } from "@/components/ui/Icons";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -112,17 +111,25 @@ export default async function JobsPage({
   const hasFilters = Boolean(type || loc || budget || status === "all");
 
   return (
-    <div className="mx-auto max-w-3xl px-5 py-16">
-      <SectionHeader
-        eyebrow="Jobs"
-        title={isRequest ? "Who needs your hands?" : "Who's offering what?"}
-        description={
-          isRequest
-            ? "Real projects from people looking for someone to build them. Reach out directly."
-            : "Skilled people, ready to work. Browse what they do and connect."
-        }
-        href="/new"
-      />
+    <div className="mx-auto max-w-3xl px-5 pb-14 pt-8">
+      {/* Compact header — eyebrow + one-line heading + sub, New Post inline */}
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <p className="eyebrow mb-1.5">Jobs</p>
+          <h1 className="text-xl font-semibold tracking-tight text-ink sm:text-2xl">
+            {isRequest ? "Who needs your hands?" : "Who's offering what?"}
+          </h1>
+          <p className="mt-1 text-sm text-ink-muted">
+            {isRequest
+              ? "Real projects from people looking for someone to build them."
+              : "Skilled people, ready to work."}
+          </p>
+        </div>
+        <Link href="/new" className="btn-primary mt-1 shrink-0">
+          <PlusIcon className="h-4 w-4" />
+          <span className="hidden sm:inline">New Post</span>
+        </Link>
+      </div>
 
       {/* Perspective toggle — segmented control, SVG icons, no emoji */}
       <div className="mb-6 grid grid-cols-2 gap-2 rounded-2xl border border-line bg-soft p-1.5">
@@ -164,7 +171,7 @@ export default async function JobsPage({
         </button>
       </form>
 
-      <FilterBar base="/jobs" current={current} groups={filterGroups} />
+      <FilterBar base="/jobs" current={current} groups={filterGroups} dense />
 
       {posts.length === 0 ? (
         <EmptyState

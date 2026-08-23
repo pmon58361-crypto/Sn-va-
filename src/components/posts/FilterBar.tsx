@@ -41,18 +41,63 @@ export function FilterBar({
   base,
   current,
   groups,
+  dense,
 }: {
   /** Path to link to, e.g. "/jobs" or "/applications". */
   base: string;
   /** Currently active searchParams. */
   current: CurrentParams;
   groups: FilterGroup[];
+  /** Compact single-row layout: all groups share one horizontal wrap row. */
+  dense?: boolean;
 }) {
   // Any filter actually set? Controls the "clear" chip.
   const anyActive = groups.some((g) => {
     const anyValue = g.options[0]?.value ?? "";
     return current[g.param] && current[g.param] !== anyValue;
   });
+  const activeCount = groups.filter((g) => {
+    const anyValue = g.options[0]?.value ?? "";
+    const v = current[g.param];
+    return v != null && v !== "" && v !== anyValue;
+  }).length;
+
+  if (dense) {
+    return (
+      <div className="mb-4 rounded-xl border border-line bg-soft/60 px-3 py-2">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+          {groups.map((g) => (
+            <span key={g.param} className="flex flex-wrap items-center gap-1.5">
+              <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-ink-faint">
+                {g.label}
+              </span>
+              {g.options.map((o) => {
+                const active = (current[g.param] || o.value) === o.value;
+                return (
+                  <Link
+                    key={o.value || "any"}
+                    href={buildHref(base, current, { [g.param]: o.value })}
+                    className={`${chipBase} ${active ? chipActive : chipIdle}`}
+                    aria-current={active ? "true" : undefined}
+                  >
+                    {o.label}
+                  </Link>
+                );
+              })}
+            </span>
+          ))}
+          {anyActive && (
+            <Link
+              href={buildHref(base, current, Object.fromEntries(groups.map((g) => [g.param, ""])))}
+              className="ml-auto font-mono text-[11px] text-white/35 underline-offset-2 transition hover:text-amber-300 hover:underline"
+            >
+              ✕ clear ({activeCount})
+            </Link>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mb-6 space-y-3 rounded-xl border border-line bg-soft/60 p-4">
