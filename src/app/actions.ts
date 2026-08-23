@@ -65,7 +65,7 @@ export async function savePost(input: PostInput) {
   };
 
   if (input.id) {
-    // Update existing â€” pin to a local const so TS narrows the type from
+    // Update existing — pin to a local const so TS narrows the type from
     // string | undefined to string (input is a parameter and not narrowed).
     const postId = input.id;
     const existing = await prisma.post.findUnique({
