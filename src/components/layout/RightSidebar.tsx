@@ -18,7 +18,7 @@ export async function RightSidebar({ viewerId }: { viewerId?: string | null }) {
     topVoices,
     postsThisWeek,
     openListings,
-    liveStories,
+    applicantsThisWeek,
     memberCount,
   ] = await Promise.all([
     prisma.post.findMany({
@@ -59,7 +59,9 @@ export async function RightSidebar({ viewerId }: { viewerId?: string | null }) {
     }),
     prisma.post.count({ where: { createdAt: { gte: weekAgo } } }),
     prisma.post.count({ where: { category: "JOB_LISTING", status: "open" } }),
-    prisma.story.count({ where: { expiresAt: { gt: new Date() } } }),
+    // Real job applications this week — notes/stories are counted elsewhere,
+    // this slot tracks hiring activity only.
+    prisma.application.count({ where: { createdAt: { gte: weekAgo } } }),
     prisma.user.count(),
   ]);
 
@@ -202,7 +204,7 @@ export async function RightSidebar({ viewerId }: { viewerId?: string | null }) {
         <dl className="grid grid-cols-2 gap-x-3 gap-y-2 text-sm">
           <Stat label="new posts" value={postsThisWeek} />
           <Stat label="open jobs" value={openListings} />
-          <Stat label="live stories" value={liveStories} />
+          <Stat label="applicants" value={applicantsThisWeek} />
           <Stat label="members" value={memberCount} />
         </dl>
       </div>
