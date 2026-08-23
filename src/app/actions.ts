@@ -79,23 +79,29 @@ export async function savePost(input: PostInput) {
       where: { id: postId },
       data,
     });
-    // Replace images â€” free the replaced uploads so they don't linger
-    // as orphaned Cloudinary assets forever.
+    // Atomic swap: delete+recreate succeed or fail together, and CDN
+    // cleanup only runs AFTER the DB state is safely committed. URLs that
+    // the edit re-attaches are excluded from destruction, otherwise a
+    // plain edit used to delete Cloudinary assets still shown on the post.
     const old = await prisma.postImage.findMany({
       where: { postId },
       select: { url: true },
     });
-    await prisma.postImage.deleteMany({ where: { postId } });
-    await destroyAssets(old.map((o) => o.url));
-    if (input.imageUrls.length) {
-      await prisma.postImage.createMany({
-        data: input.imageUrls.map((url, i) => ({
-          postId,
-          url,
-          order: i,
-        })),
-      });
-    }
+    await prisma.$transaction(async (tx) => {
+      await tx.postImage.deleteMany({ where: { postId } });
+      if (input.imageUrls.length) {
+        await tx.postImage.createMany({
+          data: input.imageUrls.map((url, i) => ({
+            postId,
+            url,
+            order: i,
+          })),
+        });
+      }
+    });
+    await destroyAssets(
+      old.map((o) => o.url).filter((url) => !input.imageUrls.includes(url))
+    );
     revalidatePath(sectionPath(input.category));
     redirect(`${sectionPath(input.category)}/${postId}`);
   } else {
