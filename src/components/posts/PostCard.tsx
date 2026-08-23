@@ -133,6 +133,7 @@ export function PostCard({
           disliked={viewerReaction === "dislike"}
           bookmarked={bookmarked}
           signedIn={!!viewerId}
+          isOwner={!!viewerId && viewerId === post.authorId}
         />
         <Link
           href={detailPath(post.category, post.id)}

@@ -1,4 +1,4 @@
-import { getPosts, getTopTags } from "@/lib/queries";
+import { getPosts } from "@/lib/queries";
 import { PostCard, EmptyState } from "@/components/posts/PostCard";
 import { QuickComposer } from "@/components/posts/QuickComposer";
 import { RightSidebar } from "@/components/layout/RightSidebar";
@@ -39,7 +39,7 @@ export default async function CommunityPage({
     authorIds = [meId, ...rows.map((r) => r.followingId)];
   }
 
-  const [posts, storyGroups, topTags] = await Promise.all([
+  const [posts, storyGroups] = await Promise.all([
     getPosts({
       category: "COMMUNITY",
       search: q,
@@ -50,7 +50,6 @@ export default async function CommunityPage({
       sort: isFollowing || validBefore ? "new" : "best",
     }),
     getActiveStories(meId),
-    getTopTags(8),
   ]);
 
   // Tab links preserve an active search.
@@ -107,27 +106,6 @@ export default async function CommunityPage({
             )}
           </Link>
         </div>
-
-        {/* Topic chips — real tags only */}
-        {topTags.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {topTags.map(([tag]) => (
-              <Link
-                key={tag}
-                href={`/community?q=${encodeURIComponent(tag)}${
-                  isFollowing ? "&tab=following" : ""
-                }`}
-                className={`badge text-xs font-medium transition ${
-                  q === tag
-                    ? "bg-accent/10 text-accent"
-                    : "bg-soft text-ink-muted hover:text-accent"
-                }`}
-              >
-                #{tag}
-              </Link>
-            ))}
-          </div>
-        )}
 
         {/* Feed */}
         {posts.length === 0 ? (

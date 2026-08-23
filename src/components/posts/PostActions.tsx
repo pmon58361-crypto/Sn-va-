@@ -1,7 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { toggleReaction, toggleBookmark, reportPost } from "@/app/actions";
+import {
+  toggleReaction,
+  toggleBookmark,
+  reportPost,
+  deletePost,
+} from "@/app/actions";
+import { TrashIcon } from "@/components/ui/Icons";
 
 type Props = {
   postId: string;
@@ -13,10 +19,12 @@ type Props = {
   bookmarked?: boolean;
   signedIn: boolean;
   variant?: "card" | "detail";
+  /** Viewer is the post author — enables inline Delete (feed cards only). */
+  isOwner?: boolean;
 };
 
 // Full action row for a post:
-//   heart (like) · heartbreak (dislike) · comment · bookmark · report
+//   heart (like) · heartbreak (dislike) · comment · bookmark · report · [delete]
 export function PostActions({
   postId,
   likes,
@@ -27,6 +35,7 @@ export function PostActions({
   bookmarked,
   signedIn,
   variant = "card",
+  isOwner = false,
 }: Props) {
   const [state, setState] = useState({
     likes,
@@ -42,6 +51,8 @@ export function PostActions({
   const [reportOpen, setReportOpen] = useState(false);
   const [reported, setReported] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const detailHref =
     locationPath(postId);
@@ -113,6 +124,27 @@ export function PostActions({
       setCopied(true);
       setTimeout(() => setCopied(false), 1200);
     } catch {}
+  }
+
+  // Owner delete from the feed. The server action redirects on success —
+  // that surfaces as a NEXT_REDIRECT digest, which is success here.
+  async function onDelete() {
+    if (pending) return;
+    setPending(true);
+    setDeleteError(null);
+    try {
+      await deletePost(postId);
+    } catch (err) {
+      const digest = (err as { digest?: string })?.digest;
+      if (
+        (typeof digest === "string" && digest.startsWith("NEXT_REDIRECT")) ||
+        (err instanceof Error && err.message === "NEXT_REDIRECT")
+      ) {
+        return;
+      }
+      setDeleteError(err instanceof Error ? err.message : "Delete failed");
+      setPending(false);
+    }
   }
 
   async function submitReport(reason: string) {
@@ -237,6 +269,66 @@ export function PostActions({
           </div>
         )}
       </div>
+
+      {/* Owner delete — feed cards only; the detail page has full
+          OwnerControls (edit+delete) so this stays hidden there. */}
+      {isOwner && variant === "card" && (
+        <div className="relative">
+          {confirmingDelete ? (
+            <div
+              className="flex items-center gap-1.5"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <span className="text-xs font-semibold text-warm">
+                Delete this post?
+              </span>
+              <button
+                type="button"
+                disabled={pending}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onDelete();
+                }}
+                className="rounded-lg border border-warm px-2 py-1 text-xs font-semibold text-warm transition hover:bg-warm-tint disabled:opacity-50"
+              >
+                {pending ? "Deleting…" : "Yes, delete"}
+              </button>
+              <button
+                type="button"
+                disabled={pending}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setConfirmingDelete(false);
+                }}
+                className="rounded-lg px-2 py-1 text-xs text-ink-muted transition hover:text-ink"
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setConfirmingDelete(true);
+              }}
+              className={`${btn} hover:bg-soft hover:text-warm`}
+              aria-label="Delete post"
+              title="Delete post"
+            >
+              <TrashIcon className="h-4 w-4" />
+            </button>
+          )}
+          {deleteError && (
+            <span className="absolute bottom-full right-0 mb-1 whitespace-nowrap rounded bg-warm-tint px-2 py-0.5 text-xs text-warm">
+              {deleteError}
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 }
