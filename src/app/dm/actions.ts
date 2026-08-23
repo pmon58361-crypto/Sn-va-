@@ -73,3 +73,35 @@ export async function deleteMessage(messageId: string) {
   revalidatePath(`/dm/${msg.senderId}`);
   return { ok: true };
 }
+
+// IG-style emoji reaction toggle. Only thread participants may react;
+// whitelist keeps emoji values sane; second tap removes (unique constraint).
+const REACTION_EMOJIS = ["❤️", "😂", "🔥", "👍", "😮", "😢"];
+
+export async function toggleMessageReaction(
+  messageId: string,
+  emoji: string
+): Promise<{ ok: boolean; active: boolean }> {
+  const me = await requireUserId();
+  if (!REACTION_EMOJIS.includes(emoji)) throw new Error("Unsupported reaction");
+
+  const msg = await prisma.message.findUnique({
+    where: { id: messageId },
+    select: { senderId: true, recipientId: true },
+  });
+  if (!msg || (msg.senderId !== me && msg.recipientId !== me)) {
+    throw new Error("Forbidden");
+  }
+
+  const existing = await prisma.messageReaction.findUnique({
+    where: {
+      messageId_userId_emoji: { messageId, userId: me, emoji },
+    },
+  });
+  if (existing) {
+    await prisma.messageReaction.delete({ where: { id: existing.id } });
+    return { ok: true, active: false };
+  }
+  await prisma.messageReaction.create({ data: { messageId, userId: me, emoji } });
+  return { ok: true, active: true };
+}

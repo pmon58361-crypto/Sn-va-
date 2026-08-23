@@ -66,6 +66,7 @@ export async function getThread(meId: string, otherId: string) {
       content: true,
       readAt: true,
       createdAt: true,
+      reactions: { select: { userId: true, emoji: true } },
     },
   });
 }

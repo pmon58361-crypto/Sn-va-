@@ -56,6 +56,9 @@ model User {
   // Moderation
   reports    Report[] @relation("reporter")
   modActions Report[] @relation("moderator")
+
+  // DM emoji reactions
+  messageReactions MessageReaction[]
 }
 
 model Account {
@@ -251,8 +254,26 @@ model Message {
 
   reports Report[]
 
+  reactions MessageReaction[]
+
   @@index([senderId, recipientId])
   @@index([recipientId, readAt])
+}
+
+// IG-style emoji reaction on a DM. One user may react with each emoji once;
+// tapping again removes it (toggle handled app-side via upsert/delete).
+model MessageReaction {
+  id        String   @id @default(cuid())
+  messageId String
+  userId    String
+  emoji     String
+  createdAt DateTime @default(now())
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId, emoji])
+  @@index([messageId])
 }
 
 // Ephemeral post that disappears 24h after creation.

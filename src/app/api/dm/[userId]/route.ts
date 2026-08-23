@@ -34,7 +34,24 @@ export async function GET(
       content: true,
       readAt: true,
       createdAt: true,
+      reactions: { select: { userId: true, emoji: true } },
     },
+  });
+
+  // Full reaction map for the thread tail — lets every client reconcile
+  // reaction state each tick (toggles by the peer show up without reload).
+  const reactions = await prisma.messageReaction.findMany({
+    where: {
+      message: {
+        OR: [
+          { senderId: meId, recipientId: userId },
+          { senderId: userId, recipientId: meId },
+        ],
+      },
+    },
+    orderBy: { createdAt: "desc" },
+    take: 500,
+    select: { messageId: true, userId: true, emoji: true },
   });
 
   // Newest time the peer read any of MY messages -> drives the "Seen" label.
@@ -60,6 +77,7 @@ export async function GET(
 
   return NextResponse.json({
     messages,
+    reactions,
     seenAt: seen?.readAt ? seen.readAt.toISOString() : null,
     recentIds: recent.map((r) => r.id),
     windowStart:
