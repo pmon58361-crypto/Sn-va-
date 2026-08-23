@@ -37,5 +37,15 @@ export async function GET(
     },
   });
 
-  return NextResponse.json({ messages });
+  // Newest time the peer read any of MY messages -> drives the "Seen" label.
+  const seen = await prisma.message.findFirst({
+    where: { senderId: meId, recipientId: userId, readAt: { not: null } },
+    orderBy: { readAt: "desc" },
+    select: { readAt: true },
+  });
+
+  return NextResponse.json({
+    messages,
+    seenAt: seen?.readAt ? seen.readAt.toISOString() : null,
+  });
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { sendMessage, markThreadRead } from "@/app/dm/actions";
 import { ReportMenu } from "@/components/moderation/ReportMenu";
 import { timeAgo } from "@/lib/utils";
@@ -13,8 +13,12 @@ type Msg = {
   createdAt: string;
 };
 
+// Poll cadence while the tab is focused; polling pauses entirely when the
+// tab is hidden and does an immediate catch-up on return.
+const POLL_MS = 3000;
+
 // Live-ish thread: initial messages rendered server-side are passed in,
-// then the client polls the JSON endpoint every 4s for new ones.
+// then the client polls the JSON endpoint for new ones + peer read state.
 export function DmThread({
   otherId,
   meId,
@@ -27,45 +31,95 @@ export function DmThread({
   const [messages, setMessages] = useState<Msg[]>(initial);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
-  const bottomRef = useRef<HTMLDivElement>(null);
-  const lastAt =
-    messages.length > 0
-      ? new Date(messages[messages.length - 1].createdAt).toISOString()
-      : "";
+  // Newest known time the OTHER person read any of my messages ("Seen").
+  const [seenAt, setSeenAt] = useState<string | null>(null);
 
-  // Scroll to bottom on mount / new messages.
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const atBottomRef = useRef(true);
+  const mountedRef = useRef(false);
+  const messagesRef = useRef(messages);
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    messagesRef.current = messages;
+  }, [messages]);
+
+  // Only autoscroll when the user is already reading the latest message.
+  useEffect(() => {
+    if (!mountedRef.current) {
+      mountedRef.current = true;
+      requestAnimationFrame(() =>
+        bottomRef.current?.scrollIntoView({ behavior: "auto" })
+      );
+      return;
+    }
+    if (atBottomRef.current) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
   }, [messages.length]);
+
+  function onScroll(e: React.UIEvent<HTMLDivElement>) {
+    const el = e.currentTarget;
+    atBottomRef.current =
+      el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+  }
+
+  const poll = useCallback(async () => {
+    // Skip network work entirely for background tabs.
+    if (typeof document !== "undefined" && document.hidden) return;
+    try {
+      const cur = messagesRef.current;
+      const lastAt =
+        cur.length > 0 ? cur[cur.length - 1].createdAt : "";
+      const res = await fetch(
+        `/api/dm/${otherId}?after=${encodeURIComponent(lastAt)}`,
+        { cache: "no-store" }
+      );
+      if (!res.ok) return;
+      const data = (await res.json()) as {
+        messages: Msg[];
+        seenAt?: string | null;
+      };
+
+      if (data.seenAt) {
+        setSeenAt((prev) =>
+          !prev || new Date(data.seenAt!) > new Date(prev) ? data.seenAt! : prev
+        );
+      }
+
+      if (data.messages?.length) {
+        const seenIds = new Set(cur.map((m) => m.id));
+        const fresh = data.messages.filter((m) => !seenIds.has(m.id));
+        if (fresh.length === 0) return;
+        // Real arrivals animate + count as "read" only when focused.
+        if (typeof document === "undefined" || !document.hidden) {
+          markThreadRead(otherId).catch(() => {});
+        }
+        setMessages((prev) => {
+          const ids = new Set(prev.map((m) => m.id));
+          return [...prev, ...fresh.filter((m) => !ids.has(m.id))];
+        });
+      }
+    } catch {
+      // offline — retry next tick
+    }
+  }, [otherId]);
+
+  // Stable polling loop: fixed interval, hidden-tab skip, instant catch-up.
+  useEffect(() => {
+    const iv = setInterval(poll, POLL_MS);
+    const onVisible = () => {
+      if (!document.hidden) poll();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(iv);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [poll]);
 
   // Mark read when opened.
   useEffect(() => {
     markThreadRead(otherId).catch(() => {});
   }, [otherId]);
-
-  // Poll for new incoming messages.
-  useEffect(() => {
-    const iv = setInterval(async () => {
-      try {
-        const res = await fetch(
-          `/api/dm/${otherId}?after=${encodeURIComponent(lastAt)}`,
-          { cache: "no-store" }
-        );
-        if (!res.ok) return;
-        const data = (await res.json()) as { messages: Msg[] };
-        if (data.messages?.length) {
-          setMessages((prev) => {
-            const seen = new Set(prev.map((m) => m.id));
-            return [...prev, ...data.messages.filter((m) => !seen.has(m.id))];
-          });
-          markThreadRead(otherId).catch(() => {});
-        }
-      } catch {
-        // offline — retry next tick
-      }
-    }, 4000);
-    return () => clearInterval(iv);
-  }, [otherId, lastAt]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -79,6 +133,7 @@ export function DmThread({
       readAt: null,
       createdAt: new Date().toISOString(),
     };
+    atBottomRef.current = true; // sending implies you're looking at the thread
     setMessages((prev) => [...prev, optimistic]);
     setSending(true);
     try {
@@ -98,37 +153,72 @@ export function DmThread({
     }
   }
 
+  // Index of my most recent outgoing message — the one that can show "Seen".
+  let lastMineIdx = -1;
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].senderId === meId && !messages[i].id.startsWith("tmp-")) {
+      lastMineIdx = i;
+      break;
+    }
+  }
+
   return (
     <>
-      <div className="flex-1 overflow-y-auto px-4 py-4">
+      <div
+        className="flex-1 overflow-y-auto px-4 py-4"
+        onScroll={onScroll}
+      >
         {messages.length === 0 && (
           <p className="py-16 text-center text-sm text-ink-secondary">
             This is the beginning of your conversation. Say hi.
           </p>
         )}
         <div className="mx-auto flex max-w-lg flex-col gap-2">
-          {messages.map((m) => {
+          {messages.map((m, i) => {
             const mine = m.senderId === meId;
+            const showSeen =
+              mine &&
+              i === lastMineIdx &&
+              !!seenAt &&
+              new Date(seenAt) >= new Date(m.createdAt);
             return (
-              <div key={m.id} className={`flex flex-col ${mine ? "self-end items-end" : "self-start items-start"}`}>
+              <div
+                key={m.id}
+                className={`flex dm-in ${
+                  mine ? "justify-end" : "justify-start"
+                }`}
+              >
                 <div
-                  className={`max-w-[75%] rounded-3xl px-4 py-2.5 text-[15px] leading-snug ${
-                    mine
-                      ? "rounded-br-md bg-accent text-white"
-                      : "rounded-bl-md bg-surface-hover"
+                  className={`flex max-w-[85%] flex-col gap-0.5 sm:max-w-[75%] ${
+                    mine ? "items-end" : "items-start"
                   }`}
-                  title={new Date(m.createdAt).toLocaleString()}
                 >
-                  <span className="whitespace-pre-wrap break-words">{m.content}</span>
-                  <span
-                    className={`mt-0.5 block text-right text-[11px] ${
-                      mine ? "text-white/70" : "text-ink-secondary"
+                  <div
+                    className={`w-fit rounded-3xl px-4 py-2.5 text-[15px] leading-snug ${
+                      mine
+                        ? "rounded-br-md bg-accent text-white"
+                        : "rounded-bl-md bg-surface-hover"
                     }`}
+                    title={new Date(m.createdAt).toLocaleString()}
                   >
-                    {timeAgo(m.createdAt)}
-                  </span>
+                    <span className="block whitespace-pre-wrap break-words">
+                      {m.content}
+                    </span>
+                    <span
+                      className={`mt-0.5 block text-right text-[11px] ${
+                        mine ? "text-white/70" : "text-ink-secondary"
+                      }`}
+                    >
+                      {timeAgo(m.createdAt)}
+                    </span>
+                  </div>
+                  {showSeen && (
+                    <p className="text-[11px] font-medium text-accent">Seen</p>
+                  )}
+                  {!mine && (
+                    <ReportMenu targetType="MESSAGE" targetId={m.id} />
+                  )}
                 </div>
-                {!mine && <ReportMenu targetType="MESSAGE" targetId={m.id} className="mt-0.5" />}
               </div>
             );
           })}

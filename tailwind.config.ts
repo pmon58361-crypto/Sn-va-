@@ -17,6 +17,8 @@ const config: Config = {
           soft: "rgb(var(--ink-soft-rgb) / <alpha-value>)",
           muted: "rgb(var(--ink-muted-rgb) / <alpha-value>)",
           faint: "rgb(var(--ink-faint-rgb) / <alpha-value>)",
+          // Long-used-but-never-defined token (17 call sites); maps to muted.
+          secondary: "rgb(var(--ink-muted-rgb) / <alpha-value>)",
         },
         line: {
           DEFAULT: "rgb(var(--line-rgb) / <alpha-value>)",

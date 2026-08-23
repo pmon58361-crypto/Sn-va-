@@ -257,6 +257,18 @@ body {
   animation: soft-pulse 2.6s ease-in-out infinite;
 }
 
+/* DM bubble arrival — subtle rise+fade, plays once on mount only */
+@keyframes dm-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.dm-in {
+  animation: dm-in 0.22s ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dm-in { animation: none; }
+}
+
 /* Slow float for ambient artwork */
 @keyframes float-slow {
   0%, 100% { transform: translateY(0); }
