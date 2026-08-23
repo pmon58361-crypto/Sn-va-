@@ -57,6 +57,10 @@ export async function getPosts({
   viewerId,
   sort = 'best',
   includeHidden = false,
+  // Job-board filters (URL-param driven).
+  types,
+  location,
+  hasBudget,
 }: {
   category?: PostCategory;
   categories?: PostCategory[];
@@ -70,13 +74,23 @@ export async function getPosts({
   includeClosed?: boolean;
   viewerId?: string;
   sort?: FeedSort;
-  /** Admin surfaces only — feeds never show hidden posts. */
+  /** Admin surfaces only - feeds never show hidden posts. */
   includeHidden?: boolean;
+  /** Filter by the post's `type` field, e.g. ["freelance","full-time"]. */
+  types?: string[];
+  /** Exact match on the post's `location` field (e.g. "Remote"). */
+  location?: string;
+  /** Only posts that carry a budget. */
+  hasBudget?: boolean;
 } = {}) {
   const where: Record<string, unknown> = {};
 
   if (category) where.category = category;
   if (categories && categories.length) where.category = { in: categories };
+
+  if (types && types.length) where.type = { in: types, mode: "insensitive" };
+  if (location) where.location = { equals: location, mode: "insensitive" };
+  if (hasBudget) where.budget = { not: null };
 
   if (authorId) where.authorId = authorId;
   else if (authorIds && authorIds.length) where.authorId = { in: authorIds };

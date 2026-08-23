@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Snívať monogram">
+  <g fill="none" stroke="#000" stroke-width="60">
+    <path d="M 120 150 H 240 Q 310 150 330 210 L 356 290"/>
+    <path d="M 392 362 H 272 Q 202 362 182 302 L 156 222"/>
+  </g>
+  <g fill="#000">
+    <polygon points="293.9,299.7 411.9,261.3 384.4,377.5"/>
+    <polygon points="218,212.3 100.2,250.7 127.6,134.5"/>
+  </g>
+</svg>

@@ -1,12 +1,13 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { getPosts } from "@/lib/queries";
 import { PostCard, EmptyState } from "@/components/posts/PostCard";
 import { SectionHeader } from "@/components/posts/SectionHeader";
+import { FilterBar, type FilterGroup } from "@/components/posts/FilterBar";
 import { OfferIcon, RequestIcon } from "@/components/ui/Icons";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 
-export const metadata = { title: "Jobs — Snívať" };
+export const metadata = { title: "Jobs â€” SnÃ­vaÅ¥" };
 export const dynamic = "force-dynamic";
 
 // Two organic perspectives on the Jobs section:
@@ -15,22 +16,100 @@ export const dynamic = "force-dynamic";
 export default async function JobsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; q?: string }>;
+  searchParams: Promise<{
+    tab?: string;
+    q?: string;
+    type?: string;
+    loc?: string;
+    budget?: string;
+    status?: string;
+  }>;
 }) {
-  const { tab, q } = await searchParams;
+  const { tab, q, type, loc, budget, status } = await searchParams;
   const isRequest = tab === "requests";
   const category = isRequest ? "JOB_REQUEST" : "JOB_OFFER";
 
   const session = await auth();
   const meId = session?.user?.id;
 
-  // Tab badges are plain counts — fetching two full ranked feeds just to
+  // Tab badges are plain counts â€” fetching two full ranked feeds just to
   // read .length used to cost ~8 extra DB round trips here.
-  const [posts, offerCount, requestCount] = await Promise.all([
-    getPosts({ category, search: q, viewerId: meId }),
-    prisma.post.count({ where: { category: "JOB_OFFER" } }),
-    prisma.post.count({ where: { category: "JOB_REQUEST" } }),
-  ]);
+  const [posts, offerCount, requestCount, typeRows, locationRows] =
+    await Promise.all([
+      getPosts({
+        category,
+        search: q,
+        viewerId: meId,
+        types: type ? [type] : undefined,
+        location: loc || undefined,
+        hasBudget: budget === "1" || undefined,
+        includeClosed: status === "all",
+      }),
+      prisma.post.count({ where: { category: "JOB_OFFER" } }),
+      prisma.post.count({ where: { category: "JOB_REQUEST" } }),
+      prisma.post.findMany({
+        where: { category, type: { not: null } },
+        select: { type: true },
+        distinct: ["type"],
+      }),
+      prisma.post.findMany({
+        where: { category, location: { not: null } },
+        select: { location: true },
+        distinct: ["location"],
+      }),
+    ]);
+
+  const current = {
+    tab: isRequest ? "requests" : "",
+    q,
+    type,
+    loc,
+    budget,
+    status,
+  };
+
+  const filterGroups: FilterGroup[] = [
+    {
+      param: "type",
+      label: "kind",
+      options: [
+        { value: "", label: "any" },
+        ...typeRows
+          .map((r) => r.type)
+          .filter((t): t is string => !!t)
+          .map((t) => ({ value: t, label: t.toLowerCase() })),
+      ],
+    },
+    {
+      param: "loc",
+      label: "where",
+      options: [
+        { value: "", label: "anywhere" },
+        ...locationRows
+          .map((r) => r.location)
+          .filter((l): l is string => !!l)
+          .map((l) => ({ value: l, label: l })),
+      ],
+    },
+    {
+      param: "budget",
+      label: "budget",
+      options: [
+        { value: "", label: "any" },
+        { value: "1", label: "paid only" },
+      ],
+    },
+    {
+      param: "status",
+      label: "state",
+      options: [
+        { value: "", label: "open" },
+        { value: "all", label: "incl. closed" },
+      ],
+    },
+  ];
+
+  const hasFilters = Boolean(type || loc || budget || status === "all");
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-16">
@@ -45,8 +124,8 @@ export default async function JobsPage({
         href="/new"
       />
 
-      {/* Perspective toggle — segmented control, SVG icons, no emoji */}
-      <div className="mb-8 grid grid-cols-2 gap-2 rounded-2xl border border-line bg-soft p-1.5">
+      {/* Perspective toggle â€” segmented control, SVG icons, no emoji */}
+      <div className="mb-6 grid grid-cols-2 gap-2 rounded-2xl border border-line bg-soft p-1.5">
         <Link
           href="/jobs"
           className={`flex items-center justify-center gap-2.5 rounded-xl px-4 py-3 text-sm font-medium transition-all ${
@@ -77,26 +156,32 @@ export default async function JobsPage({
         </Link>
       </div>
 
-      <form className="mb-8 flex gap-2" action="/jobs" method="GET">
+      <form className="mb-4 flex gap-2" action="/jobs" method="GET">
         <input type="hidden" name="tab" value={isRequest ? "requests" : ""} />
-        <input name="q" defaultValue={q || ""} placeholder="Search by skill, tag, or keyword…" className="input" />
+        <input name="q" defaultValue={q || ""} placeholder="Search by skill, tag, or keywordâ€¦" className="input" />
         <button type="submit" className="btn-outline shrink-0">
           Search
         </button>
       </form>
 
+      <FilterBar base="/jobs" current={current} groups={filterGroups} />
+
       {posts.length === 0 ? (
         <EmptyState
-          title={q ? "No matches found" : "Nothing posted yet"}
+          title={
+            q || hasFilters
+              ? "Nothing matches these filters"
+              : "Nothing posted yet"
+          }
           description={
-            q
-              ? "Try a different search term."
+            q || hasFilters
+              ? "Loosen a chip or try a different search term."
               : isRequest
               ? "No one is looking for help right now. Be the first."
               : "No one is offering work right now. Be the first."
           }
           action={
-            !q && (
+            !q && !hasFilters && (
               <Link href="/new" className="btn-primary">
                 {isRequest ? "Post a request" : "Offer your skills"}
               </Link>
@@ -105,6 +190,11 @@ export default async function JobsPage({
         />
       ) : (
         <div className="space-y-5 fade-in">
+          <p className="font-mono text-xs text-white/35">
+            {posts.length} result{posts.length === 1 ? "" : "s"}
+            {(type || loc || budget) &&
+              ` Â· filtered${type ? ` Â· ${type}` : ""}${loc ? ` Â· ${loc}` : ""}${budget === "1" ? " Â· paid" : ""}`}
+          </p>
           {posts.map((p) => (
             <PostCard key={p.id} post={p} viewerId={meId} />
           ))}
@@ -113,4 +203,3 @@ export default async function JobsPage({
     </div>
   );
 }
-

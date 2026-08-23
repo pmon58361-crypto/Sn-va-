@@ -158,3 +158,16 @@ lives in Vercel env vars (needs ercel login to pull).
   dream-spark as the period. Revives V2's literal "S." identity with
   editorial typography matching the landing.
 - public/logo.svg, src/app/icon.svg, public/logo-lockup.svg updated.
+
+---
+
+## LOGO v5 (FINAL: chasing arrows) - 2026-08-23
+
+- Concept: two gold arrows locked in an S-chase = the
+  dream->build->grow loop; pair = connection, formation = S.
+  Replaces all prior directions (crescent/constellation/pills/serif/
+  stock-trace attempt - user rejected each).
+- Geometry: two mirrored stroke paths (60w, round joins) + filled
+  arrowheads; gradient f7ecc9->c99b3f on night tile rx110.
+- Files: logo.svg, icon.svg, logo-mark-black.svg (transparent),
+  logo-lockup.svg. All XML-valid.

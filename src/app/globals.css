@@ -525,10 +525,10 @@ html.light .gm-logo-img { filter: none; }
   width: 200%;
   animation: wave-drift linear infinite;
 }
-.wave-1 { animation-duration: 8s; opacity: 0.5; }
-.wave-2 { animation-duration: 16s; opacity: 0.4; }
-.wave-3 { animation-duration: 11s; opacity: 0.45; }
-.wave-4 { animation-duration: 6s; opacity: 0.35; }
+.wave-1 { animation-duration: 4s; opacity: 0.5; }
+.wave-2 { animation-duration: 9s; opacity: 0.4; }
+.wave-3 { animation-duration: 6s; opacity: 0.45; }
+.wave-4 { animation-duration: 3s; opacity: 0.35; }
 
 /* ── Full-viewport bleed for marketing backdrops ───────────────────────
    The app shell caps content at 1400px; decorative layers on / and
