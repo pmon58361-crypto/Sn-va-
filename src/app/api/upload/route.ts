@@ -91,7 +91,9 @@ export async function POST(req: NextRequest) {
       },
     }),
     prisma.story.count({
-      where: { authorId: me, createdAt: { gte: startOfDay } },
+      // Image stories only — text notes create no upload and must not
+      // consume the per-day upload budget.
+      where: { authorId: me, createdAt: { gte: startOfDay }, imageUrl: { not: null } },
     }),
   ]);
   if (imagesToday + storiesToday + files.length > DAILY_UPLOAD_CAP) {

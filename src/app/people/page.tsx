@@ -8,14 +8,34 @@ export const dynamic = "force-dynamic";
 
 // Directory of real members. Only users whose settings allow a public
 // profile are listed (missing settings row = public, matching the default).
-export default async function PeoplePage() {
+export default async function PeoplePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
+  const { q } = await searchParams;
   const session = await auth();
   const meId = session?.user?.id;
 
   const users = await prisma.user.findMany({
     where: {
       ...(meId ? { id: { not: meId } } : {}),
-      OR: [{ settings: { publicProfile: true } }, { settings: null }],
+      OR: [
+        { settings: { publicProfile: true } },
+        { settings: null },
+      ],
+      ...(q
+        ? {
+            AND: [
+              {
+                OR: [
+                  { name: { contains: q, mode: "insensitive" as const } },
+                  { bio: { contains: q, mode: "insensitive" as const } },
+                ],
+              },
+            ],
+          }
+        : {}),
     },
     select: {
       id: true,
@@ -40,11 +60,29 @@ export default async function PeoplePage() {
         Everyone building here. Follow someone whose work you want to see.
       </p>
 
+      {/* Search — same GET-form pattern as the jobs page; .input is 16px so
+          iOS Safari never zooms on focus. */}
+      <form className="mb-6 flex gap-2" action="/people" method="GET">
+        <input
+          name="q"
+          defaultValue={q || ""}
+          placeholder="Search by name or bio."
+          className="input"
+        />
+        <button type="submit" className="btn-outline shrink-0">
+          Search
+        </button>
+      </form>
+
       {users.length === 0 ? (
         <div className="rounded-2xl border border-line bg-surface px-6 py-14 text-center">
-          <p className="text-lg font-semibold">Nobody here yet</p>
+          <p className="text-lg font-semibold">
+            {q ? "Nobody matches that search" : "Nobody here yet"}
+          </p>
           <p className="mt-1 text-sm text-ink-muted">
-            Members appear here as they join.
+            {q
+              ? "Try a shorter name, or a word from their bio."
+              : "Members appear here as they join."}
           </p>
         </div>
       ) : (
