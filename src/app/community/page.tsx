@@ -57,11 +57,16 @@ export default async function CommunityPage({
   const tabHref = (t: string) =>
     `/community?${new URLSearchParams({ ...(q ? { q } : {}), ...(t === "following" ? { tab: t } : {}) })}`;
 
-  const loadMoreParams = new URLSearchParams({
-    ...(q ? { q } : {}),
-    ...(isFollowing ? { tab: "following" } : {}),
-    before: new Date(posts[posts.length - 1].createdAt).toISOString(),
-  });
+  // Guard: an empty pool (fresh instance, narrow search, all-hidden) has no
+  // last post - building the cursor eagerly threw before EmptyState rendered.
+  const loadMoreParams =
+    posts.length > 0
+      ? new URLSearchParams({
+          ...(q ? { q } : {}),
+          ...(isFollowing ? { tab: "following" } : {}),
+          before: new Date(posts[posts.length - 1].createdAt).toISOString(),
+        })
+      : null;
 
   return (
     <div className="flex">
@@ -164,7 +169,7 @@ export default async function CommunityPage({
             </div>
 
             {/* Load more — honest pagination, no infinite-scroll tricks */}
-            {posts.length >= PAGE_SIZE && (
+            {posts.length >= PAGE_SIZE && loadMoreParams && (
               <Link
                 href={`/community${loadMoreParams.toString() ? `?${loadMoreParams}` : ""}`}
                 className="mt-6 block rounded-xl border border-line bg-surface py-3 text-center text-sm font-medium text-ink-muted transition hover:border-accent hover:text-accent"
