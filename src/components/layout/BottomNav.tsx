@@ -21,7 +21,7 @@ type Tab = {
 };
 
 /**
- * Mobile bottom tab bar â€” Instagram/TikTok pattern.
+ * Mobile bottom tab bar — Instagram/TikTok pattern.
  * Fixed below the lg breakpoint; desktop keeps the sidebar.
  * Center slot is an elevated "New Post" action button.
  */
@@ -63,7 +63,7 @@ export function BottomNav() {
               key={label}
               href={href}
               aria-current={active ? "page" : undefined}
-              className={`relative flex flex-col items-center gap-1 py-2 text-[10px] font-semibold transition-colors ${
+              className={`relative flex flex-col items-center gap-1 py-2 text-[11px] font-semibold transition-colors ${
                 active ? "text-accent" : "text-ink-faint hover:text-ink-soft"
               }`}
             >

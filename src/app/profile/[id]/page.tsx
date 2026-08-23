@@ -280,7 +280,7 @@ export default async function ProfilePage({
         </div>
 
         {/* Stats strip — divided footer of the header card */}
-        <div className="grid grid-cols-4 divide-x divide-line border-t border-line bg-[var(--bg-soft)] py-4">
+        <div className="grid grid-cols-2 divide-x divide-y divide-line border-t border-line bg-[var(--bg-soft)] py-4 sm:grid-cols-4 sm:divide-y-0">
           <Stat label="Posts" value={user._count.posts} />
           <Stat label="Following" value={user._count.following} />
           <Stat label="Followers" value={user._count.followers} />

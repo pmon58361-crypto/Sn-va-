@@ -168,7 +168,8 @@ body {
   }
 
   .input {
-    @apply w-full rounded-xl px-4 py-2.5 text-sm transition-all focus:outline-none;
+    /* text-base (16px): iOS Safari force-zooms focused inputs below 16px */
+    @apply w-full rounded-xl px-4 py-2.5 text-base transition-all focus:outline-none;
     background-color: var(--bg-elevated);
     border: 1px solid var(--line-strong);
     color: var(--ink);
@@ -216,19 +217,19 @@ body {
 
 .display-1 {
     @apply font-bold tracking-tight;
-    font-size: clamp(2.75rem, 8vw, 5.5rem);   /* 44px â†’ 88px */
+    font-size: clamp(2.75rem, 8vw, 5.5rem);   /* 44px → 88px */
     line-height: 1.0;
     letter-spacing: -0.035em;
   }
   .display-2 {
     @apply font-bold tracking-tight;
-    font-size: clamp(2.25rem, 5vw, 3.75rem);  /* 36px â†’ 60px */
+    font-size: clamp(2.25rem, 5vw, 3.75rem);  /* 36px → 60px */
     line-height: 1.05;
     letter-spacing: -0.03em;
   }
   .display-3 {
     @apply font-bold tracking-tight;
-    font-size: clamp(1.75rem, 3vw, 2.5rem);   /* 28px â†’ 40px */
+    font-size: clamp(1.75rem, 3vw, 2.5rem);   /* 28px → 40px */
     line-height: 1.1;
     letter-spacing: -0.025em;
   }

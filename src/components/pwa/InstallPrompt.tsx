@@ -77,11 +77,7 @@ export function InstallPrompt() {
   return (
     <div className="fixed bottom-20 left-4 right-4 z-50 sm:left-auto sm:bottom-6 sm:right-6 lg:bottom-6">
       <div className="mx-auto flex max-w-md items-center gap-3 rounded-2xl border border-line bg-[var(--bg-elevated)] px-4 py-3 shadow-lg sm:mx-0">
-        <span
-          aria-hidden
-          className="h-9 w-9 shrink-0 rounded-full"
-          style={{ background: "#2f9e6b" }}
-        />
+        <span aria-hidden className="h-9 w-9 shrink-0 rounded-full bg-accent" />
         <div className="min-w-0 flex-1 text-[13px] leading-tight">
           <p className="font-bold text-ink">Install Snívať</p>
           <p className="truncate text-muted-ink" style={{ color: "var(--ink-muted)" }}>
@@ -91,10 +87,7 @@ export function InstallPrompt() {
         {!iosHint && (
           <button
             onClick={install}
-            className="shrink-0 rounded-full px-4 py-1.5 text-sm font-bold text-white transition-colors"
-            style={{ background: "#2f9e6b" }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "#34b577")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "#2f9e6b")}
+            className="shrink-0 rounded-full bg-accent px-4 py-1.5 text-sm font-bold text-white transition-colors hover:bg-accent-hover"
           >
             Install
           </button>
