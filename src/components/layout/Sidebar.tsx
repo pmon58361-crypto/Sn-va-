@@ -88,15 +88,14 @@ export function Sidebar() {
 
       <div className="my-4 h-px bg-line" />
 
-      {/* Create button — plus badge */}
+      {/* Create button — full-width pill */}
       <Link
         href="/new"
         aria-label="Create post"
-        className="mb-2 flex items-center justify-center"
+        className="mb-2 flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-accent-hover"
       >
-        <span className="grid h-10 w-10 place-items-center rounded-full bg-accent text-white shadow-md transition hover:bg-accent-hover sm:rounded-xl">
-          <PlusIcon className="h-5 w-5" />
-        </span>
+        <PlusIcon className="h-4 w-4" />
+        New post
       </Link>
 
       {/* User card at bottom — click goes straight to your profile */}
