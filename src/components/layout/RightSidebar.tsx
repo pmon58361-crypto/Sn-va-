@@ -1,9 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { timeAgo } from "@/lib/utils";
 import { Avatar } from "@/components/ui/Avatar";
 import { FollowButton } from "@/components/profile/FollowButton";
-import { CATEGORY_META } from "@/lib/types";
 
 // Right sidebar for the community page. Shows ONLY real data —
 // suggestions, trends, rankings and stats computed from the DB.
@@ -12,7 +10,6 @@ export async function RightSidebar({ viewerId }: { viewerId?: string | null }) {
   const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
   const [
-    recentPosts,
     tagsResult,
     followingRows,
     whoToFollow,
@@ -22,15 +19,6 @@ export async function RightSidebar({ viewerId }: { viewerId?: string | null }) {
     liveStories,
     memberCount,
   ] = await Promise.all([
-    prisma.post.findMany({
-      take: 5,
-      orderBy: { createdAt: "desc" },
-      where: { status: "open", hidden: false },
-      include: {
-        author: { select: { name: true, image: true } },
-        _count: { select: { reactions: true, comments: true } },
-      },
-    }),
     prisma.post.findMany({
       take: 100,
       where: { tags: { not: null }, status: "open", hidden: false },
@@ -210,40 +198,6 @@ export async function RightSidebar({ viewerId }: { viewerId?: string | null }) {
           <Stat label="live stories" value={liveStories} />
           <Stat label="members" value={memberCount} />
         </dl>
-      </div>
-
-      {/* Recent Activity */}
-      <div>
-        <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-ink-faint">
-          Recent Activity
-        </h3>
-        {recentPosts.length === 0 ? (
-          <p className="text-sm text-ink-faint">No activity yet.</p>
-        ) : (
-          <div className="space-y-3">
-            {recentPosts.map((p) => {
-              const meta = CATEGORY_META[
-                p.category as keyof typeof CATEGORY_META
-              ];
-              const href = `/${meta?.section || "community"}/${p.id}`;
-              return (
-                <Link
-                  key={p.id}
-                  href={href}
-                  className="block rounded-lg p-2 transition hover:bg-line/40"
-                >
-                  <p title={p.title} className="line-clamp-1 text-sm font-medium text-ink-soft transition-colors hover:text-accent">
-                    {p.title}
-                  </p>
-                  <p className="mt-0.5 text-xs text-ink-faint">
-                    {p.author?.name || "Someone"} · {timeAgo(p.createdAt)} ·{" "}
-                    {p._count.reactions + p._count.comments} interactions
-                  </p>
-                </Link>
-              );
-            })}
-          </div>
-        )}
       </div>
     </aside>
   );
