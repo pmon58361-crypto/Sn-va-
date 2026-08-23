@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef } from "react";
 import { signOut } from "next-auth/react";
-import { saveSettings, type SettingsInput } from "./actions";
+import { saveSettings, deactivateAccount, type SettingsInput } from "./actions";
 import { applyAccent, applyBackground } from "@/components/ThemeProvider";
 import { InterestsEditor } from "@/components/onboarding/InterestsEditor";
 import {
@@ -307,6 +307,8 @@ export function SettingsForm({
               {form.bio.length}/500
             </p>
           </Field>
+
+          <DangerZone />
         </section>
       )}
 
@@ -660,6 +662,67 @@ function ThemePreviewCard({
         )}
       </div>
     </button>
+  );
+}
+
+function DangerZone() {
+  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const deactivate = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await deactivateAccount();
+      await signOut({ callbackUrl: "/" });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong.");
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="mt-8 rounded-xl border border-warm/40 bg-warm/5 p-4">
+      <h3 className="text-sm font-bold text-warm">Danger zone</h3>
+      <p className="mt-1 text-xs leading-relaxed text-ink-muted">
+        Deactivating hides your profile and all your posts immediately and
+        signs you out. Nothing is deleted — signing back in restores
+        everything exactly as it was.
+      </p>
+      {error && <p className="mt-2 text-xs text-warm">{error}</p>}
+      <div className="mt-3 flex gap-2">
+        {!confirming ? (
+          <button
+            type="button"
+            onClick={() => setConfirming(true)}
+            disabled={busy}
+            className="btn-outline px-4 py-2 text-sm !border-warm !text-warm"
+          >
+            Deactivate account…
+          </button>
+        ) : (
+          <>
+            <button
+              type="button"
+              onClick={deactivate}
+              disabled={busy}
+              className="btn-outline px-4 py-2 text-sm !border-warm !bg-warm/10 !text-warm"
+            >
+              {busy ? "Deactivating…" : "Yes, hide my account"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirming(false)}
+              disabled={busy}
+              className="btn-outline px-4 py-2 text-sm"
+            >
+              Cancel
+            </button>
+          </>
+        )}
+      </div>
+    </div>
   );
 }
 

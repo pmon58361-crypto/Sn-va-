@@ -51,8 +51,11 @@ export type PostWithRelations = Awaited<
 };
 
 export async function getPost(id: string, viewerId?: string) {
-  return prisma.post.findUnique({
-    where: { id },
+  // findFirst (not findUnique) so the deactivated-author filter can compose.
+  // A deactivated account's posts read as missing everywhere; the owner
+  // can't hit this while deactivated (they read as signed out).
+  return prisma.post.findFirst({
+    where: { id, author: { is: { deactivatedAt: null } } },
     include: {
       ...postInclude,
       ...(viewerId ? viewerIncludes(viewerId) : {}),
@@ -114,6 +117,9 @@ export async function getPosts({
 
   // Moderation: hidden posts stay out of every feed unless explicitly asked.
   if (!includeHidden) where.hidden = false;
+
+  // Deactivated authors' posts stay out of every feed and listing.
+  where.author = { is: { deactivatedAt: null } };
 
   if (before) where.createdAt = { lt: before };
 

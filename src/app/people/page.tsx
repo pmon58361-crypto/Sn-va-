@@ -20,6 +20,7 @@ export default async function PeoplePage({
   const users = await prisma.user.findMany({
     where: {
       ...(meId ? { id: { not: meId } } : {}),
+      deactivatedAt: null,
       OR: [
         { settings: { publicProfile: true } },
         { settings: null },
