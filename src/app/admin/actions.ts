@@ -4,6 +4,10 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/session";
 import { destroyAssets } from "@/lib/storage";
+import { cloudinary } from "@/lib/cloudinary";
+import { assertClean } from "@/lib/filter";
+import { ALLOWED_IMAGE_TYPES, MAX_IMAGE_BYTES } from "@/lib/types";
+import type { UploadApiResponse } from "cloudinary";
 
 export type AdminTargetType = "POST" | "COMMENT" | "MESSAGE" | "STORY";
 
@@ -147,4 +151,225 @@ function sectionPath(category: string): string {
     JOB_LISTING: "/applications",
   };
   return map[category] || "/community";
+}
+
+// ── ads ──────────────────────────────────────────────────────────────────────
+
+export type AdInput = {
+  advertiser: string;
+  headline: string;
+  targetUrl: string;
+  placement: string;
+  startsAt?: string | null;
+  endsAt?: string | null;
+};
+
+export type SerializedAd = {
+  id: string;
+  advertiser: string;
+  headline: string;
+  imageUrl: string | null;
+  targetUrl: string;
+  placement: string;
+  active: boolean;
+  startsAt: string | null;
+  endsAt: string | null;
+  impressions: number;
+  clicks: number;
+};
+
+function serializeAd(ad: {
+  id: string;
+  advertiser: string;
+  headline: string;
+  imageUrl: string | null;
+  targetUrl: string;
+  placement: string;
+  active: boolean;
+  startsAt: Date | null;
+  endsAt: Date | null;
+  impressions: number;
+  clicks: number;
+}): SerializedAd {
+  return {
+    ...ad,
+    startsAt: ad.startsAt ? ad.startsAt.toISOString() : null,
+    endsAt: ad.endsAt ? ad.endsAt.toISOString() : null,
+  };
+}
+
+function parseAdForm(form: FormData): AdInput {
+  const advertiser = String(form.get("advertiser") || "").trim();
+  const headline = String(form.get("headline") || "").trim();
+  const targetUrl = String(form.get("targetUrl") || "").trim();
+  const placement = String(form.get("placement") || "").trim().toUpperCase();
+  const startsAt = String(form.get("startsAt") || "").trim();
+  const endsAt = String(form.get("endsAt") || "").trim();
+
+  if (!advertiser || !headline) throw new Error("Advertiser and headline are required.");
+  if (headline.length > 200) throw new Error("Headline must be 200 characters or fewer.");
+  assertClean(headline, "Ad headline");
+  assertClean(advertiser, "Advertiser name");
+
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(targetUrl);
+  } catch {
+    throw new Error("Target URL must be a valid absolute URL.");
+  }
+  if (parsedUrl.protocol !== "https:") {
+    throw new Error("Target URL must be https:// — javascript:/data: are not allowed.");
+  }
+  if (placement !== "FEED" && placement !== "SIDEBAR") {
+    throw new Error("Placement must be FEED or SIDEBAR.");
+  }
+
+  return {
+    advertiser,
+    headline,
+    targetUrl,
+    placement,
+    startsAt: startsAt || null,
+    endsAt: endsAt || null,
+  };
+}
+
+async function storeAdImage(file: File): Promise<string> {
+  if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+    throw new Error(`Unsupported image type (${file.type}).`);
+  }
+  if (file.size > MAX_IMAGE_BYTES) {
+    throw new Error("Image exceeds the 5MB limit.");
+  }
+  if (!process.env.CLOUDINARY_URL) {
+    throw new Error(
+      "Cloudinary is not configured on this deployment, so image uploads are unavailable."
+    );
+  }
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const res = await new Promise<UploadApiResponse>((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      { folder: "snivat/ads", resource_type: "image" },
+      (err, result) => {
+        if (err || !result) reject(err ?? new Error("upload failed"));
+        else resolve(result);
+      }
+    );
+    stream.end(buffer);
+  });
+  return res.secure_url;
+}
+
+function dateOrNull(value?: string | null): Date | null {
+  if (!value) return null;
+  const d = new Date(value);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+export async function createAd(
+  form: FormData
+): Promise<{ ok: boolean; error?: string; ad?: SerializedAd }> {
+  await requireAdmin();
+  try {
+    const input = parseAdForm(form);
+    const image = form.get("image");
+    const imageUrl =
+      image instanceof File && image.size > 0 ? await storeAdImage(image) : null;
+
+    const ad = await prisma.ad.create({
+      data: {
+        advertiser: input.advertiser,
+        headline: input.headline,
+        targetUrl: input.targetUrl,
+        placement: input.placement,
+        imageUrl,
+        startsAt: dateOrNull(input.startsAt),
+        endsAt: dateOrNull(input.endsAt),
+      },
+    });
+    revalidatePath("/admin/ads");
+    revalidatePath("/community");
+    return { ok: true, ad: serializeAd(ad) };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Create failed" };
+  }
+}
+
+export async function updateAd(
+  id: string,
+  form: FormData
+): Promise<{ ok: boolean; error?: string; ad?: SerializedAd }> {
+  await requireAdmin();
+  try {
+    const input = parseAdForm(form);
+    const existing = await prisma.ad.findUnique({
+      where: { id },
+      select: { imageUrl: true },
+    });
+    if (!existing) throw new Error("Ad not found");
+
+    const image = form.get("image");
+    let imageUrl: string | undefined; // undefined = keep current
+    if (image instanceof File && image.size > 0) {
+      imageUrl = await storeAdImage(image);
+      // Replace asset only when nothing else references the old one.
+      if (existing.imageUrl) {
+        const shared = await prisma.ad.count({
+          where: { imageUrl: existing.imageUrl, id: { not: id } },
+        });
+        if (shared === 0) {
+          destroyAssets([existing.imageUrl]).catch(() => {});
+        }
+      }
+    }
+
+    const ad = await prisma.ad.update({
+      where: { id },
+      data: {
+        advertiser: input.advertiser,
+        headline: input.headline,
+        targetUrl: input.targetUrl,
+        placement: input.placement,
+        startsAt: dateOrNull(input.startsAt),
+        endsAt: dateOrNull(input.endsAt),
+        ...(imageUrl !== undefined ? { imageUrl } : {}),
+      },
+    });
+    revalidatePath("/admin/ads");
+    revalidatePath("/community");
+    return { ok: true, ad: serializeAd(ad) };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Update failed" };
+  }
+}
+
+export async function setAdActive(
+  id: string,
+  active: boolean
+): Promise<{ ok: boolean }> {
+  await requireAdmin();
+  await prisma.ad.update({ where: { id }, data: { active } });
+  revalidatePath("/admin/ads");
+  revalidatePath("/community");
+  return { ok: true };
+}
+
+export async function deleteAd(id: string): Promise<{ ok: boolean }> {
+  await requireAdmin();
+  const ad = await prisma.ad.findUnique({
+    where: { id },
+    select: { imageUrl: true },
+  });
+  await prisma.ad.delete({ where: { id } });
+  if (ad?.imageUrl) {
+    const shared = await prisma.ad.count({
+      where: { imageUrl: ad.imageUrl },
+    });
+    if (shared === 0) {
+      destroyAssets([ad.imageUrl]).catch(() => {});
+    }
+  }
+  revalidatePath("/admin/ads");
+  revalidatePath("/community");
+  return { ok: true };
 }
