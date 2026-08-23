@@ -45,19 +45,53 @@ function buildProviders() {
         const email = credentials?.email as string | undefined;
         const password = credentials?.password as string | undefined;
 
-        // --- Access-code path: entering DEMO_CODE signs in the demo account.
-        // The code lives only server-side, so it never ships to the client.
+        // --- Access-code paths: each valid code signs into its demo account.
+        // Codes live only server-side, so they never ship to the client.
         const code = (credentials?.code as string | undefined)?.trim();
         if (code) {
-          const expected = process.env.DEMO_CODE;
-          if (!expected || code !== expected.trim()) return null;
+          const demoPaths = [
+            {
+              expected: process.env.DEMO_CODE,
+              email: (
+                process.env.DEMO_EMAIL || "demo@snivat.local"
+              ).toLowerCase(),
+            },
+            {
+              expected: process.env.DEMO_CODE_2,
+              email:
+                process.env.DEMO_EMAIL_2?.toLowerCase() ||
+                "demo2@snivat.local",
+              name: "Demo 2",
+            },
+          ];
+          const match = demoPaths.find(
+            (p) => !!p.expected?.trim() && code === p.expected.trim()
+          );
+          if (!match) return null;
 
-          const demoEmail = (
-            process.env.DEMO_EMAIL || "demo@snivat.local"
-          ).toLowerCase();
-          const user = await prisma.user.findUnique({
-            where: { email: demoEmail },
+          let user = await prisma.user.findUnique({
+            where: { email: match.email },
           });
+          // The second demo account self-creates on first use so no seed run
+          // is needed on production (mirrors the seed.js user shape).
+          if (!user && match.name) {
+            user = await prisma.user.create({
+              data: {
+                email: match.email,
+                name: match.name,
+                provider: "credentials",
+                role: "member",
+                accounts: {
+                  create: {
+                    type: "credentials",
+                    provider: "credentials",
+                    providerAccountId: match.email,
+                  },
+                },
+                settings: { create: {} },
+              },
+            });
+          }
           if (!user || user.bannedAt) return null;
           return { id: user.id, name: user.name, email: user.email, image: user.image };
         }
