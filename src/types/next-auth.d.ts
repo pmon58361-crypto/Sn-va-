@@ -9,6 +9,7 @@ declare module "next-auth" {
       theme?: string;
       accent?: string;
       background?: string;
+      isCreator?: boolean;
     } & DefaultSession["user"];
   }
   interface User {

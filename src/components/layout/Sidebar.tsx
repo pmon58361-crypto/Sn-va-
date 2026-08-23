@@ -18,6 +18,7 @@ import {
   CompassIcon,
   PlusIcon,
   ShieldIcon,
+  ChartIcon,
 } from "@/components/ui/Icons";
 import { NotificationsBadge } from "./NotificationsBadge";
 
@@ -76,6 +77,9 @@ export function Sidebar() {
           badge={<NotificationsBadge />}
         />
         <SidebarLink href="/bookmarks" active={isActive("/bookmarks")} icon={BookIcon} label="Bookmarks" />
+        {session.user.isCreator && (
+          <SidebarLink href="/dashboard" active={isActive("/dashboard")} icon={ChartIcon} label="Dashboard" />
+        )}
         <SidebarLink href="/settings" active={isActive("/settings")} icon={SettingsIcon} label="Settings" />
         {session.user.role === "admin" && (
           <SidebarLink href="/admin" active={isActive("/admin")} icon={ShieldIcon} label="Moderation" />

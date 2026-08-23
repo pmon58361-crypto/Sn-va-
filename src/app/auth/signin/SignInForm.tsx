@@ -82,7 +82,7 @@ export function SignInForm({ oauthProviders }: { oauthProviders: string[] }) {
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: "body{background:#0a0a0b!important}" }} />
-      <main className="page-flood relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-[#0a0a0b] px-5 py-16">
+      <main className="page-flood relative flex min-h-screen flex-col items-center justify-center bg-[#0a0a0b] px-5 py-16">
       {/* terminal grid + waves */}
       <div aria-hidden className="term-grid pointer-events-none absolute inset-0 abs-bleed" />
       <div

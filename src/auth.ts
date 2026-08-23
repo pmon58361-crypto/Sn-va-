@@ -169,7 +169,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               image: true,
               role: true,
               settings: {
-                select: { theme: true, accent: true, background: true },
+                select: { theme: true, accent: true, background: true, isCreator: true },
               },
             },
           });
@@ -180,6 +180,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             session.user.theme = user.settings?.theme;
             session.user.accent = user.settings?.accent;
             session.user.background = user.settings?.background || undefined;
+            session.user.isCreator = user.settings?.isCreator ?? false;
           }
         }
       }

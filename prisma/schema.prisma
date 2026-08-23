@@ -199,6 +199,7 @@ model Settings {
   publicProfile     Boolean @default(true)
   showEmail          Boolean @default(false)
   background         String? // custom background hex, null = theme default
+  isCreator          Boolean @default(false)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

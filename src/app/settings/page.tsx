@@ -34,6 +34,7 @@ export default async function SettingsPage() {
     background: s?.background ?? "",
     publicProfile: s?.publicProfile ?? true,
     showEmail: s?.showEmail ?? false,
+    isCreator: s?.isCreator ?? false,
   };
 
   const provider = (session.user.provider as string) || user.provider;

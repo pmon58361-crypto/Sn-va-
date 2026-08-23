@@ -220,3 +220,213 @@ export async function getTopTags(limit = 8): Promise<[string, number][]> {
 
 
 
+
+// -- Creator dashboard (real counts only) -------------------------------------
+
+export type CreatorPostRow = {
+  id: string;
+  title: string;
+  category: string;
+  status: string;
+  createdAt: Date;
+  likes: number;
+  comments: number;
+  applications: number;
+};
+
+export type CreatorDashboard = {
+  totals: {
+    posts: number;
+    followers: number;
+    likesReceived: number;
+    commentsReceived: number;
+    bookmarksReceived: number;
+    applicationsReceived: number;
+  };
+  postsByCategory: { category: string; count: number }[];
+  recentPosts: CreatorPostRow[];
+};
+
+export async function getCreatorDashboard(meId: string): Promise<CreatorDashboard> {
+  const [posts, followers, likes, comments, bookmarks, applications, byCategory, recent] =
+    await Promise.all([
+      prisma.post.count({ where: { authorId: meId, hidden: false } }),
+      prisma.follow.count({ where: { followingId: meId } }),
+      prisma.reaction.count({ where: { type: "like", post: { authorId: meId } } }),
+      prisma.comment.count({ where: { post: { authorId: meId } } }),
+      prisma.bookmark.count({ where: { post: { authorId: meId } } }),
+      prisma.application.count({ where: { post: { authorId: meId } } }),
+      prisma.post.groupBy({
+        by: ["category"],
+        where: { authorId: meId, hidden: false },
+        _count: { _all: true },
+      }),
+      prisma.post.findMany({
+        where: { authorId: meId, hidden: false },
+        select: {
+          id: true,
+          title: true,
+          category: true,
+          status: true,
+          createdAt: true,
+          reactions: { select: { type: true }, where: { type: "like" } },
+          _count: { select: { comments: true, applications: true } },
+        },
+        orderBy: { createdAt: "desc" as const },
+        take: 10,
+      }),
+    ]);
+
+  return {
+    totals: {
+      posts,
+      followers,
+      likesReceived: likes,
+      commentsReceived: comments,
+      bookmarksReceived: bookmarks,
+      applicationsReceived: applications,
+    },
+    postsByCategory: byCategory.map((g) => ({ category: g.category, count: g._count._all })),
+    recentPosts: recent.map((p) => ({
+      id: p.id,
+      title: p.title,
+      category: p.category,
+      status: p.status,
+      createdAt: p.createdAt,
+      likes: p.reactions.length,
+      comments: p._count.comments,
+      applications: p._count.applications,
+    })),
+  };
+}
+
+// -- Creator analytics (YouTube-Studio-style, real events only) ---------------
+
+export type AnalyticsDaily = {
+  date: string; // YYYY-MM-DD
+  likes: number;
+  comments: number;
+  applications: number;
+  bookmarks: number;
+  followers: number;
+};
+
+export type EventTotals = {
+  likes: number;
+  comments: number;
+  applications: number;
+  bookmarks: number;
+  followers: number;
+};
+
+export type CreatorAnalytics = {
+  rangeLabel: string;
+  stepDays: number;
+  daily: AnalyticsDaily[];
+  totals: EventTotals;
+  prevTotals: EventTotals;
+  last48h: EventTotals;
+};
+
+function zeroTotals(): EventTotals {
+  return { likes: 0, comments: 0, applications: 0, bookmarks: 0, followers: 0 };
+}
+
+function addTo(t: EventTotals, k: keyof EventTotals, n = 1) {
+  t[k] += n;
+}
+
+// Pulls every engagement event aimed at this creator's content and buckets it
+// client-computably. Volumes here are small; revisit if that ever changes.
+export async function getCreatorAnalytics(
+  meId: string,
+  days: number // 7 | 28 | 0 = all time
+): Promise<CreatorAnalytics> {
+  const [likes, comments, applications, bookmarks, follows] = await Promise.all([
+    prisma.reaction.findMany({
+      where: { type: "like", post: { authorId: meId } },
+      select: { createdAt: true },
+      orderBy: { createdAt: "asc" },
+    }),
+    prisma.comment.findMany({
+      where: { post: { authorId: meId } },
+      select: { createdAt: true },
+      orderBy: { createdAt: "asc" },
+    }),
+    prisma.application.findMany({
+      where: { post: { authorId: meId } },
+      select: { createdAt: true },
+      orderBy: { createdAt: "asc" },
+    }),
+    prisma.bookmark.findMany({
+      where: { post: { authorId: meId } },
+      select: { createdAt: true },
+      orderBy: { createdAt: "asc" },
+    }),
+    prisma.follow.findMany({
+      where: { followingId: meId },
+      select: { createdAt: true },
+      orderBy: { createdAt: "asc" },
+    }),
+  ]);
+
+  type Ev = { t: number; kind: keyof EventTotals };
+  const events: Ev[] = [
+    ...likes.map((e) => ({ t: e.createdAt.getTime(), kind: "likes" as const })),
+    ...comments.map((e) => ({ t: e.createdAt.getTime(), kind: "comments" as const })),
+    ...applications.map((e) => ({ t: e.createdAt.getTime(), kind: "applications" as const })),
+    ...bookmarks.map((e) => ({ t: e.createdAt.getTime(), kind: "bookmarks" as const })),
+    ...follows.map((e) => ({ t: e.createdAt.getTime(), kind: "followers" as const })),
+  ].sort((a, b) => a.t - b.t);
+
+  const now = Date.now();
+  const DAY = 86_400_000;
+
+  let start: number;
+  if (days > 0) {
+    start = now - days * DAY;
+  } else {
+    start = events.length > 0 ? events[0].t : now;
+    // Align all-time start to midnight so day 0 isn't a sliver.
+    const d = new Date(start);
+    start = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  }
+
+  const spanDays = Math.max(1, Math.ceil((now - start) / DAY));
+  const stepDays = spanDays <= 31 ? 1 : spanDays <= 180 ? 7 : 30;
+  const bucketCount = Math.ceil(spanDays / stepDays);
+
+  const daily: AnalyticsDaily[] = Array.from({ length: bucketCount }, (_, i) => ({
+    date: new Date(start + i * stepDays * DAY).toISOString().slice(0, 10),
+    likes: 0,
+    comments: 0,
+    applications: 0,
+    bookmarks: 0,
+    followers: 0,
+  }));
+
+  const totals = zeroTotals();
+  const prevTotals = zeroTotals();
+  const last48h = zeroTotals();
+  const prevStart = days > 0 ? start - days * DAY : null;
+
+  for (const e of events) {
+    if (e.t >= now - 48 * 3600_000) addTo(last48h, e.kind);
+    if (e.t >= start) {
+      const idx = Math.min(bucketCount - 1, Math.floor((e.t - start) / (stepDays * DAY)));
+      addTo(daily[idx], e.kind);
+      addTo(totals, e.kind);
+    } else if (prevStart !== null && e.t >= prevStart) {
+      addTo(prevTotals, e.kind);
+    }
+  }
+
+  return {
+    rangeLabel: days > 0 ? `Last ${days} days` : "Since the beginning",
+    stepDays,
+    daily,
+    totals,
+    prevTotals,
+    last48h,
+  };
+}

@@ -14,6 +14,7 @@ export type SettingsInput = {
   background: string;
   publicProfile: boolean;
   showEmail: boolean;
+  isCreator: boolean;
 };
 
 export async function saveSettings(input: SettingsInput) {
@@ -76,6 +77,7 @@ export async function saveSettings(input: SettingsInput) {
         background: bgOk ? input.background.toUpperCase() : null,
       publicProfile: input.publicProfile,
       showEmail: input.showEmail,
+      isCreator: input.isCreator,
     },
     create: {
       userId: session.user.id,
@@ -84,6 +86,7 @@ export async function saveSettings(input: SettingsInput) {
         background: bgOk ? input.background.toUpperCase() : null,
       publicProfile: input.publicProfile,
       showEmail: input.showEmail,
+      isCreator: input.isCreator,
     },
   });
 
@@ -91,6 +94,7 @@ export async function saveSettings(input: SettingsInput) {
   revalidatePath("/community");
   revalidatePath("/jobs");
   revalidatePath("/applications");
+  revalidatePath("/dashboard");
   return { ok: true };
 }
 

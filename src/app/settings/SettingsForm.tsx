@@ -449,6 +449,22 @@ export function SettingsForm({ initial }: { initial: SettingsInput }) {
               checked={form.showEmail}
               onChange={(v) => set("showEmail", v)}
             />
+            <ToggleRow
+              label="Creator account"
+              description="Unlocks your creator dashboard with real stats about your posts."
+              checked={form.isCreator}
+              onChange={(v) => set("isCreator", v)}
+            />
+            {form.isCreator && (
+              <div className="flex items-center justify-between gap-4 px-4 py-4">
+                <p className="text-xs text-ink-muted">
+                  Dashboard is enabled — find it in the sidebar.
+                </p>
+                <a href="/dashboard" className="btn-outline shrink-0 px-4 py-1.5 text-sm">
+                  Open dashboard
+                </a>
+              </div>
+            )}
             <div className="flex items-center justify-between gap-4 px-4 py-4">
               <div>
                 <p className="text-sm font-medium text-ink">Session</p>
