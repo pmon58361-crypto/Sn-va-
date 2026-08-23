@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import {
   AFFINITY_WINDOW_DAYS,
+  applyFeedbackToContext,
   buildPersonalContextFromRows,
   rankFeed,
   rotateFeed,
@@ -139,7 +140,7 @@ export async function getPosts({
     Date.now() - AFFINITY_WINDOW_DAYS * 86_400_000
   );
 
-  const [pool, myReactions, myComments, r12, c12] = await Promise.all([
+  const [pool, myReactions, myComments, myFeedback, r12, c12] = await Promise.all([
     prisma.post.findMany({
       where,
       include: {
@@ -161,6 +162,18 @@ export async function getPosts({
           select: { post: { select: { authorId: true, tags: true } } },
         })
       : Promise.resolve([] as never[]),
+    viewerId
+      ? prisma.postFeedback.findMany({
+          where: { userId: viewerId },
+          select: {
+            value: true,
+            postId: true,
+            post: { select: { authorId: true, tags: true } },
+          },
+          take: 300,
+          orderBy: { createdAt: "desc" },
+        })
+      : Promise.resolve([] as never[]),
     prisma.reaction.groupBy({
       by: ["postId"],
       where: { createdAt: { gte: since12 } },
@@ -173,7 +186,23 @@ export async function getPosts({
     }),
   ]);
 
-  const ctx = viewerId ? buildPersonalContextFromRows(myReactions, myComments, viewerId) : undefined;
+  const ctx =
+    viewerId && pool.length
+      ? buildPersonalContextFromRows(myReactions, myComments, viewerId)
+      : undefined;
+  if (ctx) applyFeedbackToContext(ctx, myFeedback);
+
+  // Posts the viewer explicitly said "not interested" on leave the feed
+  // entirely — a hard exclusion, stronger than any score demotion.
+  const notInterestedIds = new Set(
+    myFeedback
+      .filter((f) => f.value === "not_interested")
+      .map((f) => f.postId)
+  );
+  const eligiblePool =
+    notInterestedIds.size > 0
+      ? pool.filter((p) => !notInterestedIds.has(p.id))
+      : pool;
 
   const recent12h = new Map<string, number>();
   for (const g of r12) recent12h.set(g.postId, g._count._all);
@@ -181,7 +210,7 @@ export async function getPosts({
     recent12h.set(g.postId, (recent12h.get(g.postId) || 0) + g._count._all);
 
   return rotateFeed(
-    rankFeed(pool, "best", new Date(), ctx, { recent12h, viewerId }),
+    rankFeed(eligiblePool, "best", new Date(), ctx, { recent12h, viewerId }),
     { viewerId }
   ).slice(0, limit);
 }

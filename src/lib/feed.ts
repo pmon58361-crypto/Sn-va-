@@ -57,6 +57,45 @@ export type PersonalContext = {
 
 export const AFFINITY_WINDOW_DAYS = 90;
 
+// Explicit "interested"/"not_interested" verdicts from the in-feed prompt.
+// These are the strongest signals the viewer can give — worth more than
+// any implicit reaction. interested → +2 toward author/tag affinity,
+// not_interested → −3 (counts go negative; personalMultiplier demotes).
+export type FeedbackRow = {
+  value: string;
+  post: { authorId: string | null; tags: string | null } | null;
+};
+
+const W_FEEDBACK_INTERESTED = 2;
+const W_FEEDBACK_NOT_INTERESTED = -3;
+
+export function applyFeedbackToContext(
+  ctx: PersonalContext,
+  feedbacks: FeedbackRow[]
+): void {
+  for (const f of feedbacks) {
+    if (!f.post) continue;
+    const weight =
+      f.value === "interested"
+        ? W_FEEDBACK_INTERESTED
+        : f.value === "not_interested"
+          ? W_FEEDBACK_NOT_INTERESTED
+          : 0;
+    if (!weight) continue;
+    if (f.post.authorId) {
+      ctx.authorAffinity.set(
+        f.post.authorId,
+        (ctx.authorAffinity.get(f.post.authorId) || 0) + weight
+      );
+    }
+    for (const raw of (f.post.tags || "").split(",")) {
+      const t = raw.trim().toLowerCase();
+      if (!t) continue;
+      ctx.tagAffinity.set(t, (ctx.tagAffinity.get(t) || 0) + weight);
+    }
+  }
+}
+
 export async function buildPersonalContext(
   viewerId: string
 ): Promise<PersonalContext> {
@@ -118,7 +157,21 @@ function personalMultiplier(
     strongest = Math.max(strongest, ctx.tagAffinity.get(t) || 0);
   }
   const tagA = Math.min(1, strongest / 3);
-  return 1 + 0.35 * a + 0.25 * tagA;
+
+  // Explicit negative feedback on this author or topic demotes hard —
+  // the viewer literally said "less like this". Positive verdicts already
+  // flow through the affinity counts above.
+  const authorNegative = (ctx.authorAffinity.get(authorId) || 0) < 0;
+  let anyTagNegative = false;
+  for (const t of postTags) {
+    if ((ctx.tagAffinity.get(t) || 0) < 0) {
+      anyTagNegative = true;
+      break;
+    }
+  }
+  const negativeFactor = authorNegative || anyTagNegative ? 0.45 : 1;
+
+  return (1 + 0.35 * a + 0.25 * tagA) * negativeFactor;
 }
 
 export function feedScore(post: PostWithRelations, now: Date = new Date()): number {

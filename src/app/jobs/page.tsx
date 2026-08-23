@@ -196,7 +196,7 @@ export default async function JobsPage({
               ` Â· filtered${type ? ` Â· ${type}` : ""}${loc ? ` Â· ${loc}` : ""}${budget === "1" ? " Â· paid" : ""}`}
           </p>
           {posts.map((p) => (
-            <PostCard key={p.id} post={p} viewerId={meId} />
+            <PostCard key={p.id} post={p} viewerId={meId} showFeedback />
           ))}
         </div>
       )}
