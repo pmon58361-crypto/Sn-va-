@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { signOut } from "next-auth/react";
 import { saveSettings, type SettingsInput } from "./actions";
 import { applyAccent, applyBackground } from "@/components/ThemeProvider";
+import { InterestsEditor } from "@/components/onboarding/InterestsEditor";
 import {
   SunIcon,
   MoonIcon,
@@ -33,11 +34,12 @@ const ACCENTS = [
   { c: "#d97706", label: "Amber" },
 ];
 
-type Tab = "account" | "appearance" | "privacy";
+type Tab = "account" | "appearance" | "privacy" | "interests";
 
 const TABS: { id: Tab; label: string; icon: typeof UserIcon }[] = [
   { id: "account", label: "Account", icon: UserIcon },
   { id: "appearance", label: "Appearance", icon: SunIcon },
+  { id: "interests", label: "Interests", icon: SlidersIcon },
   { id: "privacy", label: "Privacy", icon: ClipboardIcon },
 ];
 
@@ -49,7 +51,15 @@ function avatarUrlError(url: string): string | null {
   return ok ? null : "Must be a direct image link starting with https://";
 }
 
-export function SettingsForm({ initial }: { initial: SettingsInput }) {
+export function SettingsForm({
+  initial,
+  interests = [],
+  suggestions = [],
+}: {
+  initial: SettingsInput;
+  interests?: string[];
+  suggestions?: string[];
+}) {
   const [tab, setTab] = useState<Tab>("account");
   const [form, setForm] = useState<SettingsInput>(initial);
   const [savedFlash, setSavedFlash] = useState(false);
@@ -482,6 +492,11 @@ export function SettingsForm({ initial }: { initial: SettingsInput }) {
             </div>
           </div>
         </section>
+      )}
+
+      {/* ── INTERESTS ───────────────────────────────────────────── */}
+      {tab === "interests" && (
+        <InterestsEditor initial={interests} suggestions={suggestions} />
       )}
 
       {/* ── Save bar ────────────────────────────────────────────── */}

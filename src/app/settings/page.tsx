@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { Avatar } from "@/components/ui/Avatar";
 import { CalendarIcon } from "@/components/ui/Icons";
 import { SettingsForm } from "./SettingsForm";
+import { getTopTags } from "@/lib/queries";
+import { parseTags } from "@/lib/utils";
 import type { SettingsInput } from "./actions";
 
 export const metadata = { title: "Settings — Snívať" };
@@ -38,6 +40,7 @@ export default async function SettingsPage() {
   };
 
   const provider = (session.user.provider as string) || user.provider;
+  const [topTags] = await Promise.all([getTopTags(24)]);
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-10">
@@ -100,7 +103,11 @@ export default async function SettingsPage() {
         </div>
       </section>
 
-      <SettingsForm initial={initial} />
+      <SettingsForm
+        initial={initial}
+        interests={parseTags(s?.interests)}
+        suggestions={topTags.map(([t]) => t)}
+      />
     </div>
   );
 }

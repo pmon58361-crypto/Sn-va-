@@ -1,9 +1,10 @@
 import { Fragment } from "react";
-import { getPosts } from "@/lib/queries";
+import { getPosts, getTopTags } from "@/lib/queries";
 import { PostCard, EmptyState } from "@/components/posts/PostCard";
 import { QuickComposer } from "@/components/posts/QuickComposer";
 import { RightSidebar } from "@/components/layout/RightSidebar";
 import { StoriesBar } from "@/components/stories/StoriesBar";
+import { InterestPickerModal } from "@/components/onboarding/InterestPickerModal";
 import { getActiveStories } from "@/lib/stories";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
@@ -31,18 +32,18 @@ export default async function CommunityPage({
   const validBefore =
     beforeDate && !isNaN(beforeDate.getTime()) ? beforeDate : undefined;
 
-  // "Following" restricts to me + everyone I follow. Chronological —
-  // recency is the point of a following feed.
+  // "Following" is strictly the people I follow — my own posts stay out
+  // (IG/Twitter convention; they live on my profile and in For you).
   let authorIds: string[] | undefined;
   if (isFollowing && meId) {
     const rows = await prisma.follow.findMany({
       where: { followerId: meId },
       select: { followingId: true },
     });
-    authorIds = [meId, ...rows.map((r) => r.followingId)];
+    authorIds = rows.map((r) => r.followingId);
   }
 
-  const [posts, storyGroups] = await Promise.all([
+  const [posts, storyGroups, topTags, settings] = await Promise.all([
     getPosts({
       category: "COMMUNITY",
       search: q,
@@ -53,10 +54,22 @@ export default async function CommunityPage({
       sort: isFollowing || validBefore ? "new" : "best",
     }),
     getActiveStories(meId),
+    getTopTags(24),
+    meId
+      ? prisma.settings.findUnique({
+          where: { userId: meId },
+          select: { interests: true },
+        })
+      : Promise.resolve(null),
   ]);
 
   // Sponsored feed card: only on substantial feeds, max one, after post #4.
   const feedAd = posts.length >= 10 ? await getFeedAd() : null;
+
+  // Once-per-user onboarding: interests === null means never asked.
+  // Answering or skipping writes "" so it never resurfaces.
+  const showInterestPicker =
+    !!meId && !q && !validBefore && settings?.interests == null;
 
   // Tab links preserve an active search.
   const tabHref = (t: string) =>
@@ -75,6 +88,7 @@ export default async function CommunityPage({
 
   return (
     <div className="flex">
+      {showInterestPicker && <InterestPickerModal suggestions={topTags.map(([t]) => t)} />}
       {/* Center feed */}
       <div className="mx-auto w-full max-w-[640px] px-4 py-5">
         {/* Stories rail */}

@@ -7,8 +7,8 @@ import { submitPostFeedback } from "@/app/actions";
 const SEEN_KEY = "xfbk-seen";
 const SHOWN_KEY = "xfbk-shown";
 const FIRST_TRIGGER = 3;
-const REPEAT_EVERY = 6;
-const MAX_PER_SESSION = 3;
+const REPEAT_EVERY = 3;
+const MAX_PER_SESSION = 5;
 
 function readCount(key: string): number {
   try {

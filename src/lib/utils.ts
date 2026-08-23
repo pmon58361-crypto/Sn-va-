@@ -42,3 +42,33 @@ export function parseTags(tags?: string | null): string[] {
     .map((t) => t.trim())
     .filter(Boolean);
 }
+
+// ── Explicit interests picker ────────────────────────────────────────────────
+
+export const MAX_INTERESTS = 20;
+export const MAX_INTEREST_LEN = 40;
+
+/**
+ * Normalize user-chosen interest topics into canonical stored form:
+ * lowercase, trimmed, "#" stripped, inner whitespace collapsed, deduped
+ * (case-insensitive), capped. Only ever fed by real user selections.
+ */
+export function normalizeInterests(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const item of raw) {
+    if (typeof item !== "string") continue;
+    const t = item
+      .toLowerCase()
+      .trim()
+      .replace(/^#+/, "")
+      .replace(/\s+/g, " ")
+      .slice(0, MAX_INTEREST_LEN);
+    if (!t || seen.has(t)) continue;
+    seen.add(t);
+    out.push(t);
+    if (out.length >= MAX_INTERESTS) break;
+  }
+  return out;
+}
