@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { invalidateSessionCache } from "@/lib/session-cache";
 
 export type SettingsInput = {
   name: string;
@@ -89,6 +90,9 @@ export async function saveSettings(input: SettingsInput) {
       isCreator: input.isCreator,
     },
   });
+
+  // Session cache must never outlive a settings write (instant propagation).
+  invalidateSessionCache(session.user.id);
 
   revalidatePath("/settings");
   revalidatePath("/community");

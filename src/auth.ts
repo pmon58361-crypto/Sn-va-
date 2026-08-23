@@ -7,6 +7,12 @@ import Facebook from "next-auth/providers/facebook";
 import MicrosoftEntraID from "next-auth/providers/microsoft-entra-id";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import {
+  fetchSessionUser,
+  readFresh,
+  readStale,
+  writeSessionUser,
+} from "@/lib/session-cache";
 
 // Yahoo has no dedicated provider in Auth.js v5, so we register it as a custom
 // OAuth2 provider against Yahoo's public endpoints. It only activates when
@@ -196,25 +202,36 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         // Safe to use Prisma here: this callback runs in Node route
         // handlers — middleware no longer imports this file.
         if (token.id) {
-          const user = await prisma.user.findUnique({
-            where: { id: token.id as string },
-            select: {
-              name: true,
-              image: true,
-              role: true,
-              settings: {
-                select: { theme: true, accent: true, background: true, isCreator: true },
-              },
-            },
-          });
+          const id = token.id as string;
+
+          // Degradation ladder (Neon blips must not take auth down):
+          //   1. fresh cache hit (<=45s old)
+          //   2. DB fetch -> cached
+          //   3. DB throw -> stale cache even if expired
+          //   4. nothing  -> bare JWT claims (name/email/picture from login)
+          // Failures are never cached; user-deleted stays "base session".
+          let user = readFresh(id);
+          if (!user) {
+            try {
+              user = await fetchSessionUser(id);
+              if (user) writeSessionUser(id, user);
+            } catch (err) {
+              console.warn(
+                "[auth] session identity fetch failed, degrading:",
+                err
+              );
+              user = readStale(id);
+            }
+          }
+
           if (user) {
             session.user.name = user.name;
             session.user.image = user.image;
             session.user.role = user.role;
-            session.user.theme = user.settings?.theme;
-            session.user.accent = user.settings?.accent;
-            session.user.background = user.settings?.background || undefined;
-            session.user.isCreator = user.settings?.isCreator ?? false;
+            session.user.theme = user.theme;
+            session.user.accent = user.accent;
+            session.user.background = user.background || undefined;
+            session.user.isCreator = user.isCreator ?? false;
           }
         }
       }
