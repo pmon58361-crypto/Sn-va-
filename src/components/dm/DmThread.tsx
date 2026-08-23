@@ -399,7 +399,7 @@ export function DmThread({
 
       <form
         onSubmit={submit}
-        className="sticky bottom-0 border-t border-line bg-bg/90 px-4 py-3 backdrop-blur-md"
+        className="sticky bottom-20 border-t border-line bg-bg/90 px-4 py-3 backdrop-blur-md lg:bottom-0"
       >
         <div className="mx-auto flex max-w-lg items-center gap-2">
           <input

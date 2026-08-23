@@ -46,7 +46,7 @@ export function Navbar() {
         href={href}
         aria-label={label}
         title={label}
-        className={`relative grid h-9 w-9 place-items-center rounded-full transition-colors ${
+        className={`relative grid h-11 w-11 place-items-center rounded-full transition-colors ${
           isActive(href)
             ? "text-accent bg-accent/10"
             : "text-ink-muted hover:text-ink hover:bg-line/60"
@@ -115,12 +115,12 @@ export function Navbar() {
               <Link
                 href={`/profile/${session.user.id}`}
                 aria-label="Your profile"
-                className="rounded-full ring-2 ring-transparent transition hover:ring-line-strong"
+                className="rounded-full p-1 ring-2 ring-transparent transition hover:ring-line-strong"
               >
                 <Avatar
                   name={session.user.name}
                   image={session.user.image}
-                  size={34}
+                  size={30}
                 />
               </Link>
             </>
