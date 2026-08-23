@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { getPosts } from "@/lib/queries";
 import { PostCard, EmptyState } from "@/components/posts/PostCard";
 import { QuickComposer } from "@/components/posts/QuickComposer";
@@ -6,6 +7,8 @@ import { StoriesBar } from "@/components/stories/StoriesBar";
 import { getActiveStories } from "@/lib/stories";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { getFeedAd } from "@/lib/ads";
+import { AdCard } from "@/components/ads/AdCard";
 import Link from "next/link";
 
 export const metadata = { title: "Community — Snívať" };
@@ -51,6 +54,9 @@ export default async function CommunityPage({
     }),
     getActiveStories(meId),
   ]);
+
+  // Sponsored feed card: only on substantial feeds, max one, after post #4.
+  const feedAd = posts.length >= 10 ? await getFeedAd() : null;
 
   // Tab links preserve an active search.
   const tabHref = (t: string) =>
@@ -141,8 +147,13 @@ export default async function CommunityPage({
         ) : (
           <>
             <div className="mt-4 space-y-4">
-              {posts.map((p) => (
-                <PostCard key={p.id} post={p} viewerId={session?.user?.id} showFeedback />
+              {posts.map((p, idx) => (
+                <Fragment key={p.id}>
+                  <PostCard post={p} viewerId={session?.user?.id} showFeedback />
+                  {idx === 3 && feedAd && (
+                    <AdCard ad={feedAd} variant="feed" />
+                  )}
+                </Fragment>
               ))}
             </div>
 

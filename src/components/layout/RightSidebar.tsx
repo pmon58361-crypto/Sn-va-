@@ -2,6 +2,8 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Avatar } from "@/components/ui/Avatar";
 import { FollowButton } from "@/components/profile/FollowButton";
+import { getSidebarAd } from "@/lib/ads";
+import { AdCard } from "@/components/ads/AdCard";
 
 // Right sidebar for the community page. Shows ONLY real data —
 // suggestions, trends, rankings and stats computed from the DB.
@@ -77,8 +79,13 @@ export async function RightSidebar({ viewerId }: { viewerId?: string | null }) {
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5);
 
+  // Sponsored slot — first block; collapses to nothing when no ad is running.
+  const sidebarAd = await getSidebarAd();
+
   return (
     <aside className="sticky top-0 hidden h-screen w-72 shrink-0 flex-col gap-6 overflow-y-auto border-l border-line px-5 py-6 xl:flex">
+      {sidebarAd && <AdCard ad={sidebarAd} variant="sidebar" />}
+
       {/* Who to follow */}
       <div>
         <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-ink-faint">
