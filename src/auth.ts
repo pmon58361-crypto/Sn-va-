@@ -6,6 +6,7 @@ import Google from "next-auth/providers/google";
 import Facebook from "next-auth/providers/facebook";
 import MicrosoftEntraID from "next-auth/providers/microsoft-entra-id";
 import bcrypt from "bcryptjs";
+import { createHash, timingSafeEqual } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import {
   fetchSessionUser,
@@ -13,6 +14,50 @@ import {
   readStale,
   writeSessionUser,
 } from "@/lib/session-cache";
+
+// ── Sign-in throttling (in-memory, per-identifier exponential lockout) ──────
+//
+// Failed credentials sign-ins back off exponentially per email (or a shared
+// bucket for access-code attempts, where no email exists): 1s, 2s, 4s …
+// capped at 15 minutes. Successful sign-in clears the record. This is
+// brute-force friction, not identity policy — ban enforcement stays in DB.
+
+type SignInAttempt = { count: number; lockUntil: number };
+
+const signInAttempts =
+  (
+    globalThis as unknown as {
+      __snivatSignInThrottle?: Map<string, SignInAttempt>;
+    }
+  ).__snivatSignInThrottle ??= new Map<string, SignInAttempt>();
+
+const BASE_LOCK_MS = 1000;
+const MAX_LOCK_MS = 15 * 60 * 1000;
+
+/** Length-independent constant-time string comparison. */
+export function constantTimeEqual(a: string, b: string): boolean {
+  const ha = createHash("sha256").update(a).digest();
+  const hb = createHash("sha256").update(b).digest();
+  return timingSafeEqual(ha, hb);
+}
+
+function isLockedOut(key: string): boolean {
+  const rec = signInAttempts.get(key);
+  return !!rec && rec.lockUntil > Date.now();
+}
+
+function recordFailure(key: string) {
+  // Hard cap so a flooding attacker can't grow the map unbounded.
+  if (signInAttempts.size > 10_000) signInAttempts.clear();
+  const rec = signInAttempts.get(key) ?? { count: 0, lockUntil: 0 };
+  rec.count += 1;
+  const delay = Math.min(
+    BASE_LOCK_MS * 2 ** Math.min(rec.count - 1, 10),
+    MAX_LOCK_MS
+  );
+  rec.lockUntil = Date.now() + delay;
+  signInAttempts.set(key, rec);
+}
 
 // Yahoo has no dedicated provider in Auth.js v5, so we register it as a custom
 // OAuth2 provider against Yahoo's public endpoints. It only activates when
@@ -33,6 +78,109 @@ const Yahoo = {
   },
 };
 
+// Verify credentials (demo access-code or email+password). Returns the user
+// on success, null on failure. Throttling wraps this in authorize().
+async function verifyCredentials(
+  credentials: Partial<Record<string, unknown>> | undefined
+): Promise<{
+  id: string;
+  name: string | null;
+  email: string | null;
+  image: string | null;
+} | null> {
+  const email = credentials?.email as string | undefined;
+  const password = credentials?.password as string | undefined;
+
+  // --- Access-code paths: each valid code signs into its demo account.
+  // Codes live only server-side, so they never ship to the client.
+  const code = (credentials?.code as string | undefined)?.trim();
+  if (code) {
+    const demoPaths = [
+      {
+        expected: process.env.DEMO_CODE,
+        email: (
+          process.env.DEMO_EMAIL || "demo@snivat.local"
+        ).toLowerCase(),
+      },
+      {
+        expected: process.env.DEMO_CODE_2,
+        email:
+          process.env.DEMO_EMAIL_2?.toLowerCase() ||
+          "demo2@snivat.local",
+        name: "Demo 2",
+      },
+    ];
+    // Constant-time compare: the demo code is a bearer secret.
+    const match = demoPaths.find(
+      (p) => !!p.expected?.trim() && constantTimeEqual(code, p.expected.trim())
+    );
+    if (!match) return null;
+
+    let user = await prisma.user.findUnique({
+      where: { email: match.email },
+    });
+    // The second demo account self-creates on first use so no seed run
+    // is needed on production (mirrors the seed.js user shape).
+    if (!user && match.name) {
+      user = await prisma.user.create({
+        data: {
+          email: match.email,
+          name: match.name,
+          provider: "credentials",
+          role: "member",
+          accounts: {
+            create: {
+              type: "credentials",
+              provider: "credentials",
+              providerAccountId: match.email,
+            },
+          },
+          settings: { create: {} },
+        },
+      });
+    }
+    if (!user || user.bannedAt) return null;
+    return { id: user.id, name: user.name, email: user.email, image: user.image };
+  }
+
+  // --- Legacy email + password path ---
+  if (!email || !password) return null;
+
+  // Find user. For the seeded demo account we validate the password.
+  const user = await prisma.user.findUnique({
+    where: { email: email.toLowerCase() },
+  });
+  if (!user) return null;
+
+  // Banned accounts can't sign in (any provider).
+  if (user.bannedAt) return null;
+
+  // Demo account password check (only credentials-provider users store a password hash
+  // by convention — we keep it on a dedicated Account row's token).
+  const demoEmail = (process.env.DEMO_EMAIL || "demo@snivat.local").toLowerCase();
+  const demoPass = process.env.DEMO_PASSWORD || "demo1234";
+
+  if (email.toLowerCase() === demoEmail) {
+    if (constantTimeEqual(password, demoPass)) {
+      return { id: user.id, name: user.name, email: user.email, image: user.image };
+    }
+    return null;
+  }
+
+  // Any other credentials user: look up a stored hash on their credentials Account row.
+  const acc = await prisma.account.findFirst({
+    where: { userId: user.id, provider: "credentials" },
+  });
+  if (acc?.refresh_token) {
+    // We reuse refresh_token to store the bcrypt hash (cheap reuse, avoids schema churn).
+    const ok = await bcrypt.compare(password, acc.refresh_token);
+    if (ok) {
+      return { id: user.id, name: user.name, email: user.email, image: user.image };
+    }
+  }
+  return null;
+}
+
 // Build the list of providers that actually have credentials configured.
 // The demo Credentials provider is ALWAYS available so the app runs with zero setup.
 function buildProviders() {
@@ -49,94 +197,23 @@ function buildProviders() {
       },
       async authorize(credentials) {
         const email = credentials?.email as string | undefined;
-        const password = credentials?.password as string | undefined;
-
-        // --- Access-code paths: each valid code signs into its demo account.
-        // Codes live only server-side, so they never ship to the client.
         const code = (credentials?.code as string | undefined)?.trim();
-        if (code) {
-          const demoPaths = [
-            {
-              expected: process.env.DEMO_CODE,
-              email: (
-                process.env.DEMO_EMAIL || "demo@snivat.local"
-              ).toLowerCase(),
-            },
-            {
-              expected: process.env.DEMO_CODE_2,
-              email:
-                process.env.DEMO_EMAIL_2?.toLowerCase() ||
-                "demo2@snivat.local",
-              name: "Demo 2",
-            },
-          ];
-          const match = demoPaths.find(
-            (p) => !!p.expected?.trim() && code === p.expected.trim()
-          );
-          if (!match) return null;
 
-          let user = await prisma.user.findUnique({
-            where: { email: match.email },
-          });
-          // The second demo account self-creates on first use so no seed run
-          // is needed on production (mirrors the seed.js user shape).
-          if (!user && match.name) {
-            user = await prisma.user.create({
-              data: {
-                email: match.email,
-                name: match.name,
-                provider: "credentials",
-                role: "member",
-                accounts: {
-                  create: {
-                    type: "credentials",
-                    provider: "credentials",
-                    providerAccountId: match.email,
-                  },
-                },
-                settings: { create: {} },
-              },
-            });
-          }
-          if (!user || user.bannedAt) return null;
-          return { id: user.id, name: user.name, email: user.email, image: user.image };
+        // Per-identifier lockout: exponential backoff on repeated failures.
+        // Access-code attempts share one bucket (no email is supplied there).
+        const key = email
+          ? `e:${email.toLowerCase()}`
+          : code
+          ? "code"
+          : "anon";
+        if (isLockedOut(key)) return null;
+
+        const user = await verifyCredentials(credentials);
+        if (user) {
+          signInAttempts.delete(key);
+          return user;
         }
-
-        // --- Legacy email + password path ---
-        if (!email || !password) return null;
-
-        // Find user. For the seeded demo account we validate the password.
-        const user = await prisma.user.findUnique({
-          where: { email: email.toLowerCase() },
-        });
-        if (!user) return null;
-
-        // Banned accounts can't sign in (any provider).
-        if (user.bannedAt) return null;
-
-        // Demo account password check (only credentials-provider users store a password hash
-        // by convention — we keep it on a dedicated Account row's token).
-        const demoEmail = (process.env.DEMO_EMAIL || "demo@snivat.local").toLowerCase();
-        const demoPass = process.env.DEMO_PASSWORD || "demo1234";
-
-        if (email.toLowerCase() === demoEmail) {
-          if (password === demoPass) {
-            return { id: user.id, name: user.name, email: user.email, image: user.image };
-          }
-          return null;
-        }
-
-        // Any other credentials user: look up a stored hash on their credentials Account row.
-        const acc = await prisma.account.findFirst({
-          where: { userId: user.id, provider: "credentials" },
-        });
-        if (acc?.refresh_token) {
-          // We reuse refresh_token to store the bcrypt hash (cheap reuse, avoids schema churn).
-          const ok = await bcrypt.compare(password, acc.refresh_token);
-          if (ok) {
-            return { id: user.id, name: user.name, email: user.email, image: user.image };
-          }
-        }
+        recordFailure(key);
         return null;
       },
     })
