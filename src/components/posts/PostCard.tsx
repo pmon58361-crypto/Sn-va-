@@ -3,6 +3,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { MapPinIcon, MessageIcon, BriefcaseIcon } from "@/components/ui/Icons";
 import { PostActions } from "@/components/posts/PostActions";
 import { ImageGrid } from "@/components/posts/ImageGrid";
+import { InterestPrompt } from "@/components/posts/InterestPrompt";
 import { timeAgo, parseTags } from "@/lib/utils";
 import { CATEGORY_META } from "@/lib/types";
 import { reactionCounts, type PostWithRelations } from "@/lib/queries";
@@ -16,9 +17,11 @@ function detailPath(category: string, id: string) {
 export function PostCard({
   post,
   viewerId,
+  showFeedback,
 }: {
   post: PostWithRelations;
   viewerId?: string;
+  showFeedback?: boolean;
 }) {
   if (!post) return null;
   const tags = parseTags(post.tags);
@@ -148,6 +151,8 @@ export function PostCard({
           )}
         </Link>
       </div>
+
+      {showFeedback && viewerId && <InterestPrompt postId={post.id} />}
     </article>
   );
 }

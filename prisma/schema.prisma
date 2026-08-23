@@ -31,6 +31,7 @@ model User {
   applications  Application[]
   reactions     Reaction[]
   bookmarks     Bookmark[]
+  feedback      PostFeedback[]
 
   // Follow graph
   following Follow[] @relation("follower")
@@ -125,6 +126,7 @@ model Post {
   bookmarks   Bookmark[]
   reports     Report[]
   notifications Notification[]
+  feedback      PostFeedback[]
 
   @@index([category])
   @@index([authorId])
@@ -363,3 +365,22 @@ model Notification {
 
 
 
+
+// Explicit interest signal feeding the feed ranker ("more like this" /
+// "less like this"). One verdict per user per post. The matching table
+// already exists in production Neon — created additively; adding the
+// model here only keeps future prisma db push runs from dropping it.
+model PostFeedback {
+  id        String   @id @default(cuid())
+  userId    String
+  postId    String
+  value     String // "interested" | "not_interested"
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@index([userId])
+  @@index([postId])
+}

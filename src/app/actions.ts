@@ -452,3 +452,33 @@ export async function togglePostStatus(id: string) {
   revalidatePath(sectionPath(post.category));
 }
 
+
+// -- Interest feedback (feeds the ranker) ------------------------------------
+
+export async function submitPostFeedback(
+  postId: string,
+  value: "interested" | "not_interested"
+): Promise<{ ok: boolean }> {
+  const me = await requireActiveUser().catch(() => null);
+  if (!me) return { ok: false };
+  if (value !== "interested" && value !== "not_interested") {
+    return { ok: false };
+  }
+
+  const post = await prisma.post.findUnique({
+    where: { id: postId },
+    select: { id: true },
+  });
+  if (!post) return { ok: false };
+
+  await prisma.postFeedback.upsert({
+    where: { userId_postId: { userId: me.id, postId } },
+    update: { value },
+    create: { userId: me.id, postId, value },
+  });
+
+  revalidatePath("/community");
+  revalidatePath("/jobs");
+  revalidatePath("/applications");
+  return { ok: true };
+}

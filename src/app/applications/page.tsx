@@ -141,7 +141,7 @@ export default async function ApplicationsPage({
               ` · filtered${type ? ` · ${type}` : ""}${loc ? ` · ${loc}` : ""}${budget === "1" ? " · paid" : ""}`}
           </p>
           {posts.map((p) => (
-            <PostCard key={p.id} post={p} viewerId={session?.user?.id} />
+            <PostCard key={p.id} post={p} viewerId={session?.user?.id} showFeedback />
           ))}
         </div>
       )}
