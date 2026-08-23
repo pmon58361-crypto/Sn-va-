@@ -202,6 +202,7 @@ model Settings {
   showEmail          Boolean @default(false)
   background         String? // custom background hex, null = theme default
   isCreator          Boolean @default(false)
+  interests          String? // comma-separated interest tags (C's picker; inert until wired)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -368,7 +369,7 @@ model Notification {
 
 // Explicit interest signal feeding the feed ranker ("more like this" /
 // "less like this"). One verdict per user per post. The matching table
-// already exists in production Neon — created additively; adding the
+// already exists in production Neon â€” created additively; adding the
 // model here only keeps future prisma db push runs from dropping it.
 model PostFeedback {
   id        String   @id @default(cuid())
