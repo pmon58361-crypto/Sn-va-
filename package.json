@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "prisma generate && next build",
     "start": "powershell -NoProfile -ExecutionPolicy Bypass -File start.ps1",
+    "smoke": "node scripts/smoke.mjs",
     "lint": "next lint",
     "postinstall": "prisma generate",
     "db:push": "prisma db push",
