@@ -8,6 +8,7 @@ import { createNotification } from "@/lib/notify";
 import { requireActiveUser } from "@/lib/session";
 import { destroyAssets } from "@/lib/storage";
 import { assertClean } from "@/lib/filter";
+import { normalizeInterests } from "@/lib/utils";
 import {
   POST_CATEGORIES,
   MAX_IMAGES_PER_POST,
@@ -487,4 +488,30 @@ export async function submitPostFeedback(
   revalidatePath("/jobs");
   revalidatePath("/applications");
   return { ok: true };
+}
+
+// -- Explicit interests picker (profile-level, feeds the ranker) --------------
+
+export async function saveInterests(
+  picks: unknown
+): Promise<{ ok: boolean; interests?: string[] }> {
+  const me = await requireActiveUser().catch(() => null);
+  if (!me) return { ok: false };
+
+  // Only real user selections are ever stored — normalized, deduped,
+  // capped, and hard-block filtered. Empty array = valid "cleared" state.
+  const interests = normalizeInterests(picks);
+  for (const tag of interests) {
+    assertClean(tag, "Interest");
+  }
+
+  await prisma.settings.upsert({
+    where: { userId: me.id },
+    update: { interests: interests.join(",") },
+    create: { userId: me.id, interests: interests.join(",") },
+  });
+
+  revalidatePath("/community");
+  revalidatePath("/settings");
+  return { ok: true, interests };
 }
