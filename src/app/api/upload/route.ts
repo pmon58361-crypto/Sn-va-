@@ -55,6 +55,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  // Production hard-fail: writing uploads to the serverless filesystem
+  // creates DB rows pointing at files that vanish on the next deploy
+  // (observed live: pre-Cloudinary uploads now 404 after redeploys).
+  // The local-disk fallback below stays available for development only.
+  if (!process.env.CLOUDINARY_URL && process.env.NODE_ENV === "production") {
+    return NextResponse.json(
+      { error: "Image uploads are temporarily unavailable. Please try again later." },
+      { status: 503 }
+    );
+  }
+
   let form: FormData;
   try {
     form = await req.formData();
