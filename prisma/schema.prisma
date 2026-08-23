@@ -385,3 +385,23 @@ model PostFeedback {
   @@index([userId])
   @@index([postId])
 }
+
+// Sponsored placements — first-party only, zero tracking, honest labels.
+// headline is enforced <=200 chars at the app layer (assertClean + length).
+model Ad {
+  id          String    @id @default(cuid())
+  advertiser  String
+  headline    String
+  imageUrl    String? // Cloudinary (or local dev upload), optional
+  targetUrl   String // https:// only — validated at creation/update
+  placement   String // "FEED" | "SIDEBAR"
+  active      Boolean   @default(true)
+  startsAt    DateTime?
+  endsAt      DateTime?
+  impressions Int       @default(0)
+  clicks      Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([active, placement])
+}
