@@ -30,11 +30,16 @@ export default async function DmThreadPage({
     content: m.content,
     readAt: m.readAt ? m.readAt.toISOString() : null,
     createdAt: m.createdAt.toISOString(),
+    reactions: m.reactions.map((r) => ({
+      messageId: m.id,
+      userId: r.userId,
+      emoji: r.emoji,
+    })),
   }));
 
   return (
-    <main className="flex h-screen flex-col">
-      <div className="sticky top-0 z-10 flex items-center gap-4 border-b border-line bg-bg/85 px-4 py-2.5 backdrop-blur-md">
+    <main className="flex h-[100dvh] flex-col">
+      <div className="flex items-center gap-4 border-b border-line bg-bg/85 px-4 py-2.5 backdrop-blur-md">
         <Link
           href="/dm"
           className="grid h-8 w-8 place-items-center rounded-full text-lg hover:bg-surface-hover"
