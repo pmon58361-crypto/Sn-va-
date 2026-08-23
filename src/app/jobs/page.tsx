@@ -193,7 +193,7 @@ export default async function JobsPage({
           <p className="font-mono text-xs text-white/35">
             {posts.length} result{posts.length === 1 ? "" : "s"}
             {(type || loc || budget) &&
-              ` Â· filtered${type ? ` Â· ${type}` : ""}${loc ? ` Â· ${loc}` : ""}${budget === "1" ? " Â· paid" : ""}`}
+              ` · filtered${type ? ` · ${type}` : ""}${loc ? ` · ${loc}` : ""}${budget === "1" ? " · paid" : ""}`}
           </p>
           {posts.map((p) => (
             <PostCard key={p.id} post={p} viewerId={meId} showFeedback />

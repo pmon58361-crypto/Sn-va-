@@ -76,7 +76,7 @@ export function SignInForm({ oauthProviders }: { oauthProviders: string[] }) {
 
   // Instant entry with the public demo account (documented in README).
   // REMOVED: this bypassed the access-code gate. Demo access now requires
-  // DEMO_CODE â€” see handleAccessCode above. Re-add deliberately if a free
+  // DEMO_CODE — see handleAccessCode above. Re-add deliberately if a free
   // preview mode is ever wanted.
 
   return (
@@ -110,7 +110,7 @@ export function SignInForm({ oauthProviders }: { oauthProviders: string[] }) {
           <Logo size={52} />
           <div>
             <p className="font-mono text-xs text-white/40">
-              <span className="text-amber-300">$</span> ssh demo@snÃ­vaÅ¥.dev
+              <span className="text-amber-300">$</span> ssh demo@snívať.dev
             </p>
             <h1 className="mt-2 text-3xl font-black tracking-tight">Welcome back.</h1>
             <p className="mt-1.5 text-sm text-white/50">
