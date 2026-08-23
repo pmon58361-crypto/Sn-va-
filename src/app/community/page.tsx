@@ -37,7 +37,7 @@ export default async function CommunityPage({
       where: { followerId: meId },
       select: { followingId: true },
     });
-    authorIds = [meId, ...rows.map((r) => r.followingId)];
+    authorIds = rows.map((r) => r.followingId);
   }
 
   const [posts, storyGroups, topTags, settings] = await Promise.all([
