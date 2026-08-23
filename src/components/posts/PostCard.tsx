@@ -153,7 +153,12 @@ export function PostCard({
         </Link>
       </div>
 
-      {showFeedback && viewerId && <InterestPrompt postId={post.id} />}
+      {/* Ask only on TAGGED posts the viewer hasn't rated yet — answers
+          on untagged content can't generalize to other posts, and
+          re-asking on rated ones wastes the session budget. */}
+      {showFeedback && viewerId && tags.length > 0 && !post.feedback?.length && (
+        <InterestPrompt postId={post.id} />
+      )}
     </article>
   );
 }

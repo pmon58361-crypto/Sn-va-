@@ -53,6 +53,10 @@ function freshBoostHours(createdAt: Date, now: Date): number {
 export type PersonalContext = {
   authorAffinity: Map<string, number>;
   tagAffinity: Map<string, number>;
+  // Net EXPLICIT verdicts per tag (interested − not_interested, plus
+  // picker picks). No time window — a stated preference never decays,
+  // unlike the implicit signals above. Drives the strongest multiplier.
+  explicitTags: Map<string, number>;
 };
 
 export const AFFINITY_WINDOW_DAYS = 90;
@@ -92,7 +96,27 @@ export function applyFeedbackToContext(
       const t = raw.trim().toLowerCase();
       if (!t) continue;
       ctx.tagAffinity.set(t, (ctx.tagAffinity.get(t) || 0) + weight);
+      // Explicit verdicts are the strongest signal the ranker has —
+      // track them separately so they can outweigh implicit history.
+      ctx.explicitTags.set(t, (ctx.explicitTags.get(t) || 0) + weight);
     }
+  }
+}
+
+// Picker picks: +2 per chosen topic, same strength as an "interested"
+// verdict. Positive-only — picks boost matching topics and never demote
+// unmatched ones.
+const W_PICK = 2;
+
+export function applyInterestsToContext(
+  ctx: PersonalContext,
+  interests: string[]
+): void {
+  for (const raw of interests) {
+    const t = raw.trim().toLowerCase();
+    if (!t) continue;
+    ctx.explicitTags.set(t, (ctx.explicitTags.get(t) || 0) + W_PICK);
+    ctx.tagAffinity.set(t, (ctx.tagAffinity.get(t) || 0) + W_PICK);
   }
 }
 
@@ -135,7 +159,7 @@ export function buildPersonalContextFromRows(
       if (t) tags.set(t, (tags.get(t) || 0) + 1);
     }
   }
-  return { authorAffinity: authors, tagAffinity: tags };
+  return { authorAffinity: authors, tagAffinity: tags, explicitTags: new Map() };
 }
 
 function personalMultiplier(
@@ -158,20 +182,30 @@ function personalMultiplier(
   }
   const tagA = Math.min(1, strongest / 3);
 
-  // Explicit negative feedback on this author or topic demotes hard —
-  // the viewer literally said "less like this". Positive verdicts already
-  // flow through the affinity counts above.
+  // EXPLICIT INTEREST FACTOR — stated preferences dominate. One
+  // "interested" verdict or one picker pick (+2 net on a shared tag)
+  // already lifts every matching post ~×1.6, capping at ×2 so explicit
+  // signals bend the feed hard without flattening gravity entirely.
+  // Positive only: unmatched topics are never demoted for having no pick.
+  let strongestExplicit = 0;
+  for (const t of postTags) {
+    strongestExplicit = Math.max(strongestExplicit, ctx.explicitTags.get(t) || 0);
+  }
+  const explicitFactor =
+    strongestExplicit > 0 ? Math.min(2, 1 + 0.3 * strongestExplicit) : 1;
+
+  // Negative verdicts still demote hard — "less like this" is a command.
   const authorNegative = (ctx.authorAffinity.get(authorId) || 0) < 0;
   let anyTagNegative = false;
   for (const t of postTags) {
-    if ((ctx.tagAffinity.get(t) || 0) < 0) {
+    if ((ctx.explicitTags.get(t) || 0) < 0) {
       anyTagNegative = true;
       break;
     }
   }
   const negativeFactor = authorNegative || anyTagNegative ? 0.45 : 1;
 
-  return (1 + 0.35 * a + 0.25 * tagA) * negativeFactor;
+  return (1 + 0.35 * a + 0.25 * tagA) * explicitFactor * negativeFactor;
 }
 
 export function feedScore(post: PostWithRelations, now: Date = new Date()): number {

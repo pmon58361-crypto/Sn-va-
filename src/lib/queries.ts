@@ -2,11 +2,13 @@ import { prisma } from "@/lib/prisma";
 import {
   AFFINITY_WINDOW_DAYS,
   applyFeedbackToContext,
+  applyInterestsToContext,
   buildPersonalContextFromRows,
   rankFeed,
   rotateFeed,
   type FeedSort,
 } from "@/lib/feed";
+import { parseTags } from "@/lib/utils";
 import type { PostCategory } from "@/lib/types";
 
 // Standard include shape so all post fetches return a consistent object.
@@ -18,6 +20,17 @@ const postInclude = {
   reactions: { select: { id: true, type: true, userId: true } },
   _count: { select: { comments: true, applications: true, images: true } },
 } as const;
+
+// Viewer-scoped extras appended on top of postInclude for signed-in calls:
+// their own bookmark state and their own feedback verdicts (the prompt
+// suppresses itself on posts they already rated).
+function viewerIncludes(viewerId?: string) {
+  if (!viewerId) return {};
+  return {
+    bookmarks: { where: { userId: viewerId } },
+    feedback: { where: { userId: viewerId }, select: { value: true } },
+  };
+}
 
 export function reactionCounts(reactions: { type: string }[] = []) {
   return {
@@ -34,6 +47,7 @@ export type PostWithRelations = Awaited<
   reactions: { id: string; type: string; userId: string }[];
   _count: { comments: number; applications: number; images: number };
   bookmarks?: { userId: string }[];
+  feedback?: { value: string }[];
 };
 
 export async function getPost(id: string, viewerId?: string) {
@@ -41,7 +55,7 @@ export async function getPost(id: string, viewerId?: string) {
     where: { id },
     include: {
       ...postInclude,
-      ...(viewerId ? { bookmarks: { where: { userId: viewerId } } } : {}),
+      ...(viewerId ? viewerIncludes(viewerId) : {}),
     },
   });
 }
@@ -121,7 +135,7 @@ export async function getPosts({
       where,
       include: {
         ...postInclude,
-        ...(viewerId ? { bookmarks: { where: { userId: viewerId } } } : {}),
+        ...(viewerId ? viewerIncludes(viewerId) : {}),
       },
       orderBy: { createdAt: "desc" },
       take: limit,
@@ -140,12 +154,12 @@ export async function getPosts({
     Date.now() - AFFINITY_WINDOW_DAYS * 86_400_000
   );
 
-  const [pool, myReactions, myComments, myFeedback, r12, c12] = await Promise.all([
+  const [pool, myReactions, myComments, myFeedback, mySettings, r12, c12] = await Promise.all([
     prisma.post.findMany({
       where,
       include: {
         ...postInclude,
-        ...(viewerId ? { bookmarks: { where: { userId: viewerId } } } : {}),
+        ...(viewerId ? viewerIncludes(viewerId) : {}),
       },
       orderBy: { createdAt: "desc" },
       take: poolTake,
@@ -174,6 +188,13 @@ export async function getPosts({
           orderBy: { createdAt: "desc" },
         })
       : Promise.resolve([] as never[]),
+    // Picker picks: one extra PK lookup folded into the same round trip.
+    viewerId
+      ? prisma.settings.findUnique({
+          where: { userId: viewerId },
+          select: { interests: true },
+        })
+      : Promise.resolve(null),
     prisma.reaction.groupBy({
       by: ["postId"],
       where: { createdAt: { gte: since12 } },
@@ -190,7 +211,14 @@ export async function getPosts({
     viewerId && pool.length
       ? buildPersonalContextFromRows(myReactions, myComments, viewerId)
       : undefined;
-  if (ctx) applyFeedbackToContext(ctx, myFeedback);
+  if (ctx) {
+    applyFeedbackToContext(ctx, myFeedback);
+    // Explicit picks from the interests picker join the same context —
+    // they carry the strongest, never-decaying weight the ranker has.
+    if (mySettings?.interests) {
+      applyInterestsToContext(ctx, parseTags(mySettings.interests));
+    }
+  }
 
   // Posts the viewer explicitly said "not interested" on leave the feed
   // entirely — a hard exclusion, stronger than any score demotion.
