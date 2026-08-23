@@ -137,7 +137,7 @@ export function SignInForm({ oauthProviders }: { oauthProviders: string[] }) {
               </div>
             )}
 
-            {/* Demo credentials â€” always available */}
+            {/* Demo credentials — always available */}
             <form onSubmit={handleAccessCode} className="space-y-3">
               <input
                 name="code"
@@ -178,7 +178,7 @@ export function SignInForm({ oauthProviders }: { oauthProviders: string[] }) {
                       className="flex w-full items-center justify-center gap-3 rounded-lg border border-white/10 bg-white/[0.03] px-5 py-3 text-sm font-medium text-white/85 transition hover:border-white/30 hover:bg-white/[0.07] disabled:opacity-50"
                     >
                       {MARKS[id]}
-                      {loading === id ? "Connectingâ€¦" : `Continue with ${NAMES[id] ?? id}`}
+                      {loading === id ? "Connecting…" : `Continue with ${NAMES[id] ?? id}`}
                     </button>
                   ))}
                 </div>

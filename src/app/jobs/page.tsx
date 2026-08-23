@@ -7,7 +7,7 @@ import { OfferIcon, RequestIcon } from "@/components/ui/Icons";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 
-export const metadata = { title: "Jobs â€” SnÃ­vaÅ¥" };
+export const metadata = { title: "Jobs — Snívať" };
 export const dynamic = "force-dynamic";
 
 // Two organic perspectives on the Jobs section:
@@ -32,7 +32,7 @@ export default async function JobsPage({
   const session = await auth();
   const meId = session?.user?.id;
 
-  // Tab badges are plain counts â€” fetching two full ranked feeds just to
+  // Tab badges are plain counts — fetching two full ranked feeds just to
   // read .length used to cost ~8 extra DB round trips here.
   const [posts, offerCount, requestCount, typeRows, locationRows] =
     await Promise.all([
@@ -124,7 +124,7 @@ export default async function JobsPage({
         href="/new"
       />
 
-      {/* Perspective toggle â€” segmented control, SVG icons, no emoji */}
+      {/* Perspective toggle — segmented control, SVG icons, no emoji */}
       <div className="mb-6 grid grid-cols-2 gap-2 rounded-2xl border border-line bg-soft p-1.5">
         <Link
           href="/jobs"
@@ -158,7 +158,7 @@ export default async function JobsPage({
 
       <form className="mb-4 flex gap-2" action="/jobs" method="GET">
         <input type="hidden" name="tab" value={isRequest ? "requests" : ""} />
-        <input name="q" defaultValue={q || ""} placeholder="Search by skill, tag, or keywordâ€¦" className="input" />
+        <input name="q" defaultValue={q || ""} placeholder="Search by skill, tag, or keyword…" className="input" />
         <button type="submit" className="btn-outline shrink-0">
           Search
         </button>
