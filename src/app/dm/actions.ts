@@ -56,3 +56,20 @@ export async function markThreadRead(otherUserId: string) {
 
   revalidatePath("/dm");
 }
+
+// Unsend: owner-gated plain row delete (reports cascade via schema).
+export async function deleteMessage(messageId: string) {
+  const me = await requireUserId();
+
+  const msg = await prisma.message.findUnique({
+    where: { id: messageId },
+    select: { senderId: true },
+  });
+  if (!msg) return { ok: true }; // already gone — goal state reached
+  if (msg.senderId !== me) throw new Error("Forbidden");
+
+  await prisma.message.delete({ where: { id: messageId } });
+  revalidatePath("/dm");
+  revalidatePath(`/dm/${msg.senderId}`);
+  return { ok: true };
+}

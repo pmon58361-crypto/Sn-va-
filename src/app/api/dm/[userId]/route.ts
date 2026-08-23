@@ -44,8 +44,27 @@ export async function GET(
     select: { readAt: true },
   });
 
+  // Recent-id window so clients notice unsent (deleted) messages without a
+  // full refetch: anything newer than windowStart must appear in recentIds.
+  const recent = await prisma.message.findMany({
+    where: {
+      OR: [
+        { senderId: meId, recipientId: userId },
+        { senderId: userId, recipientId: meId },
+      ],
+    },
+    orderBy: { createdAt: "desc" },
+    take: 50,
+    select: { id: true, createdAt: true },
+  });
+
   return NextResponse.json({
     messages,
     seenAt: seen?.readAt ? seen.readAt.toISOString() : null,
+    recentIds: recent.map((r) => r.id),
+    windowStart:
+      recent.length > 0
+        ? recent[recent.length - 1].createdAt.toISOString()
+        : null,
   });
 }
