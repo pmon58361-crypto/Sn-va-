@@ -37,18 +37,18 @@ export function StoriesBar({
 
   return (
     <div className="border-b border-line px-4 py-3">
-      <div className="flex items-center gap-3.5 overflow-x-auto pb-1">
+      <div className="flex items-center gap-4 overflow-x-auto pb-1">
         {/* Add story */}
         <button
           onClick={() => setComposerOpen(true)}
-          className="flex w-[64px] shrink-0 flex-col items-center"
+          className="flex w-[84px] shrink-0 flex-col items-center"
         >
           {/* Same reserved slot as note bubbles keeps all rows aligned */}
           <span className="mb-1 h-8 shrink-0" aria-hidden />
-          <span className="grid h-14 w-14 place-items-center rounded-full border-2 border-dashed border-line-strong text-2xl font-light text-ink-secondary">
+          <span className="grid h-20 w-20 place-items-center rounded-full border-2 border-dashed border-line-strong text-2xl font-light text-ink-secondary">
             +
           </span>
-          <span className="w-full truncate text-center text-xs text-ink-secondary">
+          <span className="w-full truncate text-center text-[13px] text-ink-secondary">
             Your story
           </span>
         </button>
@@ -61,12 +61,12 @@ export function StoriesBar({
             <button
               key={g.author.id}
               onClick={() => setViewing(g)}
-              className="flex w-[64px] shrink-0 flex-col items-center"
+              className="flex w-[84px] shrink-0 flex-col items-center"
             >
               {/* Reserved slot: note bubble sits above the ring without shifting rows */}
               <span className="mb-1 flex h-8 items-end justify-center">
                 {showNote && (
-                  <span className="relative inline-block max-w-[64px]">
+                  <span className="relative inline-block max-w-[80px]">
                     <span
                       className="block truncate rounded-lg border border-line-strong px-2 py-1 text-[11px] font-medium text-white"
                       style={{ background: latest!.bg || "#262626" }}
@@ -82,7 +82,7 @@ export function StoriesBar({
                 )}
               </span>
               <Ring seen={!g.hasUnseen} image={g.author.image} name={g.author.name} />
-              <span className="w-full truncate text-center text-xs text-ink-secondary">
+              <span className="mt-0.5 w-full truncate text-center text-[13px] text-ink-secondary">
                 {g.author.id === meId ? "You" : g.author.name || "Someone"}
               </span>
             </button>
@@ -120,13 +120,13 @@ function Ring({
         src={image}
         alt=""
         onError={() => setBroken(true)}
-        className={`h-14 w-14 rounded-full object-cover p-[3px] ${seen ? "" : "bg-gradient-to-tr from-accent to-like"}`}
+        className={`h-20 w-20 rounded-full object-cover p-[3px] ${seen ? "" : "bg-gradient-to-tr from-accent to-like"}`}
       />
     );
   }
   return (
     <span
-      className={`grid h-14 w-14 place-items-center rounded-full p-[3px] ${
+      className={`grid h-20 w-20 place-items-center rounded-full p-[3px] ${
         seen ? "bg-line-strong" : "bg-gradient-to-tr from-accent to-like"
       }`}
     >
