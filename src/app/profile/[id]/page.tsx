@@ -211,21 +211,23 @@ export default async function ProfilePage({
               <span className="truncate text-sm text-ink-faint">{handle}</span>
             </div>
 
-            {/* Inline stats — posts · followers · following */}
-            <p className="mt-3 flex items-center justify-center gap-2 text-sm text-ink-muted sm:justify-start">
-              <span>
+            {/* Inline stats — posts · followers · following. Each unit is
+                nowrap so numbers never wrap apart from their label; the ROW
+                wraps as a whole on narrow viewports. */}
+            <p className="mt-3 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-sm text-ink-muted sm:justify-start">
+              <span className="whitespace-nowrap">
                 <b className="font-semibold text-ink">{visiblePosts.length}</b>{" "}
-                posts
+                {visiblePosts.length === 1 ? "post" : "posts"}
               </span>
               <span aria-hidden>·</span>
-              <span>
+              <span className="whitespace-nowrap">
                 <b className="font-semibold text-ink">
                   {user._count.followers}
                 </b>{" "}
-                followers
+                {user._count.followers === 1 ? "follower" : "followers"}
               </span>
               <span aria-hidden>·</span>
-              <span>
+              <span className="whitespace-nowrap">
                 <b className="font-semibold text-ink">
                   {user._count.following}
                 </b>{" "}
@@ -247,9 +249,10 @@ export default async function ProfilePage({
               </div>
             )}
 
-            {/* Bio */}
+            {/* Bio — break-words keeps long URLs/words from painting over
+                neighbouring content at any viewport */}
             {user.bio ? (
-              <p className="mt-3 whitespace-pre-wrap text-[15px] leading-relaxed text-ink-soft">
+              <p className="mt-3 whitespace-pre-wrap break-words text-[15px] leading-relaxed text-ink-soft">
                 {user.bio}
               </p>
             ) : isOwner ? (
