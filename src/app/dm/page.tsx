@@ -29,6 +29,9 @@ export default async function DmPage() {
             Direct messages are private. Start one from a person&apos;s profile or
             from the list below.
           </p>
+          <Link href="/people" className="btn-primary mt-6 inline-block">
+            Find people
+          </Link>
         </div>
       ) : (
         <div>
