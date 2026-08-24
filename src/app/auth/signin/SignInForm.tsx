@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Logo } from "@/components/ui/Logo";
 
@@ -48,6 +49,17 @@ export function SignInForm({ oauthProviders }: { oauthProviders: string[] }) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<string | null>(null);
 
+  // Failed credentials attempts land back here with ?error=... after the
+  // full-page redirect — surface a real message instead of a bare URL.
+  const urlError = useSearchParams().get("error");
+  const inheritedError =
+    urlError === "CredentialsSignin"
+      ? "Invalid access code. Check it and try again."
+      : urlError === "Configuration"
+      ? "Sign-in hit a snag on our side. Please try again in a moment."
+      : null;
+  const shownError = error ?? inheritedError;
+
   async function handleOAuth(provider: string) {
     setError(null);
     setLoading(provider);
@@ -69,7 +81,7 @@ export function SignInForm({ oauthProviders }: { oauthProviders: string[] }) {
     try {
       await signIn("credentials", { code, callbackUrl: "/community", redirect: true });
     } catch {
-      setError("access denied: code not recognized");
+      setError("Invalid access code. Check it and try again.");
       setLoading(null);
     }
   }
@@ -131,9 +143,12 @@ export function SignInForm({ oauthProviders }: { oauthProviders: string[] }) {
           </div>
 
           <div className="p-6 sm:p-8">
-            {error && (
-              <div className="mb-5 rounded-lg border border-red-400/30 bg-red-500/10 px-4 py-3 font-mono text-sm text-red-300">
-                // {error}
+            {shownError && (
+              <div
+                role="alert"
+                className="mb-5 rounded-lg border border-red-400/30 bg-red-500/10 px-4 py-3 font-mono text-sm text-red-300"
+              >
+                // {shownError}
               </div>
             )}
 
