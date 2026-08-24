@@ -72,8 +72,34 @@ export async function createStory(
     },
   });
 
+  // Opportunistic storage reclaim — no cron at this scale. Bounded sweep;
+  // never blocks or fails the user's own story.
+  await reclaimExpiredStories().catch(() => {});
+
   revalidatePath("/community");
   return { ok: true };
+}
+
+// Expired stories stay visible in the author's Archive for a week, then this
+// sweep hard-deletes the rows and frees their Cloudinary assets (free-tier
+// storage survival). Bounded to 50 rows per run; errors are swallowed.
+const ARCHIVE_RETENTION_MS = 7 * 86_400_000;
+
+async function reclaimExpiredStories(): Promise<void> {
+  const cutoff = new Date(Date.now() - STORY_TTL_HOURS * 3_600_000 - ARCHIVE_RETENTION_MS);
+  const expired = await prisma.story.findMany({
+    where: { expiresAt: { lt: cutoff }, imageUrl: { not: null } },
+    select: { id: true, imageUrl: true },
+    orderBy: { expiresAt: "asc" },
+    take: 50,
+  });
+  if (!expired.length) return;
+  await prisma.story.deleteMany({
+    where: { id: { in: expired.map((e) => e.id) } },
+  });
+  await destroyAssets(
+    expired.map((e) => e.imageUrl).filter((u): u is string => !!u)
+  );
 }
 
 // Mark a story viewed (drives seen/unseen rings).
