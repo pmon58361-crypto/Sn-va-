@@ -183,14 +183,19 @@ export default async function ProfilePage({
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-8">
-      {/* ───────────── Profile header card (IG-style) ───────────── */}
-      <section className="card px-5 py-6 sm:px-7">
-        <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-start sm:gap-7">
-          {/* Avatar left — gradient ring while an active story exists */}
-          <div className="shrink-0">
+      {/* ───────────── Profile header card (IG-style) ─────────────
+          Grid, not flex-grow: minmax(0,1fr) tracks guarantee the identity
+          column keeps real width at every breakpoint (a flex-1/min-w-0
+          combination previously collapsed it to 0 on desktop).
+          MOBILE (<sm): avatar 80px left, handle+stats right; name/badges/
+          bio/meta below, left-aligned. DESKTOP (sm+): classic two-column. */}
+      <section className="card px-4 py-5 sm:px-7 sm:py-6">
+        <div className="grid grid-cols-[80px_minmax(0,1fr)] items-center gap-x-4 gap-y-3 sm:grid-cols-[144px_minmax(0,1fr)] sm:items-start sm:gap-x-7 sm:gap-y-0">
+          {/* Avatar — 80px phones / 144px desktop; ring kept */}
+          <div className="[&_img]:h-20 [&_img]:w-20 sm:[&_img]:h-36 sm:[&_img]:w-36">
             {hasActiveStory ? (
-              <span className="inline-block rounded-full bg-gradient-to-tr from-accent to-like p-[4px]">
-                <span className="inline-block rounded-full border-[3px] border-[var(--bg-elevated)] shadow-lg">
+              <span className="inline-block rounded-full bg-gradient-to-tr from-accent to-like p-[3px] sm:p-[4px]">
+                <span className="inline-block rounded-full border-2 border-[var(--bg-elevated)] shadow-lg sm:border-[3px]">
                   <Avatar name={user.name} image={user.image} size={140} />
                 </span>
               </span>
@@ -201,20 +206,45 @@ export default async function ProfilePage({
             )}
           </div>
 
-          {/* Identity column right of the avatar */}
-          <div className="min-w-0 flex-1 text-center sm:text-left">
+          {/* MOBILE right cell — handle on top, inline stats under */}
+          <div className="min-w-0 sm:hidden">
+            <p className="truncate text-sm text-ink-faint">{handle}</p>
+            <p className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink-muted">
+              <span className="whitespace-nowrap">
+                <b className="font-semibold text-ink">{visiblePosts.length}</b>{" "}
+                {visiblePosts.length === 1 ? "post" : "posts"}
+              </span>
+              <span aria-hidden>·</span>
+              <span className="whitespace-nowrap">
+                <b className="font-semibold text-ink">
+                  {user._count.followers}
+                </b>{" "}
+                {user._count.followers === 1 ? "follower" : "followers"}
+              </span>
+              <span aria-hidden>·</span>
+              <span className="whitespace-nowrap">
+                <b className="font-semibold text-ink">
+                  {user._count.following}
+                </b>{" "}
+                following
+              </span>
+            </p>
+          </div>
+
+          {/* DESKTOP identity column (keep in sync with the mobile block
+              below when editing copy) */}
+          <div className="hidden min-w-0 sm:block">
             {/* Name + handle on one line */}
-            <div className="flex flex-wrap items-baseline justify-center gap-x-3 gap-y-1 sm:justify-start">
-              <h1 className="truncate text-2xl font-bold leading-tight text-ink">
+            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+              <h1 className="break-words text-2xl font-bold leading-tight text-ink">
                 {user.name || "Anonymous"}
               </h1>
               <span className="truncate text-sm text-ink-faint">{handle}</span>
             </div>
 
-            {/* Inline stats — posts · followers · following. Each unit is
-                nowrap so numbers never wrap apart from their label; the ROW
-                wraps as a whole on narrow viewports. */}
-            <p className="mt-3 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-sm text-ink-muted sm:justify-start">
+            {/* Inline stats — posts · followers · following. Units are
+                nowrap so numbers never separate from their labels. */}
+            <p className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink-muted">
               <span className="whitespace-nowrap">
                 <b className="font-semibold text-ink">{visiblePosts.length}</b>{" "}
                 {visiblePosts.length === 1 ? "post" : "posts"}
@@ -237,7 +267,7 @@ export default async function ProfilePage({
 
             {/* Badges — activity-derived, not fake */}
             {badges.length > 0 && (
-              <div className="mt-3 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+              <div className="mt-3 flex flex-wrap items-center gap-2">
                 {badges.map((b) => (
                   <span
                     key={b}
@@ -266,7 +296,7 @@ export default async function ProfilePage({
             ) : null}
 
             {/* Meta row */}
-            <div className="mt-3 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm text-ink-muted sm:justify-start">
+            <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-ink-muted">
               {user.location && (
                 <span className="inline-flex items-center gap-1.5">
                   <MapPinIcon className="h-4 w-4" />
@@ -285,10 +315,65 @@ export default async function ProfilePage({
               </span>
             </div>
           </div>
+
+          {/* MOBILE below-row — name/badges/bio/meta full-width, left-aligned
+              (keep in sync with the desktop column above) */}
+          <div className="min-w-0 sm:hidden">
+            <h1 className="break-words text-lg font-bold leading-tight text-ink">
+              {user.name || "Anonymous"}
+            </h1>
+
+            {badges.length > 0 && (
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                {badges.map((b) => (
+                  <span
+                    key={b}
+                    className="badge bg-accent/10 text-xs text-accent"
+                  >
+                    {b}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {user.bio ? (
+              <p className="mt-2 whitespace-pre-wrap break-words text-[15px] leading-relaxed text-ink-soft">
+                {user.bio}
+              </p>
+            ) : isOwner ? (
+              <p className="mt-2 text-sm text-ink-faint">
+                No bio yet.{" "}
+                <Link href="/settings" className="text-accent hover:underline">
+                  Add one
+                </Link>
+                .
+              </p>
+            ) : null}
+
+            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[13px] text-ink-muted">
+              {user.location && (
+                <span className="inline-flex items-center gap-1.5">
+                  <MapPinIcon className="h-3.5 w-3.5" />
+                  {user.location}
+                </span>
+              )}
+              {settings?.showEmail && (
+                <span className="inline-flex items-center gap-1.5">
+                  <MailIcon className="h-3.5 w-3.5" />
+                  {user.email}
+                </span>
+              )}
+              <span className="inline-flex items-center gap-1.5">
+                <CalendarIcon className="h-3.5 w-3.5" />
+                Joined {joinDate}
+              </span>
+            </div>
+          </div>
         </div>
 
-        {/* Action row — full-width buttons, IG style */}
-        <div className="mt-5 flex items-center gap-2 border-t border-line pt-4">
+        {/* Action row — full-width buttons, IG style; sits right under the
+            bio/meta on mobile */}
+        <div className="mt-4 flex items-center gap-2 border-t border-line pt-4 sm:mt-5">
           {isOwner ? (
             <>
               <Link
