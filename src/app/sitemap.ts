@@ -23,7 +23,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/community",
     "/people",
     "/jobs",
-    "/auth/signin",
+    // /auth/signin is deliberately absent: it's noindex (A's SEO pass) and
+    // listing noindex URLs wastes crawl budget.
   ].map((path) => ({
     url: `${BASE}${path}`,
     lastModified: new Date(),
