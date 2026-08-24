@@ -28,6 +28,13 @@ const POLL_MS = 3000;
 // Time divider appears when this much time passes between messages.
 const DIVIDER_GAP_MS = 30 * 60 * 1000;
 
+// One-tap openers for brand-new conversations.
+const ICEBREAKERS = [
+  "What are you building right now?",
+  "Any wins this week?",
+  "How can the community help you?",
+];
+
 const QUICK_EMOJIS = ["❤️", "😂", "🔥", "👍", "😮", "😢"];
 const REPORT_REASONS = [
   "Spam or scam",
@@ -351,9 +358,28 @@ export function DmThread({
         onScroll={onScroll}
       >
         {messages.length === 0 && (
-          <p className="py-16 text-center text-sm text-ink-secondary">
-            This is the beginning of your conversation. Say hi.
-          </p>
+          <div className="mx-auto max-w-3xl py-14 text-center">
+            <p className="text-sm text-ink-secondary">
+              This is the beginning of your conversation. Say hi.
+            </p>
+            {/* Icebreakers — one tap fills the composer; kills the blank-canvas
+                moment in brand-new conversations. */}
+            <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
+              {ICEBREAKERS.map((prompt) => (
+                <button
+                  key={prompt}
+                  type="button"
+                  onClick={() => {
+                    setDraft(prompt);
+                    composerRef.current?.focus();
+                  }}
+                  className="rounded-full border border-line bg-surface px-3.5 py-1.5 text-[13px] text-ink-muted transition hover:border-accent hover:text-accent"
+                >
+                  {prompt}
+                </button>
+              ))}
+            </div>
+          </div>
         )}
         <div className="mx-auto flex max-w-3xl flex-col gap-4">
           {messages.map((m, i) => {
