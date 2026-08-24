@@ -7,11 +7,13 @@
     "build": "prisma generate && next build",
     "start": "powershell -NoProfile -ExecutionPolicy Bypass -File start.ps1",
     "smoke": "node scripts/smoke.mjs",
+    "test:e2e": "playwright test",
     "lint": "next lint",
     "postinstall": "prisma generate",
     "db:push": "prisma db push",
     "db:seed": "node prisma/seed.js",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "check": "tsc --noEmit && playwright test && node scripts/smoke.mjs"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.2",
@@ -24,6 +26,7 @@
     "react-dom": "18.3.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^22.9.0",
     "@types/react": "^18.3.12",
