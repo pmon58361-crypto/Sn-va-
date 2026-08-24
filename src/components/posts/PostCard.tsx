@@ -7,6 +7,7 @@ import { InterestPrompt } from "@/components/posts/InterestPrompt";
 import { timeAgo, parseTags } from "@/lib/utils";
 import { CATEGORY_META } from "@/lib/types";
 import { reactionCounts, type PostWithRelations } from "@/lib/queries";
+import { isFoundingMember } from "@/lib/founding";
 
 function detailPath(category: string, id: string) {
   const meta = CATEGORY_META[category as keyof typeof CATEGORY_META];
@@ -14,7 +15,7 @@ function detailPath(category: string, id: string) {
   return `/${section}/${id}`;
 }
 
-export function PostCard({
+export async function PostCard({
   post,
   viewerId,
   showFeedback,
@@ -24,6 +25,10 @@ export function PostCard({
   showFeedback?: boolean;
 }) {
   if (!post) return null;
+  const founding =
+    post.author?.createdAt != null
+      ? await isFoundingMember(post.author.id, post.author.createdAt)
+      : false;
   const tags = parseTags(post.tags);
   const meta = CATEGORY_META[post.category as keyof typeof CATEGORY_META];
   const allReactions = (post.reactions as { type: string; userId: string }[]) ?? [];
@@ -47,6 +52,14 @@ export function PostCard({
           <div className="min-w-0 flex-1 leading-tight">
             <p className="truncate text-sm font-semibold text-ink">
               {post.author?.name || "Unknown"}
+              {founding && (
+                <span
+                  className="ml-1.5 align-middle badge bg-accent-tint text-[10px] font-semibold uppercase tracking-wide text-accent"
+                  title="Founding Member — first 500 accounts"
+                >
+                  ★ Founding
+                </span>
+              )}
             </p>
             <div className="flex flex-wrap items-center gap-x-2 text-xs text-ink-faint">
               <span>{timeAgo(post.createdAt)}</span>

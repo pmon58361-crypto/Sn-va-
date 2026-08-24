@@ -56,7 +56,15 @@ export async function getBookmarkedPosts(meId: string) {
     include: {
       post: {
         include: {
-          author: { select: { id: true, name: true, image: true, location: true } },
+          author: {
+            select: {
+              id: true,
+              name: true,
+              image: true,
+              location: true,
+              createdAt: true,
+            },
+          },
           images: { select: { id: true, url: true, order: true }, orderBy: { order: "asc" } },
           reactions: { select: { id: true, type: true, userId: true } },
           _count: { select: { comments: true, applications: true, images: true } },

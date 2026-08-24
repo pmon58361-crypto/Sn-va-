@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { getConversations, getMessageableUsers } from "@/lib/dm";
 import { getPresence } from "@/lib/presence";
+import { isFoundingMember } from "@/lib/founding";
 import { Avatar } from "@/components/ui/Avatar";
 import { timeAgo } from "@/lib/utils";
 
@@ -16,6 +17,13 @@ export default async function DmPage() {
   const conversations = await getConversations(meId);
   const newPeople = await getMessageableUsers(meId);
   const presence = getPresence(conversations.map((c) => c.other.id));
+  const founding = new Map<string, boolean>();
+  for (const c of conversations) {
+    founding.set(
+      c.other.id,
+      await isFoundingMember(c.other.id, c.other.createdAt)
+    );
+  }
 
   return (
     <main>
@@ -48,6 +56,14 @@ export default async function DmPage() {
                       title="Online now"
                       className="h-2 w-2 shrink-0 rounded-full bg-emerald-400"
                     />
+                  )}
+                  {founding.get(c.other.id) && (
+                    <span
+                      title="Founding Member — first 500 accounts"
+                      className="badge bg-accent-tint text-[9px] font-semibold uppercase tracking-wide text-accent"
+                    >
+                      ★
+                    </span>
                   )}
                   <span className="truncate">{c.other.name || "Someone"}</span>
                   <span className="shrink-0 text-xs font-normal text-ink-secondary">

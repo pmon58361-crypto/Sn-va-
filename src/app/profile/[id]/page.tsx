@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getPresence } from "@/lib/presence";
+import { isFoundingMember } from "@/lib/founding";
 import { isFollowing } from "@/lib/social";
 import { absoluteUrl } from "@/lib/og";
 import { Avatar } from "@/components/ui/Avatar";
@@ -137,7 +138,7 @@ export default async function ProfilePage({
   }
 
   // Independent reads — single round-trip wave.
-  const [viewerIsFollowing, highlightRows, presence] = await Promise.all([
+  const [viewerIsFollowing, highlightRows, presence, founding] = await Promise.all([
     isFollowing(session?.user?.id, user.id),
     prisma.highlight.findMany({
       where: { userId: id },
@@ -145,6 +146,7 @@ export default async function ProfilePage({
       include: { items: { select: { id: true, imageUrl: true } } },
     }),
     Promise.resolve(getPresence([id])),
+    isFoundingMember(user.id, user.createdAt),
   ]);
   const mePresence = !isOwner ? presence[id] : null;
   const highlights = highlightRows.map((h) => ({
@@ -214,8 +216,16 @@ export default async function ProfilePage({
           {/* Name + handle | actions */}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
-              <h1 className="truncate text-2xl font-bold leading-tight text-ink">
+              <h1 className="truncate text-2xl font-black leading-tight text-ink">
                 {user.name || "Anonymous"}
+                {founding && (
+                  <span
+                    title="Founding Member — first 500 accounts"
+                    className="ml-2 inline-block align-middle badge bg-accent-tint text-[10px] font-semibold uppercase tracking-wide text-accent"
+                  >
+                    ★ Founding Member
+                  </span>
+                )}
               </h1>
               <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm text-ink-faint">
                 <span>{handle}</span>
