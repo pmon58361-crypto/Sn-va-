@@ -330,7 +330,7 @@ export function DmThread({
             This is the beginning of your conversation. Say hi.
           </p>
         )}
-        <div className="mx-auto flex max-w-lg flex-col gap-4">
+        <div className="mx-auto flex max-w-3xl flex-col gap-4">
           {messages.map((m, i) => {
             const mine = m.senderId === meId;
             const showSeen =
@@ -371,11 +371,13 @@ export function DmThread({
                     mine ? "justify-end" : "justify-start"
                   }`}
                 >
-                  {/* Hover / tap quick-bar: reactions + options trigger */}
+                  {/* Hover / tap quick-bar: reactions + options trigger.
+                      Anchored INSIDE the bubble's top edge so it can never
+                      clip against the scroll container or viewport edge. */}
                   {!m.id.startsWith("tmp-") && (
                     <div
-                      className={`absolute -top-4 z-20 items-center gap-0.5 rounded-full border border-line bg-surface px-1 py-0.5 shadow-md transition-opacity ${
-                        mine ? "right-2" : "left-2"
+                      className={`absolute top-1 z-20 items-center gap-0.5 whitespace-nowrap rounded-full border border-line bg-surface px-1 py-0.5 shadow-md transition-opacity ${
+                        mine ? "right-1" : "left-1"
                       } ${
                         activeBarId === m.id
                           ? "flex"
@@ -568,7 +570,7 @@ export function DmThread({
         onSubmit={submit}
         className="border-t border-line bg-bg/95 px-4 py-3 backdrop-blur-md"
       >
-        <div className="mx-auto flex max-w-lg items-center gap-2">
+        <div className="mx-auto flex max-w-3xl items-center gap-2">
           <input
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
