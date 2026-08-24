@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
 import { getCreatorDashboard, getCreatorAnalytics } from "@/lib/queries";
+import { CATEGORY_META } from "@/lib/types";
 import { timeAgo } from "@/lib/utils";
 import { CreatorAnalytics } from "@/components/dashboard/CreatorAnalytics";
 
@@ -46,6 +48,29 @@ export default async function DashboardPage({
     getCreatorAnalytics(meId, activeRange.days),
     getCreatorDashboard(meId),
   ]);
+
+  // Memories — "on this day" from previous years (real posts only; the card
+  // disappears entirely when there's nothing real to resurface).
+  const today = new Date();
+  const memories = await prisma.post.findMany({
+    where: {
+      authorId: meId,
+      hidden: false,
+      createdAt: { lt: new Date(today.getFullYear(), today.getMonth(), today.getDate()) },
+      OR: [1, 2, 3].map((k) => {
+        const y = today.getFullYear() - k;
+        return {
+          createdAt: {
+            gte: new Date(y, today.getMonth(), today.getDate()),
+            lt: new Date(y, today.getMonth(), today.getDate() + 1),
+          },
+        };
+      }),
+    },
+    orderBy: { createdAt: "desc" },
+    take: 3,
+    select: { id: true, title: true, category: true, createdAt: true },
+  });
 
   const stats = [
     { label: "Posts", value: summary.totals.posts },
@@ -95,6 +120,36 @@ export default async function DashboardPage({
           </div>
         ))}
       </div>
+
+      {/* Memories — on-this-day; hidden when there's nothing real to show */}
+      {memories.length > 0 && (
+        <section className="mt-8 rounded-2xl border border-accent/30 bg-accent/5 p-5">
+          <h2 className="text-sm font-semibold text-ink">
+            <span aria-hidden>🕰️</span> On this day
+          </h2>
+          <ul className="mt-3 space-y-2">
+            {memories.map((m) => {
+              const years = today.getFullYear() - m.createdAt.getFullYear();
+              const section =
+                CATEGORY_META[m.category as keyof typeof CATEGORY_META]?.section ||
+                "community";
+              return (
+                <li key={m.id} className="text-sm">
+                  <Link
+                    href={`/${section}/${m.id}`}
+                    className="font-semibold text-ink hover:text-accent"
+                  >
+                    {m.title || "Untitled"}
+                  </Link>
+                  <span className="ml-2 text-xs text-ink-muted">
+                    {years === 1 ? "1 year ago today" : `${years} years ago today`}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
 
       <div className="mt-8">
         <CreatorAnalytics
