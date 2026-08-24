@@ -5,6 +5,7 @@ import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Logo } from "@/components/ui/Logo";
+import { LegalLinks } from "@/components/legal/LegalLinks";
 import { createAccount } from "./actions";
 
 type OAuthProvider = { id: string; name: string; mark: React.ReactNode };
@@ -378,6 +379,10 @@ export function SignInForm({ oauthProviders }: { oauthProviders: string[] }) {
             cd ~/home
           </Link>
         </p>
+      </div>
+
+      <div className="mt-6">
+        <LegalLinks variant="dark" />
       </div>
     </main>
     </>
