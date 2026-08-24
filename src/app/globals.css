@@ -563,3 +563,12 @@ body { overflow-x: clip; }
    Shadow paints outside layout (no overflow change); body overflow-x:clip
    keeps it from creating scrollbars. */
 .page-flood { box-shadow: 0 0 0 200vmax #0a0a0b; }
+
+/* ── Keyboard accessibility ──────────────────────────────────────────
+   One visible focus ring for every interactive element. :focus-visible
+   only shows for keyboard navigation — mouse/touch clicks stay clean. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}

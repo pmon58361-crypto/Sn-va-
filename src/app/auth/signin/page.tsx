@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { SignInForm } from "./SignInForm";
 
 // Only OAuth providers with credentials in env are offered — clicking an
@@ -15,5 +16,11 @@ function enabledOAuthProviders(): string[] {
 }
 
 export default function SignInPage() {
-  return <SignInForm oauthProviders={enabledOAuthProviders()} />;
+  // Suspense boundary required: SignInForm reads useSearchParams() to show
+  // friendly denial states for ?error=CredentialsSignin / Configuration.
+  return (
+    <Suspense>
+      <SignInForm oauthProviders={enabledOAuthProviders()} />
+    </Suspense>
+  );
 }

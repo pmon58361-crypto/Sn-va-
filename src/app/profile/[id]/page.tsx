@@ -100,6 +100,7 @@ export default async function ProfilePage({
   const settings = user.settings;
   const isPublic = settings?.publicProfile ?? true;
   const isOwner = session?.user?.id === user.id;
+  const isAdmin = session?.user?.role === "admin";
 
   // Deactivated accounts show only a quiet notice to everyone but the owner
   // (the owner reads as signed out anyway — this covers stale sessions).
@@ -116,8 +117,9 @@ export default async function ProfilePage({
   }
 
   // Private profiles show nothing but the identity card to other viewers —
-  // no bio, location, email, stats, or posts.
-  if (!isPublic && !isOwner) {
+  // no bio, location, email, stats, or posts. Admins bypass the wall for
+  // moderation review.
+  if (!isPublic && !isOwner && !isAdmin) {
     return (
       <div className="mx-auto max-w-3xl px-5 py-16">
         <div className="card p-12 text-center">
@@ -152,7 +154,15 @@ export default async function ProfilePage({
     month: "short",
     year: "numeric",
   });
-  const handle = "@" + (user.email?.split("@")[0] || "user");
+  // Privacy-safe handle: derived from the DISPLAY NAME, never the email —
+  // the old email-local-part handle leaked addresses on every profile.
+  const handle =
+    "@" +
+    ((user.name || "")
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9_]+/g, "")
+      .slice(0, 24) || "member");
   // Moderation: visitors don't see hidden posts on a profile; the owner does
   // (so they can fix or delete them). Admins see everything.
   const visiblePosts = isOwner || session?.user?.role === "admin"
@@ -283,7 +293,9 @@ export default async function ProfilePage({
                 {user.location}
               </span>
             )}
-            {settings?.showEmail && (
+            {/* Email is owner-only — never rendered on public profiles,
+                regardless of the retired showEmail preference. */}
+            {isOwner && user.email && (
               <span className="inline-flex items-center gap-1.5">
                 <MailIcon className="h-4 w-4" />
                 {user.email}
@@ -316,8 +328,10 @@ export default async function ProfilePage({
           </span>
           <p className="text-sm text-ink-muted">
             {isOwner
-              ? "You haven't posted yet. Share something with the community."
-              : "No posts yet."}
+              ? "Nothing here yet — your first post starts your story."
+              : `No posts yet. Follow so you don't miss ${
+                  user.name ? `${user.name}'s` : "their"
+                } first.`}
           </p>
           {isOwner && (
             <Link href="/new" className="btn-primary mt-5">
@@ -361,7 +375,13 @@ export default async function ProfilePage({
 
           {filteredPosts.length === 0 ? (
             <div className="card p-16 text-center">
-              <p className="text-sm text-ink-muted">Nothing in this tab yet.</p>
+              <p className="text-sm text-ink-muted">
+                {activeTab === "work"
+                  ? "No work posted yet — offers and requests will show up here."
+                  : activeTab === "photos"
+                  ? "No photos yet — posts with images land in this grid."
+                  : "No text posts yet."}
+              </p>
             </div>
           ) : (
             <PostGrid posts={filteredPosts} />

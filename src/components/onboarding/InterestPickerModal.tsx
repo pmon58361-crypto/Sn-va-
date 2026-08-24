@@ -61,7 +61,11 @@ export function InterestPickerModal({
       aria-modal="true"
       aria-label="Pick your interests"
     >
-      <div className="w-full max-w-md rounded-t-2xl border border-line bg-surface p-5 shadow-2xl sm:rounded-2xl">
+      <div
+        className="w-full max-w-md rounded-t-2xl border border-line bg-surface p-5 shadow-2xl sm:rounded-2xl"
+        tabIndex={-1}
+        autoFocus
+      >
         <h2 className="text-xl font-bold tracking-tight text-ink">
           What are you into?
         </h2>

@@ -93,6 +93,13 @@ export default function RootLayout({
         <ThemeProvider>
           {/* DNA canvas background removed: 60fps full-screen redraw kept
               the CPU busy on every page for a texture nobody reads. */}
+          {/* Keyboard users can jump straight past the nav shells. */}
+          <a
+            href="#main"
+            className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-accent focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white"
+          >
+            Skip to content
+          </a>
           {/* Mobile top bar (below lg breakpoint) */}
           <div className="lg:hidden">
             <Navbar />
@@ -103,7 +110,12 @@ export default function RootLayout({
             {/* min-w-0: without it the flex item's automatic minimum size
                 lets the landing marquee (w-max) blow main out to ~4400px,
                 pushing hero content off-screen. */}
-            <main className="relative min-h-screen min-w-0 flex-1 pb-20 lg:pb-0">{children}</main>
+            <main
+              id="main"
+              className="relative min-h-screen min-w-0 flex-1 pb-20 lg:pb-0"
+            >
+              {children}
+            </main>
           </div>
           <BottomNav />
           <InstallPrompt />
