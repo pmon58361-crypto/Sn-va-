@@ -5,6 +5,7 @@ import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Logo } from "@/components/ui/Logo";
+import { createAccount } from "./actions";
 
 type OAuthProvider = { id: string; name: string; mark: React.ReactNode };
 
@@ -45,9 +46,15 @@ const NAMES: Record<string, string> = {
   yahoo: "Yahoo",
 };
 
+// Shared field styling for the email/password forms (terminal aesthetic).
+const FIELD =
+  "w-full rounded-lg border border-white/10 bg-black/50 px-4 py-3 text-sm text-white placeholder:text-white/30 outline-none transition focus:border-amber-400/60";
+
 export function SignInForm({ oauthProviders }: { oauthProviders: string[] }) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<string | null>(null);
+  // "signin" = access code / email+password / OAuth · "create" = registration.
+  const [mode, setMode] = useState<"signin" | "create">("signin");
 
   // Failed credentials attempts land back here with ?error=... after the
   // full-page redirect — surface a real message instead of a bare URL.
@@ -82,6 +89,56 @@ export function SignInForm({ oauthProviders }: { oauthProviders: string[] }) {
       await signIn("credentials", { code, callbackUrl: "/community", redirect: true });
     } catch {
       setError("Invalid access code. Check it and try again.");
+      setLoading(null);
+    }
+  }
+
+  // Email + password sign-in for registered accounts (legacy authorize path
+  // validates the bcrypt hash stored on the credentials Account row).
+  async function handleEmailSignIn(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (loading) return;
+    const fd = new FormData(e.currentTarget);
+    const email = ((fd.get("email") as string) || "").trim();
+    const password = (fd.get("password") as string) || "";
+    if (!email || !password) return;
+    setError(null);
+    setLoading("email");
+    try {
+      await signIn("credentials", { email, password, callbackUrl: "/community", redirect: true });
+      // redirect:true navigates on success; failures land on ?error=
+    } catch {
+      setError("Wrong email or password. Try again.");
+      setLoading(null);
+    }
+  }
+
+  // Open registration: create the account server-side, then sign straight in
+  // with the same credentials so the new user lands in the feed.
+  async function handleCreate(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (loading) return;
+    const fd = new FormData(e.currentTarget);
+    const name = ((fd.get("name") as string) || "").trim();
+    const email = ((fd.get("email") as string) || "").trim();
+    const password = (fd.get("password") as string) || "";
+    const confirm = (fd.get("confirm") as string) || "";
+    if (password !== confirm) {
+      setError("Passwords don't match.");
+      return;
+    }
+    setError(null);
+    setLoading("create");
+    try {
+      const res = await createAccount({ name, email, password });
+      if (!res.ok) {
+        setError(res.error || "Couldn't create your account.");
+        setLoading(null);
+        return;
+      }
+      await signIn("credentials", { email, password, callbackUrl: "/community", redirect: true });
+    } catch {
+      setError("Couldn't create your account right now. Please try again.");
       setLoading(null);
     }
   }
@@ -124,9 +181,13 @@ export function SignInForm({ oauthProviders }: { oauthProviders: string[] }) {
             <p className="font-mono text-xs text-white/40">
               <span className="text-amber-300">$</span> ssh demo@snívať.dev
             </p>
-            <h1 className="mt-2 text-3xl font-black tracking-tight">Welcome back.</h1>
+            <h1 className="mt-2 text-3xl font-black tracking-tight">
+              {mode === "create" ? "Create your account." : "Welcome back."}
+            </h1>
             <p className="mt-1.5 text-sm text-white/50">
-              Sign in to share what you&apos;re building.
+              {mode === "create"
+                ? "Join Snívať — share what you're building."
+                : "Sign in to share what you're building."}
             </p>
           </div>
         </div>
@@ -152,6 +213,33 @@ export function SignInForm({ oauthProviders }: { oauthProviders: string[] }) {
               </div>
             )}
 
+            {/* Mode switch — Sign in / Create account */}
+            <div
+              className="mb-5 grid grid-cols-2 gap-1 rounded-lg border border-white/10 bg-black/40 p-1"
+              role="tablist"
+              aria-label="Account"
+            >
+              {(["signin", "create"] as const).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  role="tab"
+                  aria-selected={mode === m}
+                  onClick={() => {
+                    setMode(m);
+                    setError(null);
+                  }}
+                  className={`rounded-md py-2 text-sm font-semibold transition ${
+                    mode === m ? "bg-white/10 text-white" : "text-white/50 hover:text-white/80"
+                  }`}
+                >
+                  {m === "signin" ? "Sign in" : "Create account"}
+                </button>
+              ))}
+            </div>
+
+            {mode === "signin" && (
+              <>
             {/* Demo credentials — always available */}
             <form onSubmit={handleAccessCode} className="space-y-3">
               <input
@@ -173,6 +261,84 @@ export function SignInForm({ oauthProviders }: { oauthProviders: string[] }) {
                 // have a code? that is your way in
               </p>
             </form>
+
+                {/* Email + password sign-in for registered accounts */}
+                <form onSubmit={handleEmailSignIn} className="mt-5 space-y-3 border-t border-white/10 pt-5">
+                  <input
+                    name="email"
+                    type="email"
+                    required
+                    placeholder="you@example.com"
+                    autoComplete="email"
+                    className={FIELD}
+                  />
+                  <input
+                    name="password"
+                    type="password"
+                    required
+                    placeholder="password"
+                    autoComplete="current-password"
+                    className={FIELD}
+                  />
+                  <button
+                    type="submit"
+                    disabled={loading === "email"}
+                    className="w-full rounded-lg border border-white/15 py-3 text-sm font-bold text-white transition hover:bg-white/10 disabled:opacity-50"
+                  >
+                    {loading === "email" ? "Checking" : "Sign in with email"}
+                  </button>
+                </form>
+              </>
+            )}
+
+            {mode === "create" && (
+              <form onSubmit={handleCreate} className="space-y-3">
+                <input
+                  name="name"
+                  required
+                  maxLength={60}
+                  placeholder="Your name"
+                  autoComplete="name"
+                  className={FIELD}
+                />
+                <input
+                  name="email"
+                  type="email"
+                  required
+                  placeholder="you@example.com"
+                  autoComplete="email"
+                  className={FIELD}
+                />
+                <input
+                  name="password"
+                  type="password"
+                  required
+                  minLength={8}
+                  maxLength={200}
+                  placeholder="password (min 8 characters)"
+                  autoComplete="new-password"
+                  className={FIELD}
+                />
+                <input
+                  name="confirm"
+                  type="password"
+                  required
+                  placeholder="confirm password"
+                  autoComplete="new-password"
+                  className={FIELD}
+                />
+                <button
+                  type="submit"
+                  disabled={loading === "create"}
+                  className="w-full rounded-lg bg-amber-400 py-3 text-sm font-bold text-black transition hover:bg-amber-300 disabled:opacity-50"
+                >
+                  {loading === "create" ? "Creating…" : "Create account"}
+                </button>
+                <p className="text-center font-mono text-xs text-white/30">
+                  // 8+ characters · your email stays private
+                </p>
+              </form>
+            )}
 
             
 
