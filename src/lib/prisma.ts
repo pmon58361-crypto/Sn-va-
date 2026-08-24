@@ -40,12 +40,32 @@ function isTransient(err: unknown): boolean {
   );
 }
 
+// Fail fast instead of black-holing: bound connection acquisition and pool
+// waits unless the URL already carries explicit values. Tunable via env.
+function dbUrlWithLimits(): string | undefined {
+  const url = process.env.DATABASE_URL;
+  if (!url) return url;
+  const extras: [string, string][] = [
+    ["connect_timeout", process.env.DB_CONNECT_TIMEOUT || "10"],
+    ["pool_timeout", process.env.DB_POOL_TIMEOUT || "10"],
+  ];
+  try {
+    const u = new URL(url);
+    for (const [k, v] of extras) if (!u.searchParams.has(k)) u.searchParams.set(k, v);
+    return u.toString();
+  } catch {
+    // Non-URL datasource strings pass through untouched.
+    return url;
+  }
+}
+
 function makeClient() {
   const base = new PrismaClient({
     log:
       process.env.NODE_ENV === "development"
         ? ["warn", "error"]
         : ["error"],
+    datasources: { db: { url: dbUrlWithLimits()! } },
   });
 
   return base.$extends({
