@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { invalidateSessionCache } from "@/lib/session-cache";
 
 export type SettingsInput = {
   name: string;
@@ -90,11 +91,33 @@ export async function saveSettings(input: SettingsInput) {
     },
   });
 
+  // Session cache must never outlive a settings write (instant propagation).
+  invalidateSessionCache(session.user.id);
+
   revalidatePath("/settings");
   revalidatePath("/community");
   revalidatePath("/jobs");
   revalidatePath("/applications");
   revalidatePath("/dashboard");
+  return { ok: true };
+}
+
+/**
+ * Self-deactivation (reversible): hides the profile and posts everywhere and
+ * blocks all writes until the owner signs back in, which clears the flag.
+ * The client signs the user out right after this succeeds.
+ */
+export async function deactivateAccount() {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Unauthorized");
+
+  await prisma.user.update({
+    where: { id: session.user.id },
+    data: { deactivatedAt: new Date() },
+  });
+  invalidateSessionCache(session.user.id);
+
+  revalidatePath("/", "layout");
   return { ok: true };
 }
 

@@ -5,8 +5,12 @@ import {
   sendMessage,
   markThreadRead,
   deleteMessage,
+  toggleMessageReaction,
 } from "@/app/dm/actions";
-import { ReportMenu } from "@/components/moderation/ReportMenu";
+import { reportTarget } from "@/app/actions";
+import { timeAgo } from "@/lib/utils";
+
+type Reaction = { messageId: string; userId: string; emoji: string };
 
 type Msg = {
   id: string;
@@ -14,6 +18,7 @@ type Msg = {
   content: string;
   readAt: string | null;
   createdAt: string;
+  reactions?: Reaction[];
 };
 
 // Poll cadence while the tab is focused; polling pauses entirely when the
@@ -22,6 +27,14 @@ const POLL_MS = 3000;
 
 // Time divider appears when this much time passes between messages.
 const DIVIDER_GAP_MS = 30 * 60 * 1000;
+
+const QUICK_EMOJIS = ["❤️", "😂", "🔥", "👍", "😮", "😢"];
+const REPORT_REASONS = [
+  "Spam or scam",
+  "Harassment or abuse",
+  "Misinformation",
+  "Illegal content",
+];
 
 function fmtTime(d: Date) {
   return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
@@ -44,7 +57,7 @@ function dividerLabel(ts: string) {
 
 // Live-ish thread: initial messages rendered server-side are passed in,
 // then the client polls the JSON endpoint for new ones, peer read state,
-// and a recent-id window so unsent messages disappear for everyone.
+// reactions, and a recent-id window so unsent messages disappear for all.
 export function DmThread({
   otherId,
   meId,
@@ -55,13 +68,20 @@ export function DmThread({
   initial: Msg[];
 }) {
   const [messages, setMessages] = useState<Msg[]>(initial);
+  const [reactions, setReactions] = useState<Reaction[]>(
+    initial.flatMap((m) => m.reactions ?? [])
+  );
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   // Newest known time the OTHER person read any of my messages ("Seen").
   const [seenAt, setSeenAt] = useState<string | null>(null);
-  // Context menu state (one open menu at a time).
+  // One open popover at a time: which message, and which layer of it.
   const [menuFor, setMenuFor] = useState<string | null>(null);
+  const [menuMode, setMenuMode] = useState<"main" | "reasons">("main");
   const [copied, setCopied] = useState(false);
+  // Mobile affordance: tapped bubble reveals its quick-bar.
+  const [activeBarId, setActiveBarId] = useState<string | null>(null);
+  const [reportedId, setReportedId] = useState<string | null>(null);
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const atBottomRef = useRef(true);
@@ -71,7 +91,7 @@ export function DmThread({
     messagesRef.current = messages;
   }, [messages]);
 
-  // Close the context menu on any outside click / Escape.
+  // Close popovers on outside click / Escape.
   useEffect(() => {
     if (!menuFor) return;
     const close = () => setMenuFor(null);
@@ -120,6 +140,7 @@ export function DmThread({
       if (!res.ok) return;
       const data = (await res.json()) as {
         messages: Msg[];
+        reactions?: Reaction[];
         seenAt?: string | null;
         recentIds?: string[];
         windowStart?: string | null;
@@ -130,6 +151,7 @@ export function DmThread({
           !prev || new Date(data.seenAt!) > new Date(prev) ? data.seenAt! : prev
         );
       }
+      if (data.reactions) setReactions(data.reactions);
 
       const fresh =
         data.messages?.length > 0
@@ -166,7 +188,11 @@ export function DmThread({
               new Date(m.createdAt).getTime() < start
           );
         }
-        return next;
+        return next.map((m) =>
+          data.messages?.some((f) => f.id === m.id && f.reactions)
+            ? { ...m, reactions: data.messages.find((f) => f.id === m.id)!.reactions }
+            : m
+        );
       });
     } catch {
       // offline — retry next tick
@@ -211,7 +237,7 @@ export function DmThread({
       setMessages((prev) =>
         prev.map((m) =>
           m.id === optimistic.id
-            ? { ...m, id: saved.id, createdAt: saved.createdAt }
+            ? { ...m, id: saved.id, createdAt: saved.createdAt, reactions: [] }
             : m
         )
       );
@@ -239,8 +265,48 @@ export function DmThread({
     try {
       await deleteMessage(m.id);
       setMessages((prev) => prev.filter((x) => x.id !== m.id));
+      setReactions((prev) => prev.filter((r) => r.messageId !== m.id));
     } catch {
       // keep the message visible if the server refused; next poll reconciles
+    }
+  }
+
+  async function reportMessage(m: Msg, reason: string) {
+    try {
+      await reportTarget({
+        targetType: "MESSAGE",
+        targetId: m.id,
+        reason,
+      });
+      setReportedId(m.id);
+      setTimeout(() => setReportedId(null), 2500);
+    } catch {}
+    setMenuFor(null);
+  }
+
+  async function react(m: Msg, emoji: string) {
+    if (m.id.startsWith("tmp-")) return;
+    // Optimistic toggle; the next poll reconciles any drift.
+    const before = reactions;
+    const existingMine = before.some(
+      (r) => r.messageId === m.id && r.userId === meId && r.emoji === emoji
+    );
+    setReactions(
+      existingMine
+        ? before.filter(
+            (r) =>
+              !(
+                r.messageId === m.id &&
+                r.userId === meId &&
+                r.emoji === emoji
+              )
+          )
+        : [...before, { messageId: m.id, userId: meId, emoji }]
+    );
+    try {
+      await toggleMessageReaction(m.id, emoji);
+    } catch {
+      setReactions(before);
     }
   }
 
@@ -254,9 +320,9 @@ export function DmThread({
   }
 
   return (
-    <>
+    <div className="flex min-h-0 flex-1 flex-col">
       <div
-        className="flex-1 overflow-y-auto px-4 py-4"
+        className="min-h-0 flex-1 overflow-y-auto px-4 py-4"
         onScroll={onScroll}
       >
         {messages.length === 0 && (
@@ -278,6 +344,21 @@ export function DmThread({
                 new Date(messages[i - 1].createdAt).getTime() >
                 DIVIDER_GAP_MS;
             const menuOpen = menuFor === m.id;
+
+            // Aggregate reactions for this message from the thread-wide map.
+            const grouped = new Map<
+              string,
+              { count: number; mine: boolean }
+            >();
+            for (const r of reactions) {
+              if (r.messageId !== m.id) continue;
+              const g = grouped.get(r.emoji) ?? { count: 0, mine: false };
+              g.count += 1;
+              if (r.userId === meId) g.mine = true;
+              grouped.set(r.emoji, g);
+            }
+            const hasReactions = grouped.size > 0;
+
             return (
               <div key={m.id} className="flex flex-col dm-in">
                 {isNewDay && (
@@ -286,62 +367,146 @@ export function DmThread({
                   </p>
                 )}
                 <div
-                  className={`flex items-center gap-1.5 ${
+                  className={`group relative flex items-end gap-1.5 ${
                     mine ? "justify-end" : "justify-start"
                   }`}
                 >
-                  {/* Context menu trigger — outer side of the bubble */}
-                  <div className={`relative ${mine ? "" : "order-first"}`}>
-                    <button
-                      type="button"
-                      aria-label="Message options"
-                      aria-haspopup="menu"
+                  {/* Hover / tap quick-bar: reactions + options trigger */}
+                  {!m.id.startsWith("tmp-") && (
+                    <div
+                      className={`absolute -top-4 z-20 items-center gap-0.5 rounded-full border border-line bg-surface px-1 py-0.5 shadow-md transition-opacity ${
+                        mine ? "right-2" : "left-2"
+                      } ${
+                        activeBarId === m.id
+                          ? "flex"
+                          : "hidden group-hover:flex opacity-0 group-hover:opacity-100"
+                      }`}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {QUICK_EMOJIS.map((emoji) => (
+                        <button
+                          key={emoji}
+                          type="button"
+                          onClick={() => react(m, emoji)}
+                          className="rounded-full px-0.5 text-sm leading-none transition-transform hover:scale-125"
+                          aria-label={`React ${emoji}`}
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                      <span className="mx-0.5 h-4 w-px bg-line" />
+                      <button
+                        type="button"
+                        aria-label="Message options"
+                        aria-haspopup="menu"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setCopied(false);
+                          setMenuMode("main");
+                          setMenuFor(menuOpen ? null : m.id);
+                        }}
+                        className="grid h-6 w-6 place-items-center rounded-full text-ink-faint transition hover:bg-soft hover:text-ink"
+                      >
+                        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor">
+                          <circle cx="12" cy="5" r="1.6" />
+                          <circle cx="12" cy="12" r="1.6" />
+                          <circle cx="12" cy="19" r="1.6" />
+                        </svg>
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="min-w-0">
+                    <div
                       onClick={(e) => {
+                        // Mobile affordance: tap bubble to reveal the bar.
                         e.stopPropagation();
-                        setCopied(false);
-                        setMenuFor(menuOpen ? null : m.id);
+                        setActiveBarId(activeBarId === m.id ? null : m.id);
                       }}
                       onContextMenu={(e) => {
                         e.preventDefault();
-                        e.stopPropagation();
                         setCopied(false);
+                        setMenuMode("main");
                         setMenuFor(m.id);
                       }}
-                      className={`grid h-6 w-6 place-items-center rounded-full text-ink-faint transition hover:bg-soft hover:text-ink ${
-                        menuOpen ? "!bg-soft !text-ink" : ""
+                      className={`w-fit cursor-default rounded-3xl px-4 py-2.5 text-[15px] leading-snug ${
+                        mine
+                          ? "rounded-br-md bg-accent text-white"
+                          : "rounded-bl-md bg-surface-hover"
                       }`}
+                      title={new Date(m.createdAt).toLocaleString()}
                     >
-                      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor">
-                        <circle cx="12" cy="5" r="1.6" />
-                        <circle cx="12" cy="12" r="1.6" />
-                        <circle cx="12" cy="19" r="1.6" />
-                      </svg>
-                    </button>
+                      <span className="block whitespace-pre-wrap break-words">
+                        {m.content}
+                      </span>
+                    </div>
 
-                    {menuOpen && (
+                    {/* Reaction pills — real counts only */}
+                    {hasReactions && (
                       <div
-                        role="menu"
-                        onClick={(e) => e.stopPropagation()}
-                        onContextMenu={(e) => e.preventDefault()}
-                        className={`absolute bottom-full z-30 mb-2 w-48 rounded-xl border border-line bg-surface p-1 shadow-lg ${
-                          mine ? "right-0" : "left-0"
-                        }`}
+                        className={`mt-1 flex gap-1 ${mine ? "justify-end" : "justify-start"}`}
                       >
-                        <p className="border-b border-line px-3 py-2 text-xs font-semibold text-ink-muted">
-                          {dividerLabel(m.createdAt)}
-                          <span className="block text-[10px] font-normal text-ink-faint">
-                            {new Date(m.createdAt).toLocaleString()}
-                          </span>
-                        </p>
+                        {[...grouped.entries()].map(([emoji, g]) => (
+                          <button
+                            key={emoji}
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              react(m, emoji);
+                            }}
+                            className={`flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-xs transition ${
+                              g.mine
+                                ? "border-accent bg-accent/10"
+                                : "border-line bg-surface hover:border-accent"
+                            }`}
+                            aria-label={`${emoji} ${g.count}`}
+                          >
+                            <span>{emoji}</span>
+                            {g.count > 1 && (
+                              <span className="text-[10px] font-semibold text-ink-muted">
+                                {g.count}
+                              </span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {showSeen && (
+                      <p className="mt-0.5 text-right text-[11px] font-medium text-accent">
+                        Seen
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Context menu */}
+                {menuOpen && (
+                  <div
+                    role="menu"
+                    onClick={(e) => e.stopPropagation()}
+                    onContextMenu={(e) => e.preventDefault()}
+                    className={`z-30 mt-1 w-48 rounded-xl border border-line bg-surface p-1 shadow-lg ${
+                      mine ? "mr-2 self-end" : "ml-2 self-start"
+                    }`}
+                  >
+                    <p className="border-b border-line px-3 py-2 text-xs font-semibold text-ink-muted">
+                      {dividerLabel(m.createdAt)}
+                      <span className="block text-[10px] font-normal text-ink-faint">
+                        {new Date(m.createdAt).toLocaleString()} · {timeAgo(m.createdAt)}
+                      </span>
+                    </p>
+                    {menuMode === "main" ? (
+                      <>
                         <button
                           type="button"
                           role="menuitem"
                           onClick={() => copyMessage(m)}
-                          className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-ink-soft transition-colors hover:bg-soft hover:text-ink"
+                          className="w-full rounded-lg px-3 py-2 text-left text-sm text-ink-soft transition-colors hover:bg-soft hover:text-ink"
                         >
                           Copy
                           {copied && (
-                            <span className="text-[11px] text-accent">Copied</span>
+                            <span className="ml-2 text-[11px] text-accent">Copied</span>
                           )}
                         </button>
                         {mine && !m.id.startsWith("tmp-") && (
@@ -354,41 +519,43 @@ export function DmThread({
                             Unsend
                           </button>
                         )}
-                      </div>
+                        {!mine && !m.id.startsWith("tmp-") && (
+                          <button
+                            type="button"
+                            role="menuitem"
+                            onClick={() => setMenuMode("reasons")}
+                            className={`w-full rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors hover:bg-warm-tint ${
+                              reportedId === m.id ? "text-accent" : "text-warm"
+                            }`}
+                          >
+                            {reportedId === m.id ? "✓ Reported" : "Report"}
+                          </button>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        {REPORT_REASONS.map((reason) => (
+                          <button
+                            key={reason}
+                            type="button"
+                            role="menuitem"
+                            onClick={() => reportMessage(m, reason)}
+                            className="block w-full rounded-lg px-3 py-2 text-left text-xs text-warm transition-colors hover:bg-warm-tint"
+                          >
+                            {reason}
+                          </button>
+                        ))}
+                        <button
+                          type="button"
+                          role="menuitem"
+                          onClick={() => setMenuMode("main")}
+                          className="w-full rounded-lg px-3 py-2 text-left text-xs text-ink-faint transition-colors hover:bg-soft"
+                        >
+                          Back
+                        </button>
+                      </>
                     )}
                   </div>
-
-                  <div className="min-w-0">
-                    <div
-                      onContextMenu={(e) => {
-                        e.preventDefault();
-                        setCopied(false);
-                        setMenuFor(m.id);
-                      }}
-                      className={`w-fit rounded-3xl px-4 py-2.5 text-[15px] leading-snug ${
-                        mine
-                          ? "rounded-br-md bg-accent text-white"
-                          : "rounded-bl-md bg-surface-hover"
-                      }`}
-                      title={new Date(m.createdAt).toLocaleString()}
-                    >
-                      <span className="block whitespace-pre-wrap break-words">
-                        {m.content}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                {showSeen && (
-                  <p className="mt-0.5 text-right text-[11px] font-medium text-accent">
-                    Seen
-                  </p>
-                )}
-                {!mine && (
-                  <ReportMenu
-                    targetType="MESSAGE"
-                    targetId={m.id}
-                    className="mt-0.5"
-                  />
                 )}
               </div>
             );
@@ -399,7 +566,7 @@ export function DmThread({
 
       <form
         onSubmit={submit}
-        className="sticky bottom-20 border-t border-line bg-bg/90 px-4 py-3 backdrop-blur-md lg:bottom-0"
+        className="border-t border-line bg-bg/95 px-4 py-3 backdrop-blur-md"
       >
         <div className="mx-auto flex max-w-lg items-center gap-2">
           <input
@@ -418,6 +585,6 @@ export function DmThread({
           </button>
         </div>
       </form>
-    </>
+    </div>
   );
 }

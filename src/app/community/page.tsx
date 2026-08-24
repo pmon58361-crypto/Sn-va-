@@ -1,7 +1,6 @@
 import { Fragment } from "react";
 import { getPosts, getTopTags } from "@/lib/queries";
 import { PostCard, EmptyState } from "@/components/posts/PostCard";
-import { QuickComposer } from "@/components/posts/QuickComposer";
 import { RightSidebar } from "@/components/layout/RightSidebar";
 import { StoriesBar } from "@/components/stories/StoriesBar";
 import { InterestPickerModal } from "@/components/onboarding/InterestPickerModal";
@@ -93,11 +92,6 @@ export default async function CommunityPage({
       <div className="mx-auto w-full max-w-[640px] px-4 py-5">
         {/* Stories rail */}
         <StoriesBar groups={storyGroups} meId={session?.user?.id} />
-
-        <div className="h-4" />
-
-        {/* Composer */}
-        <QuickComposer />
 
         {/* Feed tabs */}
         <div className="mt-4 grid grid-cols-2 border-b border-line">

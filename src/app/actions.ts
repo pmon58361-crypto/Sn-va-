@@ -8,6 +8,7 @@ import { createNotification } from "@/lib/notify";
 import { requireActiveUser } from "@/lib/session";
 import { destroyAssets } from "@/lib/storage";
 import { assertClean } from "@/lib/filter";
+import { invalidateSessionCache } from "@/lib/session-cache";
 import { normalizeInterests } from "@/lib/utils";
 import {
   POST_CATEGORIES,
@@ -511,6 +512,9 @@ export async function saveInterests(
     update: { interests: interests.join(",") },
     create: { userId: me.id, interests: interests.join(",") },
   });
+
+  // Interests are session-visible (settings select) — keep cache honest.
+  invalidateSessionCache(me.id);
 
   revalidatePath("/community");
   revalidatePath("/settings");
