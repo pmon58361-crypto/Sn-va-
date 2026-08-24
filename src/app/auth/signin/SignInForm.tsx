@@ -292,6 +292,12 @@ export function SignInForm({ oauthProviders }: { oauthProviders: string[] }) {
                   >
                     {loading === "email" ? "Checking" : "Sign in with email"}
                   </button>
+                  <Link
+                    href="/auth/forgot-password"
+                    className="text-center font-mono text-xs text-white/40 transition-colors hover:text-white/70"
+                  >
+                    forgot password?
+                  </Link>
                 </form>
               </>
             )}
