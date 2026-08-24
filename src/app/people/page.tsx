@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { getPresence } from "@/lib/presence";
 import { Avatar } from "@/components/ui/Avatar";
 
 export const metadata = { title: "People — Snívať" };
@@ -54,6 +55,8 @@ export default async function PeoplePage({
     take: 100,
   });
 
+  const presence = getPresence(users.map((u) => u.id));
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
       <h1 className="text-2xl font-extrabold">People</h1>
@@ -94,10 +97,24 @@ export default async function PeoplePage({
               href={`/profile/${u.id}`}
               className="card card-hover flex items-start gap-3 p-4"
             >
-              <Avatar name={u.name} image={u.image} size={44} />
+              <span className="relative">
+                <Avatar name={u.name} image={u.image} size={44} />
+                {presence[u.id]?.online && (
+                  <span
+                    aria-label="Online now"
+                    title="Online now"
+                    className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-bg bg-emerald-400"
+                  />
+                )}
+              </span>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-bold">
+                <p className="flex items-center gap-2 truncate text-sm font-bold">
                   {u.name || "Someone"}
+                  {presence[u.id]?.online && (
+                    <span className="text-[10px] font-medium uppercase tracking-wide text-emerald-500">
+                      online{presence[u.id].page ? ` · ${presence[u.id].page}` : ""}
+                    </span>
+                  )}
                 </p>
                 <p className="truncate text-xs text-ink-faint">
                   {u._count.followers}{" "}

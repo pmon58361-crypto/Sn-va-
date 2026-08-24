@@ -5,6 +5,7 @@ import { signOut } from "next-auth/react";
 import { saveSettings, deactivateAccount, type SettingsInput } from "./actions";
 import { applyAccent, applyBackground } from "@/components/ThemeProvider";
 import { InterestsEditor } from "@/components/onboarding/InterestsEditor";
+import { PresenceToggle } from "@/components/presence/PresenceToggle";
 import {
   SunIcon,
   MoonIcon,
@@ -457,6 +458,9 @@ export function SettingsForm({
             />
             {/* "Show email on profile" retired: emails are owner-only now.
                 The settings column stays for a future opt-in contact feature. */}
+            <div className="border-t border-line">
+              <PresenceToggle />
+            </div>
             <ToggleRow
               label="Creator account"
               description="Unlocks your creator dashboard with real stats about your posts."

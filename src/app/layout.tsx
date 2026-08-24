@@ -4,6 +4,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Instrument_Serif } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { PresenceBeat } from "@/components/presence/PresenceBeat";
 import { Navbar } from "@/components/layout/Navbar";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -120,6 +121,7 @@ export default function RootLayout({
           <BottomNav />
           <InstallPrompt />
           <ServiceWorkerRegister />
+          <PresenceBeat />
         </ThemeProvider>
       </body>
     </html>

@@ -245,6 +245,12 @@ export async function RightSidebar({ viewerId }: { viewerId?: string | null }) {
           <Stat label="live notes" value={liveNotes} />
           <Stat label="photo stories" value={photoStories} />
         </dl>
+        <Link
+          href="/leaderboard"
+          className="mt-3 block text-center text-xs font-semibold text-accent hover:underline"
+        >
+          View the Leaderboard →
+        </Link>
       </div>
     </aside>
   );
