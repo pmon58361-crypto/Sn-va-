@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { getConversations, getMessageableUsers } from "@/lib/dm";
 import { Avatar } from "@/components/ui/Avatar";
 import { timeAgo } from "@/lib/utils";
+import { DmTitleBadge } from "./DmTitleBadge";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "DMs — Snívať" };
@@ -15,9 +16,11 @@ export default async function DmPage() {
 
   const conversations = await getConversations(meId);
   const newPeople = await getMessageableUsers(meId);
+  const unreadTotal = conversations.reduce((n, c) => n + c.unread, 0);
 
   return (
     <main>
+      <DmTitleBadge unread={unreadTotal} />
       <div className="sticky top-0 z-10 border-b border-line bg-bg/85 px-4 py-3 backdrop-blur-md">
         <h1 className="text-xl font-extrabold">Messages</h1>
       </div>
