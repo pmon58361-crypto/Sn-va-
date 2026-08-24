@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { getConversations, getMessageableUsers } from "@/lib/dm";
+import { getPresence } from "@/lib/presence";
 import { Avatar } from "@/components/ui/Avatar";
 import { timeAgo } from "@/lib/utils";
 
@@ -14,6 +15,7 @@ export default async function DmPage() {
 
   const conversations = await getConversations(meId);
   const newPeople = await getMessageableUsers(meId);
+  const presence = getPresence(conversations.map((c) => c.other.id));
 
   return (
     <main>
@@ -40,6 +42,13 @@ export default async function DmPage() {
               <Avatar name={c.other.name} image={c.other.image} />
               <span className="min-w-0 flex-1">
                 <span className={`flex items-center gap-2 text-[15px] ${c.unread ? "font-bold" : "font-semibold"}`}>
+                  {presence[c.other.id]?.online && (
+                    <span
+                      aria-label="Online now"
+                      title="Online now"
+                      className="h-2 w-2 shrink-0 rounded-full bg-emerald-400"
+                    />
+                  )}
                   <span className="truncate">{c.other.name || "Someone"}</span>
                   <span className="shrink-0 text-xs font-normal text-ink-secondary">
                     · {timeAgo(c.lastAt)}

@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { getPresence } from "@/lib/presence";
 import { isFollowing } from "@/lib/social";
 import { absoluteUrl } from "@/lib/og";
 import { Avatar } from "@/components/ui/Avatar";
@@ -136,14 +137,16 @@ export default async function ProfilePage({
   }
 
   // Independent reads — single round-trip wave.
-  const [viewerIsFollowing, highlightRows] = await Promise.all([
+  const [viewerIsFollowing, highlightRows, presence] = await Promise.all([
     isFollowing(session?.user?.id, user.id),
     prisma.highlight.findMany({
       where: { userId: id },
       orderBy: { createdAt: "desc" },
       include: { items: { select: { id: true, imageUrl: true } } },
     }),
+    Promise.resolve(getPresence([id])),
   ]);
+  const mePresence = !isOwner ? presence[id] : null;
   const highlights = highlightRows.map((h) => ({
     id: h.id,
     title: h.title,
@@ -214,7 +217,21 @@ export default async function ProfilePage({
               <h1 className="truncate text-2xl font-bold leading-tight text-ink">
                 {user.name || "Anonymous"}
               </h1>
-              <p className="mt-0.5 text-sm text-ink-faint">{handle}</p>
+              <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm text-ink-faint">
+                <span>{handle}</span>
+                {mePresence?.online && (
+                  <>
+                    <span
+                      aria-label="Online now"
+                      title="Online now"
+                      className="h-2 w-2 rounded-full bg-emerald-400"
+                    />
+                    <span className="text-emerald-600 dark:text-emerald-400">
+                      Online{mePresence.page ? ` · ${mePresence.page}` : ""}
+                    </span>
+                  </>
+                )}
+              </p>
 
               {/* Badges — activity-derived, not fake */}
               {badges.length > 0 && (

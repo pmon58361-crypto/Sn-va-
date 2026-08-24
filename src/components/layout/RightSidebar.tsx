@@ -209,6 +209,12 @@ export async function RightSidebar({ viewerId }: { viewerId?: string | null }) {
           <Stat label="applicants" value={applicantsThisWeek} />
           <Stat label="members" value={memberCount} />
         </dl>
+        <Link
+          href="/leaderboard"
+          className="mt-3 block text-center text-xs font-semibold text-accent hover:underline"
+        >
+          View the Leaderboard →
+        </Link>
       </div>
     </aside>
   );
