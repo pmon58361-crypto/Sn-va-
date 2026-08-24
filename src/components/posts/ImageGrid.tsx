@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { cdnUrl } from "@/lib/cdn";
 
 type GridImage = { id: string; url: string; order: number };
@@ -29,10 +29,26 @@ export function ImageGrid({
   const [open, setOpen] = useState<number | null>(null);
   const count = images.length;
 
+  // Guards the backdrop against the same interaction that opened/stepped the
+  // viewer: while the full-size image is still loading it renders ~0x0, so a
+  // rapid second click (double-click tail, burst clicking) would otherwise hit
+  // the backdrop and instantly close what just opened — the open/close
+  // ping-pong users see as "it zooms in and out really fast".
+  const openedAt = useRef(0);
+  const touch = () => {
+    openedAt.current = Date.now();
+  };
+
   const close = useCallback(() => setOpen(null), []);
+  const guardedBackdropClose = useCallback(() => {
+    if (Date.now() - openedAt.current < 250) return;
+    close();
+  }, [close]);
   const step = useCallback(
-    (d: number) =>
-      setOpen((i) => (i === null ? null : (i + d + count) % count)),
+    (d: number) => {
+      touch();
+      setOpen((i) => (i === null ? null : (i + d + count) % count));
+    },
     [count]
   );
 
@@ -51,7 +67,10 @@ export function ImageGrid({
     <button
       key={images[i].id}
       type="button"
-      onClick={() => setOpen(i)}
+      onClick={() => {
+        touch();
+        setOpen(i);
+      }}
       className={`${TILE} block w-full cursor-zoom-in text-left`}
       aria-label={`Open image ${i + 1} of ${count}`}
     >
@@ -69,7 +88,10 @@ export function ImageGrid({
           src={cdnUrl(images[0].url, 1080)}
           alt={post.title}
           className="mx-auto max-h-[70vh] w-full cursor-zoom-in object-contain"
-          onClick={() => setOpen(0)}
+          onClick={() => {
+            touch();
+            setOpen(0);
+          }}
           loading="lazy"
         />
       </div>
@@ -122,18 +144,26 @@ export function ImageGrid({
       {open !== null && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
-          onClick={close}
+          onClick={guardedBackdropClose}
           role="dialog"
           aria-modal="true"
           aria-label={post.title}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={cdnUrl(images[open].url, 1400)}
-            alt={post.title}
-            className="max-h-[92vh] max-w-full rounded-lg object-contain shadow-2xl"
+          {/* Sized placeholder wrapper: keeps a clickable footprint over the
+              image area while the full-size variant loads, so clicks there
+              never reach the backdrop. */}
+          <div
+            className="flex max-h-[92vh] max-w-full items-center justify-center overflow-hidden rounded-lg bg-soft shadow-2xl"
+            style={{ minWidth: 320, minHeight: 240 }}
             onClick={(e) => e.stopPropagation()}
-          />
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={cdnUrl(images[open].url, 1400)}
+              alt={post.title}
+              className="max-h-[92vh] max-w-full object-contain"
+            />
+          </div>
           {count > 1 && (
             <>
               <button
