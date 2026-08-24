@@ -16,6 +16,10 @@ const NAV = [
   { href: "/applications", label: "/applications" },
 ];
 
+// Single conversion entry — every sign-up CTA routes through this constant.
+// When open registration ships, repoint ONLY this line (e.g. "/auth/register").
+const AUTH_ENTRY = "/auth/signin";
+
 function catVerb(category: string) {
   switch (category) {
     case "JOB_LISTING": return "opened a role";
@@ -79,13 +83,13 @@ export async function Landing() {
           </div>
           <div className="flex items-center gap-2">
             <Link
-              href="/auth/signin"
+              href={AUTH_ENTRY}
               className="hidden rounded-full px-4 py-2 font-mono text-[13px] text-white/70 transition hover:bg-white/10 hover:text-white sm:block"
             >
               sign in
             </Link>
             <Link
-              href="/auth/signin"
+              href={AUTH_ENTRY}
               className="rounded-full bg-white px-5 py-2 text-sm font-bold text-black transition hover:bg-white/90"
             >
               Start growing
@@ -143,10 +147,15 @@ export async function Landing() {
               Progress, wins and failures — logged as they happen. Your work
               becomes proof; your proof becomes opportunity.
             </p>
+            <p className="mt-3 max-w-md text-sm leading-relaxed text-white/40">
+              Concretely: a community feed where builders post what they&apos;re
+              making, plus an open job board — hire or get hired without the
+              résumé theater.
+            </p>
 
             <div className="mt-9 flex flex-col items-start gap-3 sm:flex-row">
               <Link
-                href="/auth/signin"
+                href={AUTH_ENTRY}
                 className="group inline-flex items-center gap-2 rounded-full bg-white px-8 py-3.5 text-base font-bold text-black transition hover:bg-white/90"
               >
                 Start growing — it&apos;s free
@@ -291,7 +300,7 @@ export async function Landing() {
             Every post becomes proof.
           </h2>
           <Link
-            href="/auth/signin"
+            href={AUTH_ENTRY}
             className="group mt-10 inline-flex items-center gap-3 rounded-full bg-white px-10 py-4 text-lg font-bold text-black transition hover:bg-white/90"
           >
             Join Snívať
@@ -299,6 +308,12 @@ export async function Landing() {
               →
             </span>
           </Link>
+          {users > 0 && (
+            <p className="mt-6 font-mono text-xs text-white/35">
+              builders: <span className="text-white/80">{users}</span> · posts of proof:{" "}
+              <span className="text-white/80">{postCount}</span> · your turn is next
+            </p>
+          )}
           <p className="mt-6 font-mono text-xs uppercase tracking-[0.3em] text-white/30">
             seconds to sign in · a lifetime of proof ahead
           </p>
