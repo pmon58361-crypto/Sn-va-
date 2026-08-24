@@ -455,12 +455,8 @@ export function SettingsForm({
               checked={form.publicProfile}
               onChange={(v) => set("publicProfile", v)}
             />
-            <ToggleRow
-              label="Show email on profile"
-              description="Display your email address publicly."
-              checked={form.showEmail}
-              onChange={(v) => set("showEmail", v)}
-            />
+            {/* "Show email on profile" retired: emails are owner-only now.
+                The settings column stays for a future opt-in contact feature. */}
             <ToggleRow
               label="Creator account"
               description="Unlocks your creator dashboard with real stats about your posts."

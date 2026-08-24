@@ -154,7 +154,15 @@ export default async function ProfilePage({
     month: "short",
     year: "numeric",
   });
-  const handle = "@" + (user.email?.split("@")[0] || "user");
+  // Privacy-safe handle: derived from the DISPLAY NAME, never the email —
+  // the old email-local-part handle leaked addresses on every profile.
+  const handle =
+    "@" +
+    ((user.name || "")
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9_]+/g, "")
+      .slice(0, 24) || "member");
   // Moderation: visitors don't see hidden posts on a profile; the owner does
   // (so they can fix or delete them). Admins see everything.
   const visiblePosts = isOwner || session?.user?.role === "admin"
@@ -285,7 +293,9 @@ export default async function ProfilePage({
                 {user.location}
               </span>
             )}
-            {settings?.showEmail && (
+            {/* Email is owner-only — never rendered on public profiles,
+                regardless of the retired showEmail preference. */}
+            {isOwner && user.email && (
               <span className="inline-flex items-center gap-1.5">
                 <MailIcon className="h-4 w-4" />
                 {user.email}
