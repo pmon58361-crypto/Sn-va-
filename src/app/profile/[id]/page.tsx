@@ -33,11 +33,14 @@ export async function generateMetadata({
       name: true,
       bio: true,
       image: true,
+      deactivatedAt: true,
       settings: { select: { publicProfile: true } },
     },
   });
   // Private profiles get no rich preview — that's the point of private.
   if (!user || user.settings?.publicProfile === false) return {};
+  // Deactivated accounts get no rich preview either.
+  if (user.deactivatedAt) return {};
 
   const name = user.name || "Someone";
   const description = user.bio?.slice(0, 160) || "On Snívať — dream, grow, connect.";
@@ -97,6 +100,20 @@ export default async function ProfilePage({
   const settings = user.settings;
   const isPublic = settings?.publicProfile ?? true;
   const isOwner = session?.user?.id === user.id;
+
+  // Deactivated accounts show only a quiet notice to everyone but the owner
+  // (the owner reads as signed out anyway — this covers stale sessions).
+  if (user.deactivatedAt && !isOwner) {
+    return (
+      <div className="mx-auto max-w-3xl px-5 py-16">
+        <div className="card p-12 text-center">
+          <p className="text-sm text-ink-muted">
+            This account has been deactivated.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   // Private profiles show nothing but the identity card to other viewers —
   // no bio, location, email, stats, or posts.

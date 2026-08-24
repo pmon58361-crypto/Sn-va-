@@ -19,6 +19,7 @@ export type SessionUserData = {
   accent?: string;
   background?: string | null;
   isCreator: boolean;
+  deactivatedAt?: Date | null;
 };
 
 const TTL_MS = 45_000;
@@ -72,6 +73,7 @@ export async function fetchSessionUser(
       name: true,
       image: true,
       role: true,
+      deactivatedAt: true,
       settings: {
         select: { theme: true, accent: true, background: true, isCreator: true },
       },
@@ -86,5 +88,6 @@ export async function fetchSessionUser(
     accent: row.settings?.accent,
     background: row.settings?.background,
     isCreator: row.settings?.isCreator ?? false,
+    deactivatedAt: row.deactivatedAt,
   };
 }

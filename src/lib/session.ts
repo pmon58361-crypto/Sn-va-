@@ -45,12 +45,20 @@ export async function requireActiveUser(): Promise<ActiveUser> {
 
   const user = await prisma.user.findUnique({
     where: { id },
-    select: { id: true, email: true, role: true, bannedAt: true },
+    select: { id: true, email: true, role: true, bannedAt: true, deactivatedAt: true },
   });
   if (!user) throw new Error("Unauthorized");
 
   if (user.bannedAt) {
     throw new Error("Your account has been suspended.");
+  }
+
+  // Self-deactivated: every write is blocked until they sign in again
+  // (which clears the flag). Defense-in-depth alongside the session gate.
+  if (user.deactivatedAt) {
+    throw new Error(
+      "Your account is deactivated. Sign in again to reactivate it."
+    );
   }
 
   // Promote from env list if needed (rare — fires once per promotion).

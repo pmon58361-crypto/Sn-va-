@@ -35,6 +35,7 @@ export async function RightSidebar({ viewerId }: { viewerId?: string | null }) {
     prisma.user.findMany({
       where: {
         ...(viewerId ? { id: { notIn: [viewerId] } } : {}),
+        deactivatedAt: null,
         OR: [{ settings: { publicProfile: true } }, { settings: null }],
       },
       orderBy: [{ followers: { _count: "desc" } }, { createdAt: "desc" }],
@@ -48,6 +49,7 @@ export async function RightSidebar({ viewerId }: { viewerId?: string | null }) {
       },
     }),
     prisma.user.findMany({
+      where: { deactivatedAt: null },
       orderBy: [{ followers: { _count: "desc" } }],
       take: 5,
       select: {

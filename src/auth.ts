@@ -140,6 +140,13 @@ async function verifyCredentials(
       });
     }
     if (!user || user.bannedAt) return null;
+    // Self-deactivation is reversible: signing back in restores the account.
+    if (user.deactivatedAt) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { deactivatedAt: null },
+      });
+    }
     return { id: user.id, name: user.name, email: user.email, image: user.image };
   }
 
@@ -162,6 +169,7 @@ async function verifyCredentials(
 
   if (email.toLowerCase() === demoEmail) {
     if (constantTimeEqual(password, demoPass)) {
+      await reactivateIfNeeded(user.id, user.deactivatedAt);
       return { id: user.id, name: user.name, email: user.email, image: user.image };
     }
     return null;
@@ -175,10 +183,23 @@ async function verifyCredentials(
     // We reuse refresh_token to store the bcrypt hash (cheap reuse, avoids schema churn).
     const ok = await bcrypt.compare(password, acc.refresh_token);
     if (ok) {
+      await reactivateIfNeeded(user.id, user.deactivatedAt);
       return { id: user.id, name: user.name, email: user.email, image: user.image };
     }
   }
   return null;
+}
+
+/** Clear a self-deactivation when the owner proves their identity again. */
+async function reactivateIfNeeded(
+  userId: string,
+  deactivatedAt: Date | null
+): Promise<void> {
+  if (!deactivatedAt) return;
+  await prisma.user.update({
+    where: { id: userId },
+    data: { deactivatedAt: null },
+  });
 }
 
 // Build the list of providers that actually have credentials configured.
@@ -249,13 +270,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: buildProviders(),
   callbacks: {
     async signIn({ user }) {
-      // OAuth path: block banned accounts at sign-in too.
+      // OAuth path: block banned accounts at sign-in too. Self-deactivated
+      // accounts reactivate on sign-in (same rule as the credentials path).
       if (user?.id) {
         const row = await prisma.user.findUnique({
           where: { id: user.id },
-          select: { bannedAt: true },
+          select: { bannedAt: true, deactivatedAt: true },
         });
         if (row?.bannedAt) return false;
+        await reactivateIfNeeded(user.id, row?.deactivatedAt ?? null);
       }
       return true;
     },
@@ -270,7 +293,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
     async session({ session, token }) {
       if (session.user) {
-        session.user.id = token.id as string;
         session.user.provider = (token.provider as string) || "credentials";
 
         // Identity and preferences come fresh from the DB on every request,
@@ -301,6 +323,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             }
           }
 
+          // Confirmed self-deactivation reads as signed out everywhere:
+          // no id on the session means every requireActiveUser/requireUserId
+          // gate throws and every page renders its guest state. Only a
+          // CONFIRMED flag strips the id — a degraded/failed lookup keeps
+          // today's behavior (bare JWT claims).
+          if (user?.deactivatedAt) return session;
+
+          session.user.id = id;
           if (user) {
             session.user.name = user.name;
             session.user.image = user.image;
