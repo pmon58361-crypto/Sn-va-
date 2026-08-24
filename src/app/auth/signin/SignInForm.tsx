@@ -54,7 +54,10 @@ export function SignInForm({ oauthProviders }: { oauthProviders: string[] }) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<string | null>(null);
   // "signin" = access code / email+password / OAuth · "create" = registration.
-  const [mode, setMode] = useState<"signin" | "create">("signin");
+  // ?mode=create (landing CTAs) opens straight on the registration tab.
+  const initialMode =
+    useSearchParams().get("mode") === "create" ? "create" : "signin";
+  const [mode, setMode] = useState<"signin" | "create">(initialMode);
 
   // Failed credentials attempts land back here with ?error=... after the
   // full-page redirect — surface a real message instead of a bare URL.
