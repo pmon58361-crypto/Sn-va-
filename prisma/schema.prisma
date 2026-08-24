@@ -149,6 +149,7 @@ model Reaction {
 
   @@unique([postId, userId])
   @@index([postId])
+  @@index([userId, createdAt])
 }
 
 model PostImage {
@@ -177,6 +178,7 @@ model Comment {
   reports Report[]
 
   @@index([postId])
+  @@index([authorId, createdAt])
 }
 
 // A job application made by a user against a JOB_LISTING post.
