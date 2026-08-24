@@ -22,6 +22,13 @@ function pngDimensions(bytes: Buffer): { width: number; height: number } {
   return { width: bytes.readUInt32BE(16), height: bytes.readUInt32BE(20) };
 }
 
+test("unknown routes render the branded 404 page", async ({ page }) => {
+  const response = await page.goto("/definitely-not-a-real-route");
+  expect(response?.status()).toBe(404);
+  await expect(page.getByText("~/404")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Go home" })).toBeVisible();
+});
+
 test("brand raster assets serve at their canonical dimensions", async ({ request }) => {
   const assets = ["/logo.png", "/icon-192.png", "/icon-512.png", "/og-image.png"];
   for (const asset of assets) {

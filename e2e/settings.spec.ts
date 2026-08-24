@@ -21,14 +21,10 @@ test("interests editor saves custom topics", async ({ browser }) => {
   }
 });
 
-// Blocked by an application bug, not a selector problem: the three
-// reactivation sites in src/auth.ts (access-code path, demo password path,
-// shared reactivateIfNeeded helper) clear User.deactivatedAt but never call
-// invalidateSessionCache. A session-cache entry written while the account was
-// deactivated stays fresh for up to 45s, so the session callback strips the
-// user id and every gate treats the just-reactivated user as signed out.
-// Re-activate this test once the reactivation paths bust the cache.
-test.fixme("deactivation is reversed on the next credentials sign-in", async ({ browser }) => {
+// The reactivation paths now invalidate the session cache (C's 8159297,
+// train f0b1422). This test guards the deactivation → sign-back-in
+// round-trip against regressions.
+test("deactivation is reversed on the next credentials sign-in", async ({ browser }) => {
   const throwaway = await createThrowawayAccount();
   const context = await browser.newContext();
   const page = await context.newPage();
