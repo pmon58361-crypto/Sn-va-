@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getPresence } from "@/lib/presence";
+import { isFoundingMember } from "@/lib/founding";
 import { isFollowing } from "@/lib/social";
 import { absoluteUrl } from "@/lib/og";
 import { Avatar } from "@/components/ui/Avatar";
@@ -140,7 +141,7 @@ export default async function ProfilePage({
   }
 
   // Independent reads — single round-trip wave.
-  const [viewerIsFollowing, highlightRows, activeStoryRow, presence] =
+  const [viewerIsFollowing, highlightRows, activeStoryRow, presence, founding] =
     await Promise.all([
       isFollowing(session?.user?.id, user.id),
       prisma.highlight.findMany({
@@ -154,6 +155,7 @@ export default async function ProfilePage({
         select: { id: true },
       }),
       Promise.resolve(getPresence([id])),
+      isFoundingMember(user.id, user.createdAt),
     ]);
   const hasActiveStory = !!activeStoryRow;
   const mePresence = !isOwner ? presence[id] : null;
@@ -225,6 +227,14 @@ export default async function ProfilePage({
             <div className="flex flex-wrap items-baseline justify-center gap-x-3 gap-y-1 sm:justify-start">
               <h1 className="truncate text-2xl font-bold leading-tight text-ink">
                 {user.name || "Anonymous"}
+                {founding && (
+                  <span
+                    title="Founding Member — first 500 accounts"
+                    className="ml-2 inline-block align-middle badge bg-accent-tint text-[10px] font-semibold uppercase tracking-wide text-accent"
+                  >
+                    ★ Founding Member
+                  </span>
+                )}
               </h1>
               <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm text-ink-faint">
                 <span>{handle}</span>

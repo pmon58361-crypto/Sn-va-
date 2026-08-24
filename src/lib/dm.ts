@@ -15,15 +15,20 @@ export async function getConversations(meId: string) {
     orderBy: { createdAt: "desc" },
     take: 500,
     include: {
-      sender: { select: { id: true, name: true, image: true } },
-      recipient: { select: { id: true, name: true, image: true } },
+      sender: { select: { id: true, name: true, image: true, createdAt: true } },
+      recipient: { select: { id: true, name: true, image: true, createdAt: true } },
     },
   });
 
   const threads = new Map<
     string,
     {
-      other: { id: string; name: string | null; image: string | null };
+      other: {
+        id: string;
+        name: string | null;
+        image: string | null;
+        createdAt: Date;
+      };
       lastAt: Date;
       lastPreview: string;
       lastFromMe: boolean;

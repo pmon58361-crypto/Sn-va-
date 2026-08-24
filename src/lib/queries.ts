@@ -14,7 +14,7 @@ import type { PostCategory } from "@/lib/types";
 // Standard include shape so all post fetches return a consistent object.
 export const postInclude = {
   author: {
-    select: { id: true, name: true, image: true, location: true },
+    select: { id: true, name: true, image: true, location: true, createdAt: true },
   },
   images: { select: { id: true, url: true, order: true }, orderBy: { order: "asc" } },
   reactions: { select: { id: true, type: true, userId: true } },
@@ -66,7 +66,13 @@ export function reactionCounts(reactions: { type: string }[] = []) {
 export type PostWithRelations = Awaited<
   ReturnType<typeof prisma.post.findFirst>
 > & {
-  author: { id: string; name: string | null; image: string | null; location: string | null } | null;
+  author: {
+    id: string;
+    name: string | null;
+    image: string | null;
+    location: string | null;
+    createdAt: Date;
+  } | null;
   images: { id: string; url: string; order: number }[];
   reactions: { id: string; type: string; userId: string }[];
   _count: { comments: number; applications: number; images: number };
