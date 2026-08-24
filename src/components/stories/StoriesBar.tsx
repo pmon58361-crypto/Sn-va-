@@ -91,7 +91,9 @@ export function StoriesBar({
       </div>
 
       {composerOpen && <StoryComposer onClose={() => setComposerOpen(false)} />}
-      {viewing && <StoryViewer group={viewing} onClose={() => setViewing(null)} />}
+      {viewing && (
+        <StoryViewer group={viewing} meId={meId} onClose={() => setViewing(null)} />
+      )}
     </div>
   );
 }
@@ -274,9 +276,11 @@ function StoryComposer({ onClose }: { onClose: () => void }) {
 
 function StoryViewer({
   group,
+  meId,
   onClose,
 }: {
   group: StoryGroup;
+  meId?: string | null;
   onClose: () => void;
 }) {
   const [index, setIndex] = useState(0);
@@ -312,10 +316,13 @@ function StoryViewer({
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
+      if (e.key === "ArrowRight") next();
+      if (e.key === "ArrowLeft") prev();
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onClose, index, group.items.length]);
 
   function next() {
     if (index < group.items.length - 1) setIndex((i) => i + 1);
@@ -372,15 +379,18 @@ function StoryViewer({
 
       {/* Content */}
       <div className="relative flex flex-1 items-center justify-center px-4 pb-10">
+        {/* Tap left/right thirds to navigate (IG pattern) */}
         <button
           onClick={prev}
-          className="absolute left-0 top-0 h-full w-1/4"
+          className="absolute left-0 top-0 h-full w-1/3"
           aria-label="Previous"
+          tabIndex={-1}
         />
         <button
           onClick={next}
-          className="absolute right-0 top-0 h-full w-1/4"
+          className="absolute right-0 top-0 h-full w-1/3"
           aria-label="Next"
+          tabIndex={-1}
         />
 
         {isImage ? (
@@ -413,17 +423,32 @@ function StoryViewer({
           </div>
         )}
 
-        {item.isMine && !isImage && (
-          <span className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-white/10 px-3 py-1 text-xs text-white/80">
-            {item.viewCount} {item.viewCount === 1 ? "view" : "views"}
-          </span>
-        )}
-        {item.isMine && isImage && (
+        {item.isMine && (
           <span className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-white/10 px-3 py-1 text-xs text-white/80">
             {item.viewCount} {item.viewCount === 1 ? "view" : "views"}
           </span>
         )}
       </div>
+
+      {/* Reply bar — deep-links to the author's DM thread with the composer
+          focused. Hearts omitted deliberately: story reactions have no data
+          backing yet, and we don't ship decorative-only controls. */}
+      {!item.isMine && meId && (
+        <div className="border-t border-white/10 bg-black/60 px-4 py-3 backdrop-blur-md">
+          <button
+            onClick={() =>
+              router.push(
+                `/dm/${group.author.id}?reply=1&draft=${encodeURIComponent(
+                  `Re: your story${item.caption ? ` — "${item.caption.slice(0, 60)}"` : ""}`
+                )}`
+              )
+            }
+            className="w-full cursor-text rounded-full border border-white/25 px-4 py-2.5 text-left text-sm text-white/70 transition hover:border-white/50"
+          >
+            Reply to {group.author.name || "this story"}…
+          </button>
+        </div>
+      )}
     </div>
   );
 }

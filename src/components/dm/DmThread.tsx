@@ -62,16 +62,23 @@ export function DmThread({
   otherId,
   meId,
   initial,
+  initialDraft,
+  autoFocusComposer,
 }: {
   otherId: string;
   meId: string;
   initial: Msg[];
+  /** Pre-filled text for the composer (e.g. story-reply deep links). */
+  initialDraft?: string;
+  /** Focus the composer on mount (deep-link reply flows). */
+  autoFocusComposer?: boolean;
 }) {
   const [messages, setMessages] = useState<Msg[]>(initial);
   const [reactions, setReactions] = useState<Reaction[]>(
     initial.flatMap((m) => m.reactions ?? [])
   );
-  const [draft, setDraft] = useState("");
+  const [draft, setDraft] = useState(initialDraft ?? "");
+  const composerRef = useRef<HTMLInputElement>(null);
   const [sending, setSending] = useState(false);
   // Newest known time the OTHER person read any of my messages ("Seen").
   const [seenAt, setSeenAt] = useState<string | null>(null);
@@ -82,6 +89,12 @@ export function DmThread({
   // Mobile affordance: tapped bubble reveals its quick-bar.
   const [activeBarId, setActiveBarId] = useState<string | null>(null);
   const [reportedId, setReportedId] = useState<string | null>(null);
+
+  // Deep-link reply flows drop the cursor straight into the composer.
+  useEffect(() => {
+    if (autoFocusComposer) composerRef.current?.focus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const atBottomRef = useRef(true);
@@ -570,6 +583,7 @@ export function DmThread({
       >
         <div className="mx-auto flex max-w-lg items-center gap-2">
           <input
+            ref={composerRef}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             placeholder="Start a new message"
