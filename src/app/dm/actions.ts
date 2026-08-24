@@ -106,6 +106,15 @@ export async function toggleMessageReaction(
     await prisma.messageReaction.delete({ where: { id: existing.id } });
     return { ok: true, active: false };
   }
-  await prisma.messageReaction.create({ data: { messageId, userId: me, emoji } });
+  try {
+    await prisma.messageReaction.create({ data: { messageId, userId: me, emoji } });
+  } catch (err) {
+    // P2003 FK violation: the message was unsent between our check and the
+    // insert. The right outcome is a graceful no-op, not a thrown error.
+    if ((err as { code?: string }).code === "P2003") {
+      return { ok: true, active: false };
+    }
+    throw err;
+  }
   return { ok: true, active: true };
 }
