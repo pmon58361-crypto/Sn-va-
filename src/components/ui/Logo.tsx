@@ -1,9 +1,9 @@
 import Link from "next/link";
 
 /**
- * Snívať logo — official gradient mark (teal→lime tile, squared-S glyph).
- * Vector lives at /logo.svg; also used as the browser tab icon via
- * src/app/icon.svg. Works identically on dark and light themes.
+ * Snívať logo — official angular-S mark on black (user's original raster).
+ * Lives at /logo.png; also used as the browser tab icon via src/app/icon.png.
+ * The black square reads identically on dark and light themes.
  */
 export function LogoMark({ size = 30 }: { size?: number }) {
   return (
@@ -13,7 +13,7 @@ export function LogoMark({ size = 30 }: { size?: number }) {
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src="/logo.svg"
+        src="/logo.png"
         alt=""
         width={size}
         height={size}
