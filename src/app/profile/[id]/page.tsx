@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/Icons";
 import { CATEGORY_META } from "@/lib/types";
 import { cdnUrl } from "@/lib/cdn";
+import { getStreak } from "@/lib/streak";
 import { Highlights } from "./Highlights";
 
 export const dynamic = "force-dynamic";
@@ -169,7 +170,9 @@ export default async function ProfilePage({
       .trim()
       .toLowerCase()
       .replace(/[^a-z0-9_]+/g, "")
-      .slice(0, 24) || "member");
+       .slice(0, 24) || "member");
+  // Derived streak — real actions only (post/comment/reaction), public data.
+  const streak = await getStreak(user.id);
   // Moderation: visitors don't see hidden posts on a profile; the owner does
   // (so they can fix or delete them). Admins see everything.
   const visiblePosts = isOwner || session?.user?.role === "admin"
@@ -244,8 +247,13 @@ export default async function ProfilePage({
             </p>
 
             {/* Badges — activity-derived, not fake */}
-            {badges.length > 0 && (
+            {(badges.length > 0 || streak.current > 0) && (
               <div className="mt-3 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+                {streak.current > 0 && (
+                  <span className="badge bg-accent/10 text-xs text-accent">
+                    🔥 {streak.current}-day streak
+                  </span>
+                )}
                 {badges.map((b) => (
                   <span
                     key={b}

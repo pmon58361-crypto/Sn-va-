@@ -4,6 +4,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { FollowButton } from "@/components/profile/FollowButton";
 import { getSidebarAd } from "@/lib/ads";
 import { AdCard } from "@/components/ads/AdCard";
+import { getStreak } from "@/lib/streak";
 
 // Right sidebar for the community page. Shows ONLY real data —
 // suggestions, trends, rankings and stats computed from the DB.
@@ -81,6 +82,9 @@ export async function RightSidebar({ viewerId }: { viewerId?: string | null }) {
   const followedIds = new Set(followingRows.map((f) => f.followingId));
   const suggestions = whoToFollow.filter((u) => !followedIds.has(u.id));
 
+  // Viewer's derived streak — real actions only (post/comment/reaction).
+  const streak = viewerId ? await getStreak(viewerId) : null;
+
   // Count tag frequency from real data.
   const tagCounts = new Map<string, number>();
   for (const p of tagsResult) {
@@ -99,6 +103,26 @@ export async function RightSidebar({ viewerId }: { viewerId?: string | null }) {
   return (
     <aside className="sticky top-0 hidden h-screen w-72 shrink-0 flex-col gap-6 overflow-y-auto border-l border-line px-5 py-6 xl:flex">
       {sidebarAd && <AdCard ad={sidebarAd} variant="sidebar" />}
+
+      {/* Your streak — derived from real activity, shown only when it exists */}
+      {streak && streak.current > 0 && (
+        <div className="rounded-xl border border-accent/30 bg-accent/5 p-4">
+          <h3 className="mb-1 text-xs font-semibold uppercase tracking-wider text-ink-faint">
+            Your streak
+          </h3>
+          <p className="text-2xl font-black text-ink">
+            <span aria-hidden>🔥</span> {streak.current}
+            <span className="ml-1 text-sm font-semibold text-ink-muted">
+              day{streak.current === 1 ? "" : "s"}
+            </span>
+          </p>
+          <p className="mt-1 text-xs text-ink-muted">
+            {streak.activeToday
+              ? "Active today — streak safe."
+              : "No activity today yet — post, comment, or react to keep it alive."}
+          </p>
+        </div>
+      )}
 
       {/* Who to follow */}
       <div>
