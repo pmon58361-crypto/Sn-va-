@@ -12,7 +12,47 @@ export type HighlightPreview = {
   items: { id: string; imageUrl: string }[];
 };
 
-const CIRCLE = "h-16 w-16 sm:h-[72px] sm:w-[72px]";
+const CIRCLE = "h-20 w-20";
+
+// ── Thumbnail with graceful degradation ────────────────────────────────────
+// coverUrl → first item image → letter-on-gradient. Dead Cloudinary/local
+// URLs (destroyed assets, missing files) must never show a broken-image
+// glyph — each <img> that fails advances the fallback chain.
+function HighlightThumb({
+  title,
+  coverUrl,
+  items,
+}: {
+  title: string;
+  coverUrl: string | null;
+  items: { id: string; imageUrl: string }[];
+}) {
+  const [stage, setStage] = useState(0);
+  const src =
+    stage === 0 ? coverUrl : stage === 1 ? (items[0]?.imageUrl ?? null) : null;
+
+  if (!src) {
+    return (
+      <span
+        className={`grid ${CIRCLE} place-items-center rounded-full bg-gradient-to-tr from-accent to-like p-[3px]`}
+      >
+        <span className="grid h-full w-full place-items-center rounded-full bg-bg text-xl font-bold text-ink">
+          {(title || "•").charAt(0).toUpperCase()}
+        </span>
+      </span>
+    );
+  }
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      key={src}
+      src={cdnUrl(src, 160)}
+      alt=""
+      onError={() => setStage((s) => s + 1)}
+      className={`${CIRCLE} rounded-full border border-line object-cover`}
+    />
+  );
+}
 
 // Instagram-style highlights row: dashed "New" circle (owner) + one circle
 // per highlight. Click a circle to view its photos; click New to build one.
@@ -34,14 +74,14 @@ export function Highlights({
         {isOwner && (
           <button
             onClick={() => setCreating(true)}
-            className="flex w-[68px] shrink-0 flex-col items-center gap-1.5"
+            className="flex w-[84px] shrink-0 flex-col items-center gap-1.5"
           >
             <span
               className={`grid ${CIRCLE} place-items-center rounded-full border-2 border-dashed border-line-strong text-2xl font-light text-ink-muted transition hover:border-accent hover:text-accent`}
             >
               +
             </span>
-            <span className="w-full truncate text-center text-xs text-ink-secondary">
+            <span className="w-full truncate text-center text-[13px] text-ink-secondary">
               New
             </span>
           </button>
@@ -51,22 +91,11 @@ export function Highlights({
           <button
             key={h.id}
             onClick={() => setViewing(h)}
-            className="flex w-[68px] shrink-0 flex-col items-center gap-1.5"
+            className="flex w-[84px] shrink-0 flex-col items-center gap-1.5"
           >
-            {h.coverUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={cdnUrl(h.coverUrl, 160)}
-                alt=""
-                className={`${CIRCLE} rounded-full border border-line object-cover`}
-              />
-            ) : (
-              <span className={`grid ${CIRCLE} place-items-center rounded-full bg-surface-hover text-lg font-bold`}>
-                {h.title.charAt(0).toUpperCase()}
-              </span>
-            )}
-            <span className="w-full truncate text-center text-xs text-ink-secondary">
-              {h.title}
+            <HighlightThumb title={h.title} coverUrl={h.coverUrl} items={h.items} />
+            <span className="w-full truncate text-center text-[13px] text-ink-secondary">
+              {h.title || "Untitled"}
             </span>
           </button>
         ))}

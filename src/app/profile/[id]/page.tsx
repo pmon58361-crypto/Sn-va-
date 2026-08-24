@@ -11,9 +11,10 @@ import {
   MapPinIcon,
   MailIcon,
   CalendarIcon,
-  SettingsIcon,
   PlusIcon,
   BookIcon,
+  HeartIcon,
+  MessageIcon,
 } from "@/components/ui/Icons";
 import { CATEGORY_META } from "@/lib/types";
 import { cdnUrl } from "@/lib/cdn";
@@ -134,14 +135,20 @@ export default async function ProfilePage({
   }
 
   // Independent reads — single round-trip wave.
-  const [viewerIsFollowing, highlightRows] = await Promise.all([
+  const [viewerIsFollowing, highlightRows, activeStoryRow] = await Promise.all([
     isFollowing(session?.user?.id, user.id),
     prisma.highlight.findMany({
       where: { userId: id },
       orderBy: { createdAt: "desc" },
       include: { items: { select: { id: true, imageUrl: true } } },
     }),
+    // Drives the gradient ring on the avatar — same live-window rule as rail.
+    prisma.story.findFirst({
+      where: { authorId: id, expiresAt: { gt: new Date() } },
+      select: { id: true },
+    }),
   ]);
+  const hasActiveStory = !!activeStoryRow;
   const highlights = highlightRows.map((h) => ({
     id: h.id,
     title: h.title,
@@ -159,10 +166,6 @@ export default async function ProfilePage({
     ? user.posts
     : user.posts.filter((p) => !p.hidden);
   const badges = deriveBadges(visiblePosts.map((p) => p.category));
-  const reactionTotal = visiblePosts.reduce(
-    (sum, p) => sum + p._count.reactions,
-    0
-  );
 
   // Real filter tabs — the active tab actually filters the grid below.
   const activeTab = ["posts", "work", "photos"].includes(tab || "")
@@ -180,128 +183,152 @@ export default async function ProfilePage({
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-8">
-      {/* ───────────── Profile header card ───────────── */}
-      <section className="card overflow-hidden">
-        {/* Soft accent-tinted banner */}
-        <div
-          className="h-24 w-full"
-          style={{
-            background: `linear-gradient(120deg, rgba(var(--accent-rgb), 0.22) 0%, transparent 55%), var(--bg-elevated)`,
-          }}
-        />
-
-        <div className="px-5 pb-5 sm:px-6">
-          {/* Avatar overlapping the banner */}
-          <div className="-mt-12 mb-4">
-            <span className="inline-block rounded-full border-4 border-[var(--bg-elevated)] shadow-lg">
-              <Avatar name={user.name} image={user.image} size={96} />
-            </span>
+      {/* ───────────── Profile header card (IG-style) ───────────── */}
+      <section className="card px-5 py-6 sm:px-7">
+        <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-start sm:gap-7">
+          {/* Avatar left — gradient ring while an active story exists */}
+          <div className="shrink-0">
+            {hasActiveStory ? (
+              <span className="inline-block rounded-full bg-gradient-to-tr from-accent to-like p-[4px]">
+                <span className="inline-block rounded-full border-[3px] border-[var(--bg-elevated)] shadow-lg">
+                  <Avatar name={user.name} image={user.image} size={140} />
+                </span>
+              </span>
+            ) : (
+              <span className="inline-block rounded-full border-2 border-line-strong shadow-lg">
+                <Avatar name={user.name} image={user.image} size={144} />
+              </span>
+            )}
           </div>
 
-          {/* Name + handle | actions */}
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div className="min-w-0">
+          {/* Identity column right of the avatar */}
+          <div className="min-w-0 flex-1 text-center sm:text-left">
+            {/* Name + handle on one line */}
+            <div className="flex flex-wrap items-baseline justify-center gap-x-3 gap-y-1 sm:justify-start">
               <h1 className="truncate text-2xl font-bold leading-tight text-ink">
                 {user.name || "Anonymous"}
               </h1>
-              <p className="mt-0.5 text-sm text-ink-faint">{handle}</p>
-
-              {/* Badges — activity-derived, not fake */}
-              {badges.length > 0 && (
-                <div className="mt-2.5 flex flex-wrap items-center gap-2">
-                  {badges.map((b) => (
-                    <span
-                      key={b}
-                      className="badge bg-accent/10 text-xs text-accent"
-                    >
-                      {b}
-                    </span>
-                  ))}
-                </div>
-              )}
+              <span className="truncate text-sm text-ink-faint">{handle}</span>
             </div>
 
-            <div className="flex shrink-0 items-center gap-2">
-              {isOwner ? (
-                <>
-                  <Link
-                    href="/bookmarks"
-                    aria-label="Saved posts"
-                    title="Saved posts"
-                    className="btn-outline grid h-10 w-10 place-items-center px-0"
+            {/* Inline stats — posts · followers · following */}
+            <p className="mt-3 flex items-center justify-center gap-2 text-sm text-ink-muted sm:justify-start">
+              <span>
+                <b className="font-semibold text-ink">{visiblePosts.length}</b>{" "}
+                posts
+              </span>
+              <span aria-hidden>·</span>
+              <span>
+                <b className="font-semibold text-ink">
+                  {user._count.followers}
+                </b>{" "}
+                followers
+              </span>
+              <span aria-hidden>·</span>
+              <span>
+                <b className="font-semibold text-ink">
+                  {user._count.following}
+                </b>{" "}
+                following
+              </span>
+            </p>
+
+            {/* Badges — activity-derived, not fake */}
+            {badges.length > 0 && (
+              <div className="mt-3 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+                {badges.map((b) => (
+                  <span
+                    key={b}
+                    className="badge bg-accent/10 text-xs text-accent"
                   >
-                    <BookIcon className="h-4 w-4" />
-                  </Link>
-                  <Link
-                    href="/settings"
-                    aria-label="Settings"
-                    title="Settings"
-                    className="btn-outline grid h-10 w-10 place-items-center px-0"
-                  >
-                    <SettingsIcon className="h-4 w-4" />
-                  </Link>
-                  <Link
-                    href="/archive"
-                    className="btn-outline flex items-center justify-center gap-2 px-4 py-2 text-sm"
-                  >
-                    View archive
-                  </Link>
-                </>
-              ) : isPublic ? (
-                <FollowButton
-                  targetUserId={user.id}
-                  following={viewerIsFollowing}
-                />
-              ) : (
-                <span className="badge shrink-0 bg-accent-tint px-4 py-2 text-accent">
-                  Member
+                    {b}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Bio */}
+            {user.bio ? (
+              <p className="mt-3 whitespace-pre-wrap text-[15px] leading-relaxed text-ink-soft">
+                {user.bio}
+              </p>
+            ) : isOwner ? (
+              <p className="mt-3 text-sm text-ink-faint">
+                No bio yet.{" "}
+                <Link href="/settings" className="text-accent hover:underline">
+                  Add one
+                </Link>
+                .
+              </p>
+            ) : null}
+
+            {/* Meta row */}
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm text-ink-muted sm:justify-start">
+              {user.location && (
+                <span className="inline-flex items-center gap-1.5">
+                  <MapPinIcon className="h-4 w-4" />
+                  {user.location}
                 </span>
               )}
+              {settings?.showEmail && (
+                <span className="inline-flex items-center gap-1.5">
+                  <MailIcon className="h-4 w-4" />
+                  {user.email}
+                </span>
+              )}
+              <span className="inline-flex items-center gap-1.5">
+                <CalendarIcon className="h-4 w-4" />
+                Joined {joinDate}
+              </span>
             </div>
-          </div>
-
-          {/* Bio — prominent, left-aligned under identity */}
-          {user.bio ? (
-            <p className="mt-4 whitespace-pre-wrap text-[15px] leading-relaxed text-ink-soft">
-              {user.bio}
-            </p>
-          ) : isOwner ? (
-            <p className="mt-4 text-sm text-ink-faint">
-              No bio yet.{" "}
-              <Link href="/settings" className="text-accent hover:underline">
-                Add one
-              </Link>
-              .
-            </p>
-          ) : null}
-
-          {/* Meta row */}
-          <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-ink-muted">
-            {user.location && (
-              <span className="inline-flex items-center gap-1.5">
-                <MapPinIcon className="h-4 w-4" />
-                {user.location}
-              </span>
-            )}
-            {settings?.showEmail && (
-              <span className="inline-flex items-center gap-1.5">
-                <MailIcon className="h-4 w-4" />
-                {user.email}
-              </span>
-            )}
-            <span className="inline-flex items-center gap-1.5">
-              <CalendarIcon className="h-4 w-4" />
-              Joined {joinDate}
-            </span>
           </div>
         </div>
 
-        {/* Stats strip — divided footer of the header card */}
-        <div className="grid grid-cols-2 divide-x divide-y divide-line border-t border-line bg-[var(--bg-soft)] py-4 sm:grid-cols-4 sm:divide-y-0">
-          <Stat label="Posts" value={user._count.posts} />
-          <Stat label="Following" value={user._count.following} />
-          <Stat label="Followers" value={user._count.followers} />
-          <Stat label="Reactions" value={reactionTotal} />
+        {/* Action row — full-width buttons, IG style */}
+        <div className="mt-5 flex items-center gap-2 border-t border-line pt-4">
+          {isOwner ? (
+            <>
+              <Link
+                href="/settings"
+                className="btn-outline flex flex-1 items-center justify-center px-4 py-2 text-sm"
+              >
+                Edit profile
+              </Link>
+              <Link
+                href="/archive"
+                className="btn-outline flex flex-1 items-center justify-center px-4 py-2 text-sm"
+              >
+                View archive
+              </Link>
+              <Link
+                href="/bookmarks"
+                aria-label="Saved posts"
+                title="Saved posts"
+                className="btn-outline grid h-10 w-10 shrink-0 place-items-center px-0"
+              >
+                <BookIcon className="h-4 w-4" />
+              </Link>
+            </>
+          ) : isPublic ? (
+            <>
+              <FollowButton
+                targetUserId={user.id}
+                following={viewerIsFollowing}
+                className="!flex-1 !py-2 text-center"
+              />
+              <Link
+                href={`/dm/${user.id}`}
+                className="btn-outline flex shrink-0 items-center justify-center gap-2 px-5 py-2 text-sm"
+              >
+                <MessageIcon className="h-4 w-4" />
+                Message
+              </Link>
+            </>
+          ) : (
+            <span className="badge bg-accent-tint px-4 py-2 text-accent">
+              Member
+            </span>
+          )}
         </div>
       </section>
 
@@ -372,18 +399,6 @@ export default async function ProfilePage({
   );
 }
 
-// ── Stat cell inside the divided strip ──
-function Stat({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="text-center">
-      <div className="text-xl font-bold tabular-nums text-ink">{value}</div>
-      <div className="text-[11px] uppercase tracking-wider text-ink-faint">
-        {label}
-      </div>
-    </div>
-  );
-}
-
 // ── Filter tab ──
 function FilterTab({
   label,
@@ -434,6 +449,7 @@ type GridPost = {
   category: string;
   createdAt: Date;
   images: { id: string; url: string; order: number }[];
+  _count?: { comments: number; reactions: number };
 };
 
 // Detail pages live in different sections per category — linking everything
@@ -452,63 +468,63 @@ function relativeDate(d: Date): string {
   return d.toLocaleDateString(undefined, { month: "short", year: "numeric" });
 }
 
+// IG-style uniform square grid — every post is one cell. Image posts show
+// their first photo; text posts get a styled mini-card. Hover/focus reveals
+// real engagement counts (reactions · comments).
 function PostGrid({ posts }: { posts: GridPost[] }) {
-  const withImages = posts.filter((p) => p.images.length > 0);
-  const textOnly = posts.filter((p) => p.images.length === 0);
-
   return (
-    <div className="space-y-8">
-      {withImages.length > 0 && (
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
-          {withImages.map((p) => (
-            <Link
-              key={p.id}
-              href={postHref(p)}
-              className="group relative aspect-square overflow-hidden rounded-xl border border-line bg-soft"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
+    <div className="grid grid-cols-3 gap-1 sm:gap-2">
+      {posts.map((p) => {
+        const meta = CATEGORY_META[p.category as keyof typeof CATEGORY_META];
+        const img = p.images[0];
+        return (
+          <Link
+            key={p.id}
+            href={postHref(p)}
+            className="group relative aspect-square overflow-hidden rounded-lg border border-line bg-soft"
+          >
+            {img ? (
+              // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={cdnUrl(p.images[0].url, 480)}
+                src={cdnUrl(img.url, 480)}
                 alt={p.title}
-                className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                 loading="lazy"
+                className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-              <p className="absolute bottom-0 left-0 right-0 truncate p-3 text-xs font-medium text-white opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                {p.title}
-              </p>
-            </Link>
-          ))}
-        </div>
-      )}
-
-      {textOnly.length > 0 && (
-        <div className="space-y-3">
-          {textOnly.map((p) => {
-            const meta =
-              CATEGORY_META[p.category as keyof typeof CATEGORY_META];
-            return (
-              <Link
-                key={p.id}
-                href={postHref(p)}
-                className="card card-hover group block p-5"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <h3 className="truncate text-base font-semibold text-ink transition-colors group-hover:text-accent">
-                    {p.title}
-                  </h3>
-                  <span className="badge shrink-0 bg-accent/10 text-xs text-accent">
-                    {meta?.label || p.category}
-                  </span>
-                </div>
-                <p className="mt-1 text-xs text-ink-faint">
+            ) : (
+              <span className="absolute inset-0 flex flex-col justify-between bg-surface p-3 text-left">
+                <span className="badge w-fit bg-accent/10 text-[10px] uppercase tracking-wide text-accent">
+                  {meta?.label || p.category}
+                </span>
+                <span
+                  className="text-sm font-semibold leading-snug text-ink"
+                  style={{
+                    display: "-webkit-box",
+                    WebkitLineClamp: 3,
+                    WebkitBoxOrient: "vertical",
+                    overflow: "hidden",
+                  }}
+                >
+                  {p.title}
+                </span>
+                <span className="text-[11px] text-ink-faint">
                   {relativeDate(p.createdAt)}
-                </p>
-              </Link>
-            );
-          })}
-        </div>
-      )}
+                </span>
+              </span>
+            )}
+            <div className="absolute inset-0 z-10 flex items-center justify-center gap-5 bg-black/60 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+              <span className="flex items-center gap-1.5 font-semibold text-white">
+                <HeartIcon className="h-5 w-5" />
+                {p._count?.reactions ?? 0}
+              </span>
+              <span className="flex items-center gap-1.5 font-semibold text-white">
+                <MessageIcon className="h-5 w-5" />
+                {p._count?.comments ?? 0}
+              </span>
+            </div>
+          </Link>
+        );
+      })}
     </div>
   );
 }
