@@ -46,8 +46,11 @@ npm run check           # tsc --noEmit + e2e suite + production HTTP smoke
 
 ## Last full run
 
-2026-08-25 ~01:00 local, against local main `baa46d3`:
-10 passed, 2 skipped (documented `test.fixme`), 0 failed, ~4.6 min.
+2026-08-25 ~02:30 local, against local main `dfe6f27`:
+19/19 passed, 0 failed, ~7 min. Specs: auth, feed, interests, dm, ads,
+people, settings, jobs, social (bookmarks + notifications), upload,
+install-prompt, smoke (incl. 404 + brand assets). OAuth providers are
+deliberately out of scope (they need real credentials).
 
 ## Known exclusions (pending application fixes)
 
