@@ -13,7 +13,7 @@ import {
 } from "./actions";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Moderation — Snívať" };
+export const metadata = { title: "Moderation", robots: { index: false } };
 
 export default async function AdminPage() {
   const session = await auth();

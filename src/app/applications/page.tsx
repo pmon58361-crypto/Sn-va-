@@ -6,7 +6,8 @@ import { auth } from "@/auth";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 
-export const metadata = { title: "Job Applications — Snívať" };
+export const metadata = { title: "Job Applications",
+  description: "Browse open job listings and apply with a single message." };
 export const dynamic = "force-dynamic";
 
 export default async function ApplicationsPage({

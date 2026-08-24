@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Terms of Service — Snívať",
+  title: "Terms of Service",
+  description:
+    "The short, readable rules for using Snívať — accounts, content and conduct.",
 };
 
 // NOTE FOR THE OWNER: this is honest boilerplate tailored to what Snívať

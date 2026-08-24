@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy — Snívať",
+  title: "Privacy Policy",
+  description: "What Snívať collects, what it never does, and how your data is treated.",
 };
 
 // NOTE FOR THE OWNER: honest boilerplate matching actual behavior. Lawyer

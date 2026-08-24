@@ -8,7 +8,7 @@ import { timeAgo } from "@/lib/utils";
 import { DmTitleBadge } from "./DmTitleBadge";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "DMs — Snívať" };
+export const metadata = { title: "DMs", robots: { index: false } };
 
 export default async function DmPage() {
   const session = await auth();

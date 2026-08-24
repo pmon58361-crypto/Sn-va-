@@ -7,7 +7,7 @@ import { CATEGORY_META } from "@/lib/types";
 import { timeAgo } from "@/lib/utils";
 import { CreatorAnalytics } from "@/components/dashboard/CreatorAnalytics";
 
-export const metadata = { title: "Dashboard — Snívať" };
+export const metadata = { title: "Dashboard", robots: { index: false } };
 export const dynamic = "force-dynamic";
 
 const RANGES: { id: string; days: number; label: string }[] = [

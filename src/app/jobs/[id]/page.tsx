@@ -21,7 +21,7 @@ export async function generateMetadata({
     content: post.content,
     imageUrl: post.images[0]?.url,
     hidden: post.hidden,
-  });
+  }, `/jobs/${id}`);
 }
 
 export default async function JobDetailPage({

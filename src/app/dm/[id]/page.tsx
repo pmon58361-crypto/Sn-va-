@@ -6,19 +6,21 @@ import { DmThread } from "@/components/dm/DmThread";
 
 export const dynamic = "force-dynamic";
 
-// Per-conversation tab title: "DM with <name> — Snívať".
+// Per-conversation tab title: "DM with <name>" (template appends the brand).
 export async function generateMetadata({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
+  // DMs are private conversations — never index them.
+  const noindex = { robots: { index: false } } as const;
   const { id } = await params;
   try {
     const { getUserBrief } = await import("@/lib/dm");
     const other = await getUserBrief(id);
-    if (other?.name) return { title: `DM with ${other.name} — Snívať` };
+    if (other?.name) return { title: `DM with ${other.name}`, ...noindex };
   } catch {}
-  return { title: "DMs — Snívať" };
+  return { title: "DMs", ...noindex };
 }
 
 export default async function DmThreadPage({

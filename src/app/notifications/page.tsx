@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { Avatar } from "@/components/ui/Avatar";
 import { timeAgo } from "@/lib/utils";
 
-export const metadata = { title: "Notifications — Snívať" };
+export const metadata = { title: "Notifications", robots: { index: false } };
 export const dynamic = "force-dynamic";
 
 function postHref(category: string, postId: string) {

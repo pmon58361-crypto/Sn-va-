@@ -12,7 +12,8 @@ import { getFeedAd } from "@/lib/ads";
 import { AdCard } from "@/components/ads/AdCard";
 import Link from "next/link";
 
-export const metadata = { title: "Community — Snívať" };
+export const metadata = { title: "Community",
+  description: "Share progress, ask questions and keep up with people building in public." };
 export const dynamic = "force-dynamic";
 
 const PAGE_SIZE = 50;

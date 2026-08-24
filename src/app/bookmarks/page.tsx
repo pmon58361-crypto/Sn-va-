@@ -4,7 +4,7 @@ import { getBookmarkedPosts } from "@/lib/social";
 import { PostCard } from "@/components/posts/PostCard";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Bookmarks — Snívať" };
+export const metadata = { title: "Bookmarks", robots: { index: false } };
 
 export default async function BookmarksPage() {
   const session = await auth();

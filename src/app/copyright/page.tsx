@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Copyright / DMCA — Snívať",
+  title: "Copyright / DMCA",
+  description: "How to report copyrighted content or file a takedown request on Snívať.",
 };
 
 // NOTE FOR THE OWNER: simple notice + takedown process routed through the
