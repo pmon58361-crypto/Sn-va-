@@ -20,6 +20,8 @@ export async function RightSidebar({ viewerId }: { viewerId?: string | null }) {
     openListings,
     applicantsThisWeek,
     memberCount,
+    liveNotes,
+    photoStories,
   ] = await Promise.all([
     prisma.post.findMany({
       take: 100,
@@ -65,6 +67,14 @@ export async function RightSidebar({ viewerId }: { viewerId?: string | null }) {
     // this slot tracks hiring activity only.
     prisma.application.count({ where: { createdAt: { gte: weekAgo } } }),
     prisma.user.count(),
+    // Notes vs photo stories — separate numbers, same live window the rail
+    // uses (expiresAt in the future). Notes are text-only (no upload).
+    prisma.story.count({
+      where: { expiresAt: { gt: new Date() }, imageUrl: null },
+    }),
+    prisma.story.count({
+      where: { expiresAt: { gt: new Date() }, imageUrl: { not: null } },
+    }),
   ]);
 
   // Exclude people already followed from suggestions.
@@ -208,6 +218,8 @@ export async function RightSidebar({ viewerId }: { viewerId?: string | null }) {
           <Stat label="open jobs" value={openListings} />
           <Stat label="applicants" value={applicantsThisWeek} />
           <Stat label="members" value={memberCount} />
+          <Stat label="live notes" value={liveNotes} />
+          <Stat label="photo stories" value={photoStories} />
         </dl>
       </div>
     </aside>

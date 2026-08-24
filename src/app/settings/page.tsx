@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { Avatar } from "@/components/ui/Avatar";
@@ -108,6 +109,22 @@ export default async function SettingsPage() {
         interests={parseTags(s?.interests)}
         suggestions={topTags.map(([t]) => t)}
       />
+
+      {/* Admin-only — ad management moved here from the Moderation header.
+          Hidden for every non-admin session. */}
+      {session.user.role === "admin" && (
+        <section className="card mt-8 flex items-center justify-between gap-3 px-5 py-4">
+          <div>
+            <h2 className="text-sm font-bold text-ink">Admin</h2>
+            <p className="text-xs text-ink-muted">
+              Manage ad campaigns across the site.
+            </p>
+          </div>
+          <Link href="/admin/ads" className="btn-outline shrink-0">
+            Manage ads →
+          </Link>
+        </section>
+      )}
     </div>
   );
 }

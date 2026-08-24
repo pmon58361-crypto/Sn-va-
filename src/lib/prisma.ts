@@ -84,3 +84,26 @@ const globalForPrisma = globalThis as unknown as {
 export const prisma = globalForPrisma.prisma ?? makeClient();
 
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+
+// Explicit retry for IDEMPOTENT writes only (upserts keyed by unique
+// constraints, updateMany with fixed payloads, deletes). Replay is safe:
+// a retried upsert converges to the same row state. Never wrap
+// create/delete-once flows whose replay would duplicate or destroy.
+export async function withIdempotentWriteRetry<T>(fn: () => Promise<T>): Promise<T> {
+  let attempt = 0;
+  for (;;) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (!isTransient(err) || attempt >= MAX_RETRIES) throw err;
+      attempt += 1;
+      const delay = BASE_DELAY_MS + Math.random() * JITTER_MS;
+      console.warn(
+        `[prisma-retry] idempotent write transient failure (${
+          (err as { code?: string }).code ?? "init"
+        }), retry ${attempt}/${MAX_RETRIES} in ${Math.round(delay)}ms`
+      );
+      await sleep(delay);
+    }
+  }
+}

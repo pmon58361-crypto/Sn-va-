@@ -5,7 +5,12 @@ import { prisma } from "@/lib/prisma";
 export async function getConversations(meId: string) {
   const messages = await prisma.message.findMany({
     where: {
-      OR: [{ senderId: meId }, { recipientId: meId }],
+      // Deactivated counterparts drop out of the list entirely (their
+      // relation arm is filtered on each side of the OR).
+      OR: [
+        { senderId: meId, recipient: { deactivatedAt: null } },
+        { recipientId: meId, sender: { deactivatedAt: null } },
+      ],
     },
     orderBy: { createdAt: "desc" },
     take: 500,
@@ -91,7 +96,7 @@ export async function getMessageableUsers(meId: string) {
   const existing = new Set(convos.map((c) => c.other.id));
 
   const users = await prisma.user.findMany({
-    where: { id: { notIn: [meId, ...Array.from(existing)] } },
+    where: { id: { notIn: [meId, ...Array.from(existing)] }, deactivatedAt: null },
     select: { id: true, name: true, image: true },
     orderBy: { createdAt: "desc" },
     take: 20,

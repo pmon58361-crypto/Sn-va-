@@ -158,15 +158,7 @@ export default async function AdminPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
       <header className="mb-6">
-        <div className="flex items-center justify-between gap-3">
-          <h1 className="text-xl font-bold text-ink">Moderation</h1>
-          <Link
-            href="/admin/ads"
-            className="text-sm font-medium text-accent transition hover:underline"
-          >
-            Manage ads →
-          </Link>
-        </div>
+        <h1 className="text-xl font-bold text-ink">Moderation</h1>
         <p className="text-sm text-ink-muted">
           Reports from the community. Nothing is automatic beyond the hide
           threshold — you decide what stays.
