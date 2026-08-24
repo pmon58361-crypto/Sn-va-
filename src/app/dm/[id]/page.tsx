@@ -6,6 +6,21 @@ import { DmThread } from "@/components/dm/DmThread";
 
 export const dynamic = "force-dynamic";
 
+// Per-conversation tab title: "DM with <name> — Snívať".
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  try {
+    const { getUserBrief } = await import("@/lib/dm");
+    const other = await getUserBrief(id);
+    if (other?.name) return { title: `DM with ${other.name} — Snívať` };
+  } catch {}
+  return { title: "DMs — Snívať" };
+}
+
 export default async function DmThreadPage({
   params,
 }: {

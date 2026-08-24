@@ -6,6 +6,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { timeAgo } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
+export const metadata = { title: "DMs — Snívať" };
 
 export default async function DmPage() {
   const session = await auth();
