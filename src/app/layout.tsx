@@ -5,7 +5,6 @@ import { Inter, Instrument_Serif } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Navbar } from "@/components/layout/Navbar";
-import { Footer } from "@/components/layout/Footer";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { InstallPrompt } from "@/components/pwa/InstallPrompt";
@@ -106,7 +105,6 @@ export default function RootLayout({
                 pushing hero content off-screen. */}
             <main className="relative min-h-screen min-w-0 flex-1 pb-20 lg:pb-0">{children}</main>
           </div>
-          <Footer />
           <BottomNav />
           <InstallPrompt />
           <ServiceWorkerRegister />
