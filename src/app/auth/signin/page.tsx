@@ -1,5 +1,7 @@
 import { SignInForm } from "./SignInForm";
 
+export const metadata = { title: "Sign in" };
+
 // Only OAuth providers with credentials in env are offered — clicking an
 // unconfigured provider would error at runtime. Demo credentials login is
 // always available (the credentials provider is always registered).

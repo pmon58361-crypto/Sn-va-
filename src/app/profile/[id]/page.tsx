@@ -344,7 +344,7 @@ export default async function ProfilePage({
           <p className="text-sm text-ink-muted">
             {isOwner
               ? "You haven't posted yet. Share something with the community."
-              : "No posts yet."}
+              : "Nothing shared yet."}
           </p>
           {isOwner && (
             <Link href="/new" className="btn-primary mt-5">

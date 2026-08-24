@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { getBookmarkedPosts } from "@/lib/social";
 import { PostCard } from "@/components/posts/PostCard";
 
+export const metadata = { title: "Bookmarks" };
 export const dynamic = "force-dynamic";
 
 export default async function BookmarksPage() {

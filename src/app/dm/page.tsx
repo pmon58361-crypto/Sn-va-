@@ -5,6 +5,7 @@ import { getConversations, getMessageableUsers } from "@/lib/dm";
 import { Avatar } from "@/components/ui/Avatar";
 import { timeAgo } from "@/lib/utils";
 
+export const metadata = { title: "Messages" };
 export const dynamic = "force-dynamic";
 
 export default async function DmPage() {
