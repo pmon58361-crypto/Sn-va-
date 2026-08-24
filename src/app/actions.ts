@@ -136,7 +136,8 @@ export async function deletePost(id: string) {
     },
   });
   if (!post) throw new Error("Not found");
-  if (post.authorId !== me.id) throw new Error("Forbidden");
+  // Admins may remove any post (moderation); everyone else is owner-only.
+  if (post.authorId !== me.id && me.role !== "admin") throw new Error("Forbidden");
 
   await prisma.post.delete({ where: { id } });
   await destroyAssets(post.images.map((i) => i.url));

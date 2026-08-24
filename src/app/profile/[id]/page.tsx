@@ -97,10 +97,12 @@ export default async function ProfilePage({
   const settings = user.settings;
   const isPublic = settings?.publicProfile ?? true;
   const isOwner = session?.user?.id === user.id;
+  const isAdmin = session?.user?.role === "admin";
 
   // Private profiles show nothing but the identity card to other viewers —
-  // no bio, location, email, stats, or posts.
-  if (!isPublic && !isOwner) {
+  // no bio, location, email, stats, or posts. Admins bypass the wall for
+  // moderation review.
+  if (!isPublic && !isOwner && !isAdmin) {
     return (
       <div className="mx-auto max-w-3xl px-5 py-16">
         <div className="card p-12 text-center">
