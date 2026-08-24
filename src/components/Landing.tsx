@@ -17,8 +17,8 @@ const NAV = [
 ];
 
 // Single conversion entry — every sign-up CTA routes through this constant.
-// When open registration ships, repoint ONLY this line (e.g. "/auth/register").
-const AUTH_ENTRY = "/auth/signin";
+// ?mode=create opens the registration tab (SignInForm reads it).
+const AUTH_ENTRY = "/auth/signin?mode=create";
 
 function catVerb(category: string) {
   switch (category) {
