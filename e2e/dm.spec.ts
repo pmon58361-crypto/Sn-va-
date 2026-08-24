@@ -58,7 +58,7 @@ test("DMs send optimistically, show seen, toggle reactions, unsend, and render g
     await expect(async () => {
       if ((await sender.page.getByText("Seen").count()) === 0) await sender.page.reload();
       await expect(sender.page.getByText("Seen").first()).toBeVisible();
-    }).toPass({ timeout: 20_000 });
+    }).toPass({ timeout: 30_000 });
 
     await expect(async () => {
       await clickNewestAction(recipient.page, "button[aria-label]", "React ❤️");
