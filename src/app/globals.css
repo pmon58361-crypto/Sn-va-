@@ -551,3 +551,10 @@ body { overflow-x: clip; }
    Shadow paints outside layout (no overflow change); body overflow-x:clip
    keeps it from creating scrollbars. */
 .page-flood { box-shadow: 0 0 0 200vmax #0a0a0b; }
+
+/* Keyboard focus ring for every interactive element that doesn't opt into
+   the .btn ring — mouse/touch clicks stay ring-free (focus-visible only). */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

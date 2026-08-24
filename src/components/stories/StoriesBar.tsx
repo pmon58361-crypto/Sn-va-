@@ -312,10 +312,13 @@ function StoryViewer({
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
+      else if (e.key === "ArrowRight") next();
+      else if (e.key === "ArrowLeft") prev();
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onClose, index]);
 
   function next() {
     if (index < group.items.length - 1) setIndex((i) => i + 1);
@@ -332,7 +335,12 @@ function StoryViewer({
   if (!item) return null;
 
   return (
-    <div className="fixed inset-0 z-[80] flex flex-col bg-black/95">
+    <div
+      className="fixed inset-0 z-[80] flex flex-col bg-black/95"
+      role="dialog"
+      aria-modal="true"
+      aria-label={`${group.author.name || "Someone"}'s story`}
+    >
       {/* Progress bars */}
       <div className="flex gap-1 px-3 pt-3">
         {group.items.map((_, i) => (

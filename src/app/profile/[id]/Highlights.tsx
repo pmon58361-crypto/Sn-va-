@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createHighlight, deleteHighlight } from "@/app/highlights/actions";
 import { cdnUrl } from "@/lib/cdn";
@@ -148,7 +148,7 @@ function CreateModal({ userId, onClose }: { userId: string; onClose: () => void 
   }
 
   return (
-    <Modal onClose={onClose}>
+    <Modal onClose={onClose} label="New highlight">
       <h3 className="mb-4 text-xl font-extrabold">New highlight</h3>
       <input
         value={title}
@@ -233,7 +233,7 @@ function ViewModal({
   }
 
   return (
-    <Modal onClose={onClose} wide>
+    <Modal onClose={onClose} wide label={highlight.title}>
       <div className="mb-4 flex items-center justify-between">
         <h3 className="text-xl font-extrabold">{highlight.title}</h3>
         {isOwner && (
@@ -272,15 +272,29 @@ function Modal({
   children,
   onClose,
   wide = false,
+  label,
 }: {
   children: React.ReactNode;
   onClose: () => void;
   wide?: boolean;
+  label?: string;
 }) {
+  // Esc closes — keyboard parity with the post lightbox.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
   return (
     <div
       className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 px-4"
       onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label={label}
     >
       <div
         className={`card w-full bg-bg p-5 ${wide ? "max-w-lg" : "max-w-md"}`}
