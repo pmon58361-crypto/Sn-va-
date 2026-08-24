@@ -62,16 +62,19 @@ export function DmThread({
   otherId,
   meId,
   initial,
+  initialDraft,
 }: {
   otherId: string;
   meId: string;
   initial: Msg[];
+  /** Pre-filled composer text (e.g. ?text= from a note quick-reply). */
+  initialDraft?: string;
 }) {
   const [messages, setMessages] = useState<Msg[]>(initial);
   const [reactions, setReactions] = useState<Reaction[]>(
     initial.flatMap((m) => m.reactions ?? [])
   );
-  const [draft, setDraft] = useState("");
+  const [draft, setDraft] = useState(initialDraft ?? "");
   const [sending, setSending] = useState(false);
   // Newest known time the OTHER person read any of my messages ("Seen").
   const [seenAt, setSeenAt] = useState<string | null>(null);

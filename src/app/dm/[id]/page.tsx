@@ -8,10 +8,13 @@ export const dynamic = "force-dynamic";
 
 export default async function DmThreadPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ text?: string }>;
 }) {
   const { id } = await params;
+  const { text } = await searchParams;
   const session = await auth();
   if (!session?.user?.id) redirect(`/auth/signin?callbackUrl=/dm/${id}`);
   const meId = session.user.id;
@@ -57,7 +60,12 @@ export default async function DmThreadPage({
         </Link>
       </div>
 
-      <DmThread otherId={other.id} meId={meId} initial={initial} />
+      <DmThread
+        otherId={other.id}
+        meId={meId}
+        initial={initial}
+        initialDraft={typeof text === "string" ? text.slice(0, 500) : undefined}
+      />
     </main>
   );
 }
