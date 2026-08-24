@@ -77,10 +77,16 @@ export function InstallPrompt() {
   return (
     <div className="fixed bottom-20 left-4 right-4 z-50 sm:left-auto sm:bottom-6 sm:right-6 lg:bottom-6">
       <div className="mx-auto flex max-w-md items-center gap-3 rounded-2xl border border-line bg-[var(--bg-elevated)] px-4 py-3 shadow-lg sm:mx-0">
-        <span aria-hidden className="h-9 w-9 shrink-0 rounded-full bg-accent" />
+        {/* Real brand mark (black tile + white angular S) */}
+        <img
+          src="/logo.png"
+          alt=""
+          aria-hidden
+          className="h-10 w-10 shrink-0 rounded-xl"
+        />
         <div className="min-w-0 flex-1 text-[13px] leading-tight">
           <p className="font-bold text-ink">Install Snívať</p>
-          <p className="truncate text-muted-ink" style={{ color: "var(--ink-muted)" }}>
+          <p className="truncate text-ink-muted">
             {iosHint ? "Share menu → Add to Home Screen" : "Add to your home screen"}
           </p>
         </div>
@@ -95,8 +101,7 @@ export function InstallPrompt() {
         <button
           onClick={dismiss}
           aria-label="Dismiss"
-          className="shrink-0 rounded-full p-1.5 hover:bg-soft"
-          style={{ color: "var(--ink-muted)" }}
+          className="shrink-0 rounded-full p-1.5 text-ink-muted hover:bg-soft"
         >
           ✕
         </button>
