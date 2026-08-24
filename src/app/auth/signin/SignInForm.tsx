@@ -54,7 +54,11 @@ export function SignInForm({ oauthProviders }: { oauthProviders: string[] }) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<string | null>(null);
   // "signin" = access code / email+password / OAuth · "create" = registration.
-  const [mode, setMode] = useState<"signin" | "create">("signin");
+  // Landing CTAs deep-link with ?mode=create (worker F contract).
+  const searchParams = useSearchParams();
+  const [mode, setMode] = useState<"signin" | "create">(
+    searchParams.get("mode") === "create" ? "create" : "signin"
+  );
 
   // Failed credentials attempts land back here with ?error=... after the
   // full-page redirect — surface a real message instead of a bare URL.
