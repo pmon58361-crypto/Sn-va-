@@ -5,7 +5,12 @@ import { prisma } from "@/lib/prisma";
 // `meId` drives the seen/unseen ring state.
 export async function getActiveStories(meId?: string | null) {
   const stories = await prisma.story.findMany({
-    where: { expiresAt: { gt: new Date() } },
+    where: {
+      expiresAt: { gt: new Date() },
+      // Deactivated authors' stories drop off the rail (their own still
+      // show to them — a signed-in viewer can't be deactivated).
+      author: { deactivatedAt: null },
+    },
     orderBy: { createdAt: "asc" },
     include: {
       author: { select: { id: true, name: true, image: true } },
