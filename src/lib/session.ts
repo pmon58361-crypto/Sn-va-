@@ -19,6 +19,7 @@ export type ActiveUser = {
   id: string;
   email: string;
   role: string;
+  createdAt: Date;
 };
 
 // ADMIN_EMAILS="you@x.com,other@y.com" — listed emails are promoted to
@@ -45,7 +46,7 @@ export async function requireActiveUser(): Promise<ActiveUser> {
 
   const user = await prisma.user.findUnique({
     where: { id },
-    select: { id: true, email: true, role: true, bannedAt: true, deactivatedAt: true },
+    select: { id: true, email: true, role: true, bannedAt: true, deactivatedAt: true, createdAt: true },
   });
   if (!user) throw new Error("Unauthorized");
 
@@ -73,7 +74,7 @@ export async function requireActiveUser(): Promise<ActiveUser> {
     return { ...user, role: "admin" };
   }
 
-  return { id: user.id, email: user.email, role: user.role };
+  return { id: user.id, email: user.email, role: user.role, createdAt: user.createdAt };
 }
 
 export async function requireAdmin(): Promise<ActiveUser> {
