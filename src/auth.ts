@@ -13,6 +13,7 @@ import {
   readFresh,
   readStale,
   writeSessionUser,
+  invalidateSessionCache,
 } from "@/lib/session-cache";
 
 // ── Sign-in throttling (in-memory, per-identifier exponential lockout) ──────
@@ -200,6 +201,10 @@ async function reactivateIfNeeded(
     where: { id: userId },
     data: { deactivatedAt: null },
   });
+  // The 45s session cache may still hold the DEACTIVATED identity — without
+  // this, the freshly reactivated user bounces off write gates until it
+  // expires.
+  invalidateSessionCache(userId);
 }
 
 // Build the list of providers that actually have credentials configured.
