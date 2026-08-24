@@ -9,18 +9,21 @@ export const dynamic = "force-dynamic";
 // Per-conversation tab title: "DM with <name>" (template appends the brand).
 export async function generateMetadata({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ draft?: string; reply?: string; text?: string }>;
 }) {
   // DMs are private conversations — never index them.
   const noindex = { robots: { index: false } } as const;
+  // Per-conversation tab title: "DM with <name> — Snívať".
   const { id } = await params;
   try {
     const { getUserBrief } = await import("@/lib/dm");
     const other = await getUserBrief(id);
-    if (other?.name) return { title: `DM with ${other.name}`, ...noindex };
+    if (other?.name) return { title: `DM with ${other.name} — Snívať`, ...noindex };
   } catch {}
-  return { title: "DMs", ...noindex };
+  return { title: "DMs — Snívať", ...noindex };
 }
 
 export default async function DmThreadPage({
@@ -28,7 +31,7 @@ export default async function DmThreadPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ draft?: string; reply?: string }>;
+  searchParams: Promise<{ draft?: string; reply?: string; text?: string }>;
 }) {
   const { id } = await params;
   const sp = await searchParams;
@@ -40,8 +43,8 @@ export default async function DmThreadPage({
   const other = await getUserBrief(id);
   if (!other) notFound();
 
-  // Story-reply deep links may pre-fill the composer.
-  const initialDraft = (sp.draft || "").slice(0, 2000);
+  // Story-reply / note quick-reply deep links may pre-fill the composer.
+  const initialDraft = (sp.draft || sp.text || "").slice(0, 2000);
 
   const thread = await getThread(meId, id);
   // Opening the thread marks it read.
