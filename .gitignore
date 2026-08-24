@@ -40,3 +40,5 @@ next-env.d.ts
 
 .vercel
 .env*
+# discord-bridge dedupe state
+scripts/discord-bridge/*state*.json
