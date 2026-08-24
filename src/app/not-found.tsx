@@ -3,6 +3,13 @@ import Link from "next/link";
 export default function NotFound() {
   return (
     <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-md flex-col items-center justify-center px-4 text-center">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/logo.png"
+        alt=""
+        aria-hidden
+        className="mb-6 h-20 w-20 rounded-2xl"
+      />
       <p className="text-6xl font-bold text-accent">404</p>
       <h1 className="mt-4 text-xl font-bold text-ink">
         Page not found
