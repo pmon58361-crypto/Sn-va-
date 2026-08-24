@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
-import { prisma } from "@/lib/prisma";
+import { prisma, withIdempotentWriteRetry } from "@/lib/prisma";
 import { createNotification } from "@/lib/notify";
 import { requireActiveUser } from "@/lib/session";
 import { destroyAssets } from "@/lib/storage";
@@ -507,11 +507,15 @@ export async function saveInterests(
     assertClean(tag, "Interest");
   }
 
-  await prisma.settings.upsert({
-    where: { userId: me.id },
-    update: { interests: interests.join(",") },
-    create: { userId: me.id, interests: interests.join(",") },
-  });
+  // Upsert keyed by the unique userId — replay-safe, so transient Neon
+  // connection failures get the same self-heal treatment as reads.
+  await withIdempotentWriteRetry(() =>
+    prisma.settings.upsert({
+      where: { userId: me.id },
+      update: { interests: interests.join(",") },
+      create: { userId: me.id, interests: interests.join(",") },
+    })
+  );
 
   // Interests are session-visible (settings select) — keep cache honest.
   invalidateSessionCache(me.id);

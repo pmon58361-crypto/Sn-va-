@@ -122,8 +122,10 @@ export function PostCard({
         </div>
       )}
 
-      {/* Row 4: Actions */}
-      <div className="flex items-center gap-3 border-t border-line px-4 py-2 sm:px-5 sm:py-2.5">
+      {/* Row 4: Actions — relative z-10 gives the report popover a stacking
+          context above later feed cards, which otherwise intercept its
+          clicks (absolute z-30 alone loses to subsequent siblings). */}
+      <div className="relative z-10 flex items-center gap-3 border-t border-line px-4 py-2 sm:px-5 sm:py-2.5">
         <PostActions
           postId={post.id}
           likes={likes}
