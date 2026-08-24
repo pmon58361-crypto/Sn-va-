@@ -44,8 +44,10 @@ export default async function JobsPage({
         hasBudget: budget === "1" || undefined,
         includeClosed: status === "all",
       }),
-      prisma.post.count({ where: { category: "JOB_OFFER" } }),
-      prisma.post.count({ where: { category: "JOB_REQUEST" } }),
+      // Badges mirror the visible list (open, not hidden) so they never
+      // advertise more inventory than the feed actually shows.
+      prisma.post.count({ where: { category: "JOB_OFFER", hidden: false, status: "open" } }),
+      prisma.post.count({ where: { category: "JOB_REQUEST", hidden: false, status: "open" } }),
       prisma.post.findMany({
         where: { category, type: { not: null } },
         select: { type: true },

@@ -20,6 +20,8 @@ export function InterestPickerModal({
   const [selected, setSelected] = useState<string[]>([]);
   const [custom, setCustom] = useState("");
   const [pending, setPending] = useState(false);
+  const [done, setDone] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   function toggle(tag: string) {
@@ -37,13 +39,20 @@ export function InterestPickerModal({
   async function submit(picks: string[]) {
     if (pending) return;
     setPending(true);
+    setError(null);
     try {
       await saveInterests(picks);
+      // Hide immediately — router.refresh() is only for the feed behind
+      // the sheet and may lag; the user must never see a dead button.
+      setDone(true);
       router.refresh();
     } catch {
       setPending(false);
+      setError("That didn't save. Check your connection and try again.");
     }
   }
+
+  if (done) return null;
 
   return (
     <div
@@ -99,6 +108,10 @@ export function InterestPickerModal({
             Add
           </button>
         </div>
+
+        {error && (
+          <p className="mt-3 text-sm font-medium text-warm">{error}</p>
+        )}
 
         <div className="mt-5 grid grid-cols-[1fr_auto] gap-2">
           <button

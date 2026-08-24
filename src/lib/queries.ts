@@ -393,35 +393,43 @@ function addTo(t: EventTotals, k: keyof EventTotals, n = 1) {
   t[k] += n;
 }
 
-// Pulls every engagement event aimed at this creator's content and buckets it
-// client-computably. Volumes here are small; revisit if that ever changes.
+// Pulls engagement events aimed at this creator's content and buckets them
+// client-computably. Fixed ranges only scan their own window plus the
+// equally-sized previous period (needed for delta comparison); all-time
+// still reads everything. Revisit further if volumes ever demand it.
 export async function getCreatorAnalytics(
   meId: string,
   days: number // 7 | 28 | 0 = all time
 ): Promise<CreatorAnalytics> {
+  const now = Date.now();
+  const DAY = 86_400_000;
+  // start = now - days*DAY, prevStart = start - days*DAY — one bound covers both.
+  const since = days > 0 ? new Date(now - days * DAY * 2) : null;
+  const rangeWhere = since ? { createdAt: { gte: since } } : {};
+
   const [likes, comments, applications, bookmarks, follows] = await Promise.all([
     prisma.reaction.findMany({
-      where: { type: "like", post: { authorId: meId } },
+      where: { type: "like", post: { authorId: meId }, ...rangeWhere },
       select: { createdAt: true },
       orderBy: { createdAt: "asc" },
     }),
     prisma.comment.findMany({
-      where: { post: { authorId: meId } },
+      where: { post: { authorId: meId }, ...rangeWhere },
       select: { createdAt: true },
       orderBy: { createdAt: "asc" },
     }),
     prisma.application.findMany({
-      where: { post: { authorId: meId } },
+      where: { post: { authorId: meId }, ...rangeWhere },
       select: { createdAt: true },
       orderBy: { createdAt: "asc" },
     }),
     prisma.bookmark.findMany({
-      where: { post: { authorId: meId } },
+      where: { post: { authorId: meId }, ...rangeWhere },
       select: { createdAt: true },
       orderBy: { createdAt: "asc" },
     }),
     prisma.follow.findMany({
-      where: { followingId: meId },
+      where: { followingId: meId, ...rangeWhere },
       select: { createdAt: true },
       orderBy: { createdAt: "asc" },
     }),
@@ -435,9 +443,6 @@ export async function getCreatorAnalytics(
     ...bookmarks.map((e) => ({ t: e.createdAt.getTime(), kind: "bookmarks" as const })),
     ...follows.map((e) => ({ t: e.createdAt.getTime(), kind: "followers" as const })),
   ].sort((a, b) => a.t - b.t);
-
-  const now = Date.now();
-  const DAY = 86_400_000;
 
   let start: number;
   if (days > 0) {
