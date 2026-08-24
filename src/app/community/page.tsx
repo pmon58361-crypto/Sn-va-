@@ -1,5 +1,5 @@
 import { Fragment } from "react";
-import { getPosts, getTopTags } from "@/lib/queries";
+import { getPosts, getTopTags, getArchivedCommunityPost } from "@/lib/queries";
 import { PostCard, EmptyState } from "@/components/posts/PostCard";
 import { QuickComposer } from "@/components/posts/QuickComposer";
 import { RightSidebar } from "@/components/layout/RightSidebar";
@@ -65,6 +65,13 @@ export default async function CommunityPage({
 
   // Sponsored feed card: only on substantial feeds, max one, after post #4.
   const feedAd = posts.length >= 10 ? await getFeedAd() : null;
+
+  // "From the archives" — one quality old post, only on unfiltered default
+  // views with a real feed beneath it. Hides itself when the archive is empty.
+  const archivePost =
+    !q && !isFollowing && !validBefore && posts.length >= 6
+      ? await getArchivedCommunityPost(posts.map((p) => p.id))
+      : null;
 
   // Once-per-user onboarding: interests === null means never asked.
   // Answering or skipping writes "" so it never resurfaces.
@@ -166,6 +173,29 @@ export default async function CommunityPage({
                   <PostCard post={p} viewerId={session?.user?.id} showFeedback />
                   {idx === 3 && feedAd && (
                     <AdCard ad={feedAd} variant="feed" />
+                  )}
+                  {idx === 8 && archivePost && (
+                    <div>
+                      <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-ink-faint">
+                        <span aria-hidden>🕰️</span> From the archives
+                        <span className="font-normal normal-case">
+                          ·{" "}
+                          {(() => {
+                            const weeks = Math.floor(
+                              (Date.now() - archivePost.createdAt.getTime()) /
+                                (7 * 24 * 3600_000)
+                            );
+                            return weeks < 9
+                              ? `${weeks} weeks ago`
+                              : `${Math.floor(weeks / 4.33)} months ago`;
+                          })()}
+                        </span>
+                      </p>
+                      <PostCard
+                        post={archivePost}
+                        viewerId={session?.user?.id}
+                      />
+                    </div>
                   )}
                 </Fragment>
               ))}

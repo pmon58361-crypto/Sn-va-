@@ -12,7 +12,7 @@ import { parseTags } from "@/lib/utils";
 import type { PostCategory } from "@/lib/types";
 
 // Standard include shape so all post fetches return a consistent object.
-const postInclude = {
+export const postInclude = {
   author: {
     select: { id: true, name: true, image: true, location: true },
   },
@@ -20,6 +20,30 @@ const postInclude = {
   reactions: { select: { id: true, type: true, userId: true } },
   _count: { select: { comments: true, applications: true, images: true } },
 } as const;
+
+// "From the archives" — one quality COMMUNITY post older than 30 days that
+// isn't already on the page, picked uniformly at random. Returns null when
+// the archive is empty (launch weeks) — callers hide the slot entirely.
+export async function getArchivedCommunityPost(excludeIds: string[]) {
+  const where = {
+    category: "COMMUNITY" as const,
+    status: "open",
+    hidden: false,
+    createdAt: { lt: new Date(Date.now() - 30 * 86_400_000) },
+    reactions: { some: {} },
+    ...(excludeIds.length > 0 ? { id: { notIn: excludeIds } } : {}),
+  };
+  const count = await prisma.post.count({ where });
+  if (count === 0) return null;
+  const [row] = await prisma.post.findMany({
+    where,
+    orderBy: { createdAt: "desc" },
+    take: 1,
+    skip: Math.floor(Math.random() * count),
+    include: postInclude,
+  });
+  return row ?? null;
+}
 
 // Viewer-scoped extras appended on top of postInclude for signed-in calls:
 // their own bookmark state and their own feedback verdicts (the prompt
