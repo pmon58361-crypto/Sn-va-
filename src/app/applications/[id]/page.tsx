@@ -102,9 +102,10 @@ export default async function ApplicationDetailPage({
 
         {isOwner ? (
           applications.length === 0 ? (
-            <p className="card p-6 text-center text-sm text-ink-faint">
-              No applicants yet.
-            </p>
+              <p className="card p-6 text-center text-sm text-ink-faint">
+                No applicants yet — share the listing so the right people see
+                it.
+              </p>
           ) : (
             <div className="space-y-3">
               {applications.map((a) => (
