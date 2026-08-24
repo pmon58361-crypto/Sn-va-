@@ -83,6 +83,15 @@ export default async function AdminPage() {
   } catch {
     /* render nothing */
   }
+  // Launch guard: warn loudly at 80% of the Cloudinary free-tier credits.
+  const creditPercent =
+    usage?.credits?.usage != null && usage?.credits?.limit
+      ? Math.min(
+          100,
+          Math.round((usage.credits.usage / usage.credits.limit) * 100)
+        )
+      : null;
+  const storageAlert = creditPercent != null && creditPercent >= 80;
 
   // Group open reports by target so one card = one piece of content.
   type Group = {
@@ -332,12 +341,40 @@ export default async function AdminPage() {
         )}
       </section>
 
+      {/* Storage alert — free-tier burn warning */}
+      {storageAlert && creditPercent != null && (
+        <div className="mt-8 flex items-center justify-between gap-4 rounded-xl border border-warm/60 bg-warm-tint px-5 py-4">
+          <div>
+            <p className="text-sm font-bold text-warm">
+              Storage at {creditPercent}% of the Cloudinary free tier
+            </p>
+            <p className="mt-0.5 text-xs text-ink-muted">
+              Uploads keep working until the hard limit, then fail. Consider
+              upgrading or pruning old assets.
+            </p>
+          </div>
+          <span aria-hidden className="text-2xl">
+            ⚠
+          </span>
+        </div>
+      )}
+
       {/* Storage glance */}
       {usage && (
         <section className="mt-10">
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-ink-faint">
             Image storage
           </h2>
+          {creditPercent != null && (
+            <div className="mb-3 h-2 w-full overflow-hidden rounded-full bg-[var(--bg-soft)]">
+              <div
+                className={`h-full rounded-full transition-all ${
+                  storageAlert ? "bg-warm" : "bg-accent"
+                }`}
+                style={{ width: `${creditPercent}%` }}
+              />
+            </div>
+          )}
           <div className="card grid grid-cols-2 gap-4 p-4 text-sm sm:grid-cols-3">
             <div>
               <p className="text-lg font-bold text-ink">

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/session";
-import { destroyAssets } from "@/lib/storage";
+import { destroyAssets, incomingTransform } from "@/lib/storage";
 import { cloudinary } from "@/lib/cloudinary";
 import { assertClean } from "@/lib/filter";
 import { ALLOWED_IMAGE_TYPES, MAX_IMAGE_BYTES } from "@/lib/types";
@@ -249,7 +249,11 @@ async function storeAdImage(file: File): Promise<string> {
   const buffer = Buffer.from(await file.arrayBuffer());
   const res = await new Promise<UploadApiResponse>((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
-      { folder: "snivat/ads", resource_type: "image" },
+      {
+        folder: "snivat/ads",
+        resource_type: "image",
+        transformation: incomingTransform(1600),
+      },
       (err, result) => {
         if (err || !result) reject(err ?? new Error("upload failed"));
         else resolve(result);

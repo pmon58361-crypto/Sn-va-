@@ -2,6 +2,19 @@ import { cloudinary } from "@/lib/cloudinary";
 import { cloudinaryPublicId } from "@/lib/cdn";
 
 /**
+ * Incoming transformation baked into every stored asset: caps dimensions and
+ * normalizes quality/format at INGEST time. Cheapest-credits approach — the
+ * stored original itself is small (one asset, no per-size derived storage);
+ * delivery-time cdnUrl() still adds responsive width variants on top.
+ */
+export function incomingTransform(maxEdge = 1600) {
+  return [
+    { width: maxEdge, height: maxEdge, crop: "limit" as const },
+    { quality: "auto:good" as const, fetch_format: "auto" as const },
+  ];
+}
+
+/**
  * Best-effort deletion of Cloudinary assets. The database is the source of
  * truth — if asset cleanup fails we log and move on rather than fail the
  * user-facing action (a leaked image costs bytes; a failed delete breaks UX).
