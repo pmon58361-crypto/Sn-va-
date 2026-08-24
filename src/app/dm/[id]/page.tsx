@@ -72,7 +72,8 @@ export default async function DmThreadPage({
         </Link>
       </div>
 
-      <DmThread otherId={other.id} meId={meId} initial={initial} />
+      {/* key: remount per conversation — fresh state + correct poll cursor */}
+      <DmThread key={other.id} otherId={other.id} meId={meId} initial={initial} />
     </main>
   );
 }

@@ -87,6 +87,11 @@ export function DmThread({
   const atBottomRef = useRef(true);
   const mountedRef = useRef(false);
   const messagesRef = useRef(messages);
+  // Server-authoritative poll cursor (ISO). Initialized from SSR data
+  // (server clock); advanced ONLY from poll responses — see poll().
+  const cursorRef = useRef<string>(
+    initial.length > 0 ? initial[initial.length - 1].createdAt : ""
+  );
   useEffect(() => {
     messagesRef.current = messages;
   }, [messages]);
@@ -130,9 +135,14 @@ export function DmThread({
     // Skip network work entirely for background tabs.
     if (typeof document !== "undefined" && document.hidden) return;
     try {
+      // Cursor priority: server-issued cursor > last local message ts.
+      // Locally-generated timestamps (optimistic rows) carry the CLIENT
+      // clock — with any skew they outrun server time and silently filter
+      // incoming messages until reload. The server cursor is the fix.
       const cur = messagesRef.current;
       const lastAt =
-        cur.length > 0 ? cur[cur.length - 1].createdAt : "";
+        cursorRef.current ||
+        (cur.length > 0 ? cur[cur.length - 1].createdAt : "");
       const res = await fetch(
         `/api/dm/${otherId}?after=${encodeURIComponent(lastAt)}`,
         { cache: "no-store" }
@@ -144,7 +154,9 @@ export function DmThread({
         seenAt?: string | null;
         recentIds?: string[];
         windowStart?: string | null;
+        cursor?: string | null;
       };
+      if (data.cursor) cursorRef.current = data.cursor;
 
       if (data.seenAt) {
         setSeenAt((prev) =>

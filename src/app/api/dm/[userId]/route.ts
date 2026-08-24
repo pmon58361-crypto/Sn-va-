@@ -24,7 +24,9 @@ export async function GET(
         { senderId: meId, recipientId: userId },
         { senderId: userId, recipientId: meId },
       ],
-      ...(after && !isNaN(after.getTime()) ? { createdAt: { gt: after } } : {}),
+      // gte (not gt): same-millisecond messages must not be skipped; the
+      // client dedupes by id, so re-delivering the boundary row is harmless.
+      ...(after && !isNaN(after.getTime()) ? { createdAt: { gte: after } } : {}),
     },
     orderBy: { createdAt: "asc" },
     take: 100,
@@ -84,5 +86,10 @@ export async function GET(
       recent.length > 0
         ? recent[recent.length - 1].createdAt.toISOString()
         : null,
+    // SERVER-authoritative poll cursor. Clients must advance their cursor
+    // from this — never from locally-generated timestamps (optimistic rows
+    // carry the client clock; skew silently filters incoming messages).
+    cursor:
+      recent.length > 0 ? recent[0].createdAt.toISOString() : null,
   });
 }
