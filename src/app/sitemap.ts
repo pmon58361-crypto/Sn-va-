@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
+import { CATEGORY_META, type PostCategory } from "@/lib/types";
 
 // Dynamic sitemap: static sections + open public posts + public profiles.
 // Private/hidden content is never listed. Cached for an hour.
@@ -8,6 +9,13 @@ export const revalidate = 3600;
 const BASE =
   process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
   "https://snivat.vercel.app";
+
+// Posts live in different sections — /community/[id], /jobs/[id],
+// /applications/[id] — mirroring detailPath in PostCard.
+function postPath(category: string, id: string) {
+  const section = CATEGORY_META[category as PostCategory]?.section || "community";
+  return `/${section}/${id}`;
+}
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticRoutes: MetadataRoute.Sitemap = [
@@ -33,6 +41,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       }),
       prisma.user.findMany({
         where: {
+          deactivatedAt: null,
           OR: [{ settings: { publicProfile: true } }, { settings: null }],
         },
         select: { id: true },
@@ -41,7 +50,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ]);
 
     const postUrls: MetadataRoute.Sitemap = posts.map((p) => ({
-      url: `${BASE}/community/${p.id}`,
+      url: `${BASE}${postPath(p.category, p.id)}`,
       lastModified: p.updatedAt,
       changeFrequency: "daily",
       priority: 0.7,
