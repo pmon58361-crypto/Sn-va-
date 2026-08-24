@@ -6,7 +6,8 @@ import { OfferIcon, RequestIcon, PlusIcon } from "@/components/ui/Icons";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 
-export const metadata = { title: "Jobs — Snívať" };
+export const metadata = { title: "Jobs",
+  description: "Work offers, work requests and open listings from the Snívať community." };
 export const dynamic = "force-dynamic";
 
 // Two organic perspectives on the Jobs section:

@@ -10,7 +10,7 @@ import { getTopTags } from "@/lib/queries";
 import { parseTags } from "@/lib/utils";
 import type { SettingsInput } from "./actions";
 
-export const metadata = { title: "Settings — Snívať" };
+export const metadata = { title: "Settings", robots: { index: false } };
 export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {

@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { AdsManager, type AdsManagerAd } from "./AdsManager";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Ads — Snívať" };
+export const metadata = { title: "Ads", robots: { index: false } };
 
 export default async function AdminAdsPage() {
   const session = await auth();

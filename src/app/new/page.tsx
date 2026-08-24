@@ -8,7 +8,7 @@ import {
   type PostCategory,
 } from "@/lib/types";
 
-export const metadata = { title: "New Post — Snívať" };
+export const metadata = { title: "New post", robots: { index: false } };
 export const dynamic = "force-dynamic";
 
 export default async function NewPostPage({

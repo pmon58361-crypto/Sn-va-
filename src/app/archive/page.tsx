@@ -5,7 +5,7 @@ import { getArchivedStories } from "@/lib/stories";
 import { cdnUrl } from "@/lib/cdn";
 import { timeAgo } from "@/lib/utils";
 
-export const metadata = { title: "Story archive — Snívať" };
+export const metadata = { title: "Story archive", robots: { index: false } };
 export const dynamic = "force-dynamic";
 
 // Your expired stories. Only you can see this page.

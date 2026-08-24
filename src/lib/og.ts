@@ -16,13 +16,18 @@ export function absoluteUrl(url?: string | null): string | undefined {
 
 const FALLBACK_IMAGE = { url: "/og-image.png", width: 1200, height: 630 };
 
-/** OG metadata for a post detail page. Hidden posts get nothing. */
-export function buildPostMetadata(post: {
-  title?: string | null;
-  content?: string | null;
-  imageUrl?: string | null;
-  hidden?: boolean | null;
-}): Metadata {
+/** OG metadata for a post detail page. Hidden posts get nothing.
+    `path` is the page route (e.g. "/community/abc123") so each post
+    canonicalizes to itself instead of the homepage. */
+export function buildPostMetadata(
+  post: {
+    title?: string | null;
+    content?: string | null;
+    imageUrl?: string | null;
+    hidden?: boolean | null;
+  },
+  path?: string
+): Metadata {
   if (post.hidden) return {};
 
   const description =
@@ -33,9 +38,10 @@ export function buildPostMetadata(post: {
   const images = image ? [{ url: image }] : [FALLBACK_IMAGE];
 
   return {
-    title: `${post.title} — Snívať`,
+    // Root layout appends "· Snívať" via the title template — don't repeat it here.
+    title: post.title ?? undefined,
     description,
-    alternates: { canonical: `${BASE}` },
+    alternates: { canonical: `${BASE}${path ?? ""}` },
     openGraph: {
       title: post.title ?? undefined,
       description,

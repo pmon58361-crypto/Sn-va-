@@ -27,7 +27,7 @@ export async function generateMetadata({
     content: post.content,
     imageUrl: post.images[0]?.url,
     hidden: post.hidden,
-  });
+  }, `/applications/${id}`);
 }
 
 export default async function ApplicationDetailPage({

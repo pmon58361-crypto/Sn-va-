@@ -48,7 +48,8 @@ export async function generateMetadata({
   const description = user.bio?.slice(0, 160) || "On Snívať — dream, grow, connect.";
   const image = absoluteUrl(user.image);
   return {
-    title: `${name} — Snívať`,
+    // Root layout template appends "· Snívať".
+    title: name,
     description,
     openGraph: {
       title: name,

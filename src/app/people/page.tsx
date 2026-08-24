@@ -3,7 +3,8 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { Avatar } from "@/components/ui/Avatar";
 
-export const metadata = { title: "People — Snívať" };
+export const metadata = { title: "People",
+  description: "Meet everyone building on Snívať — find collaborators and follow their work." };
 export const dynamic = "force-dynamic";
 
 // Directory of real members. Only users whose settings allow a public
