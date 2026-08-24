@@ -5,16 +5,20 @@ import { prisma } from "@/lib/prisma";
 import { createNotification } from "@/lib/notify";
 import { requireActiveUser, requireUserId } from "@/lib/session";
 import { assertClean } from "@/lib/filter";
+import { newAccountOverLimit, newAccountLimitMessage } from "@/lib/limits";
 
 // Send a direct message. Creates the message and clears read state on the
 // recipient's side naturally (their unread count is computed per-thread).
 export async function sendMessage(recipientId: string, content: string) {
-  const me = (await requireActiveUser()).id;
+  const me = await requireActiveUser();
 
-  if (me === recipientId) throw new Error("Cannot message yourself");
+  if (me.id === recipientId) throw new Error("Cannot message yourself");
   if (!content.trim()) throw new Error("Message required");
   if (content.length > 2000) throw new Error("Message too long");
   assertClean(content, "Message");
+
+  const lim = await newAccountOverLimit(me.id, me.createdAt, "dm");
+  if (lim.limited) throw new Error(newAccountLimitMessage("dm", lim.cap));
 
   const recipient = await prisma.user.findUnique({
     where: { id: recipientId },
@@ -24,7 +28,7 @@ export async function sendMessage(recipientId: string, content: string) {
 
   const msg = await prisma.message.create({
     data: {
-      senderId: me,
+      senderId: me.id,
       recipientId,
       content: content.trim(),
     },
@@ -32,7 +36,7 @@ export async function sendMessage(recipientId: string, content: string) {
 
   await createNotification({
     userId: recipientId,
-    actorId: me,
+    actorId: me.id,
     type: "message",
   });
 

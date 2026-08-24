@@ -23,10 +23,13 @@ export async function generateMetadata({
 
 export default async function DmThreadPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ draft?: string; reply?: string }>;
 }) {
   const { id } = await params;
+  const sp = await searchParams;
   const session = await auth();
   if (!session?.user?.id) redirect(`/auth/signin?callbackUrl=/dm/${id}`);
   const meId = session.user.id;
@@ -34,6 +37,9 @@ export default async function DmThreadPage({
 
   const other = await getUserBrief(id);
   if (!other) notFound();
+
+  // Story-reply deep links may pre-fill the composer.
+  const initialDraft = (sp.draft || "").slice(0, 2000);
 
   const thread = await getThread(meId, id);
   // Opening the thread marks it read.
@@ -73,7 +79,14 @@ export default async function DmThreadPage({
       </div>
 
       {/* key: remount per conversation — fresh state + correct poll cursor */}
-      <DmThread key={other.id} otherId={other.id} meId={meId} initial={initial} />
+      <DmThread
+        key={other.id}
+        otherId={other.id}
+        meId={meId}
+        initial={initial}
+        initialDraft={initialDraft}
+        autoFocusComposer={sp.reply === "1"}
+      />
     </main>
   );
 }

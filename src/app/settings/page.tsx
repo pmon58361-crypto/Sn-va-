@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { Avatar } from "@/components/ui/Avatar";
 import { CalendarIcon } from "@/components/ui/Icons";
 import { SettingsForm } from "./SettingsForm";
+import { LegalLinks } from "@/components/legal/LegalLinks";
 import { getTopTags } from "@/lib/queries";
 import { parseTags } from "@/lib/utils";
 import type { SettingsInput } from "./actions";
@@ -125,6 +126,10 @@ export default async function SettingsPage() {
           </Link>
         </section>
       )}
+
+      <div className="mt-10 border-t border-line pt-5 text-center">
+        <LegalLinks />
+      </div>
     </div>
   );
 }

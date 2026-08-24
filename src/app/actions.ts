@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma, withIdempotentWriteRetry } from "@/lib/prisma";
+import { newAccountOverLimit, newAccountLimitMessage } from "@/lib/limits";
 import { createNotification } from "@/lib/notify";
 import { requireActiveUser } from "@/lib/session";
 import { destroyAssets } from "@/lib/storage";
@@ -107,7 +108,10 @@ export async function savePost(input: PostInput) {
     revalidatePath(sectionPath(input.category));
     redirect(`${sectionPath(input.category)}/${postId}`);
   } else {
-    // Create new
+    // Create new — new accounts (<24h) are capped to blunt spam waves.
+    const lim = await newAccountOverLimit(me.id, me.createdAt, "post");
+    if (lim.limited) throw new Error(newAccountLimitMessage("post", lim.cap));
+
     const post = await prisma.post.create({
       data: { ...data, authorId: me.id },
     });
@@ -150,6 +154,9 @@ export async function addComment(postId: string, content: string) {
   const me = await requireActiveUser();
   if (!content.trim()) throw new Error("Comment required");
   assertClean(content, "Comment");
+
+  const lim = await newAccountOverLimit(me.id, me.createdAt, "comment");
+  if (lim.limited) throw new Error(newAccountLimitMessage("comment", lim.cap));
 
   await prisma.comment.create({
     data: { postId, authorId: me.id, content: content.trim() },
