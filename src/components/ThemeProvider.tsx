@@ -4,7 +4,7 @@ import { SessionProvider } from "next-auth/react";
 import { useSession } from "next-auth/react";
 import { useEffect } from "react";
 
-const DEFAULT_ACCENT = "#2f9e6b";
+const DEFAULT_ACCENT = "#e8a33d";
 
 // Applies the user's saved theme + accent color to <html>.
 // Dark is the DEFAULT (:root is dark). We only add the "light" class

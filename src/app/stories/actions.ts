@@ -5,7 +5,8 @@ import { requireActiveUser, requireUserId } from "@/lib/session";
 import { assertClean } from "@/lib/filter";
 import { prisma } from "@/lib/prisma";
 import { cloudinary } from "@/lib/cloudinary";
-import { destroyAssets } from "@/lib/storage";
+import { destroyAssets, incomingTransform } from "@/lib/storage";
+import { checkDailyUploadQuota, DAILY_UPLOAD_CAP } from "@/lib/quota";
 import type { UploadApiResponse } from "cloudinary";
 import { MAX_IMAGE_BYTES, ALLOWED_IMAGE_TYPES } from "@/lib/types";
 
@@ -25,6 +26,15 @@ export async function createStory(
   let imageUrl: string | null = null;
 
   if (file instanceof File && file.size > 0) {
+    // Shared daily quota — story photos previously bypassed the /api/upload
+    // cap entirely; this closes that hole.
+    const quota = await checkDailyUploadQuota(me, 1);
+    if (!quota.ok) {
+      return {
+        ok: false,
+        error: `Daily upload limit reached (${DAILY_UPLOAD_CAP}/day). Used today: ${quota.used}.`,
+      };
+    }
     if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
       return { ok: false, error: "Unsupported image type" };
     }
@@ -38,7 +48,11 @@ export async function createStory(
       const buffer = Buffer.from(await file.arrayBuffer());
       const res = await new Promise<UploadApiResponse>((resolve: (r: UploadApiResponse) => void, reject: (e: Error) => void) => {
         const stream = cloudinary.uploader.upload_stream(
-          { folder: "snivat/stories", resource_type: "image" },
+          {
+            folder: "snivat/stories",
+            resource_type: "image",
+            transformation: incomingTransform(1600),
+          },
           (err, result) => {
             if (err || !result) reject(err ?? new Error("upload failed"));
             else resolve(result);

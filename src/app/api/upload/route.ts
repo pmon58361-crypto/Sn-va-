@@ -7,6 +7,8 @@ import {
   ALLOWED_IMAGE_TYPES,
 } from "@/lib/types";
 import { cloudinary } from "@/lib/cloudinary";
+import { incomingTransform } from "@/lib/storage";
+import { checkDailyUploadQuota, DAILY_UPLOAD_CAP } from "@/lib/quota";
 import type { UploadApiResponse } from "cloudinary";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
@@ -21,13 +23,19 @@ export const runtime = "nodejs";
 //  - CLOUDINARY_URL set  -> Cloudinary (required on Vercel; the serverless
 //    filesystem is ephemeral, so disk-written images would vanish).
 //  - otherwise           -> local /public/uploads (local development only).
-async function storeImage(file: File): Promise<string> {
+async function storeImage(file: File, maxEdge = 1600): Promise<string> {
   const buffer = Buffer.from(await file.arrayBuffer());
 
   if (process.env.CLOUDINARY_URL) {
     const res = await new Promise<UploadApiResponse>((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
-        { folder: "snivat/posts", resource_type: "image" },
+        {
+          folder: "snivat/posts",
+          resource_type: "image",
+          // Dimension cap + quality/format normalization baked into the
+          // stored asset — keeps free-tier storage credits in check.
+          transformation: incomingTransform(maxEdge),
+        },
         (err, result) => {
           if (err || !result) reject(err ?? new Error("upload failed"));
           else resolve(result);
@@ -78,34 +86,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "No files provided" }, { status: 400 });
   }
 
-  // Daily per-user upload cap across posts + stories. Free-tier insurance
+  // Daily per-user upload cap across posts + stories + avatars + highlights
+  // (shared helper so story creation can't bypass it). Free-tier insurance
   // against a runaway script or compromised account burning storage quota.
-  const DAILY_UPLOAD_CAP = Number(process.env.DAILY_UPLOAD_CAP || 40);
-  const startOfDay = new Date();
-  startOfDay.setHours(0, 0, 0, 0);
-  const [imagesToday, storiesToday] = await Promise.all([
-    prisma.postImage.count({
-      where: {
-        createdAt: { gte: startOfDay },
-        post: { authorId: me },
-      },
-    }),
-    prisma.story.count({
-      // Image stories only — text notes create no upload and must not
-      // consume the per-day upload budget.
-      where: { authorId: me, createdAt: { gte: startOfDay }, imageUrl: { not: null } },
-    }),
-  ]);
-  if (imagesToday + storiesToday + files.length > DAILY_UPLOAD_CAP) {
+  const quota = await checkDailyUploadQuota(me, files.length);
+  if (!quota.ok) {
     return NextResponse.json(
       {
-        error: `Daily upload limit reached (${DAILY_UPLOAD_CAP}/day). Used today: ${
-          imagesToday + storiesToday
-        }.`,
+        error: `Daily upload limit reached (${DAILY_UPLOAD_CAP}/day). Used today: ${quota.used}.`,
       },
       { status: 429 }
     );
   }
+
+  // Avatars display tiny — cap them harder than post/story imagery.
+  const kind = (form.get("kind") as string) || "post";
+  const maxEdge = kind === "avatar" ? 800 : 1600;
 
   const postId = (form.get("postId") as string) || undefined;
 
@@ -144,7 +140,7 @@ export async function POST(req: NextRequest) {
       continue;
     }
     try {
-      urls.push(await storeImage(file));
+      urls.push(await storeImage(file, maxEdge));
     } catch (err) {
       console.error("[upload] failed:", err);
       errors.push(`${file.name}: upload failed`);

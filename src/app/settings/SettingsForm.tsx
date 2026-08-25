@@ -25,14 +25,14 @@ const BG_PRESETS = [
 ];
 
 const ACCENTS = [
-  { c: "#2f9e6b", label: "Brand" },
+  { c: "#e8a33d", label: "Brand" },
   { c: "#0891b2", label: "Cyan" },
   { c: "#2563eb", label: "Blue" },
   { c: "#7c3aed", label: "Violet" },
   { c: "#db2777", label: "Pink" },
   { c: "#dc2626", label: "Red" },
   { c: "#ea580c", label: "Orange" },
-  { c: "#d97706", label: "Amber" },
+  { c: "#2f9e6b", label: "Emerald" },
 ];
 
 type Tab = "account" | "appearance" | "privacy" | "interests";
