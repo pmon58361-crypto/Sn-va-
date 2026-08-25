@@ -77,6 +77,7 @@ export function Sidebar() {
           badge={<NotificationsBadge />}
         />
         <SidebarLink href="/bookmarks" active={isActive("/bookmarks")} icon={BookIcon} label="Bookmarks" />
+        <SidebarLink href="/groups" active={isActive("/groups")} icon={UsersIcon} label="Groups" />
         {session.user.isCreator && (
           <SidebarLink href="/dashboard" active={isActive("/dashboard")} icon={ChartIcon} label="Dashboard" />
         )}

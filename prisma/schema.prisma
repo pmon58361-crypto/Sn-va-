@@ -65,6 +65,42 @@ model User {
 
   // Poll votes (E's polls; pending schema window)
   pollVotes PollVote[]
+
+  // Groups (v1: owner + members, no channels/roles)
+  groupsCreated     Group[]       @relation("GroupCreator")
+  groupMemberships  GroupMember[] @relation("GroupMemberships")
+}
+
+// Discord-style groups v1: a page with its own post feed. Owner-managed;
+// visibility gates the feed, joinMode gates membership.
+model Group {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  coverUrl    String?
+  // "public" (listed + feed-visible) | "private" (members only)
+  visibility  String   @default("public")
+  // "open" (join instantly) | "approval" (contact owner — DM deep-link v1)
+  joinMode    String   @default("open")
+  creatorId   String
+  creator     User     @relation("GroupCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  members     GroupMember[]
+  posts       Post[]
+  createdAt   DateTime @default(now())
+}
+
+model GroupMember {
+  group    Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  groupId  String
+  user     User     @relation("GroupMemberships", fields: [userId], references: [id], onDelete: Cascade)
+  userId   String
+  // "owner" | "member" (no richer roles in v1)
+  role     String   @default("member")
+  joinedAt DateTime @default(now())
+
+  @@id([groupId, userId])
+  @@index([userId])
 }
 
 model Account {
@@ -138,9 +174,14 @@ model Post {
   feedback      PostFeedback[]
   polls         Poll[]
 
+  // Optional group ownership — set when posted inside a group page.
+  groupId String?
+  group   Group?  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
   @@index([category])
   @@index([authorId])
   @@index([createdAt])
+  @@index([groupId])
 }
 
 // A like or dislike on a post. One reaction per user per post (unique).

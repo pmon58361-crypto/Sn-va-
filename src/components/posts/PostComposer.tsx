@@ -36,10 +36,13 @@ export function PostComposer({
   initial,
   postId,
   lockedCategory,
+  groupId,
 }: {
   initial?: Partial<PostInput>;
   postId?: string;
   lockedCategory?: PostCategory;
+  /** Post into this group (from /new?group=<id> on a group page). */
+  groupId?: string;
 }) {
   const router = useRouter();
   const [category, setCategory] = useState<PostCategory>(
@@ -59,6 +62,7 @@ export function PostComposer({
   // runs React 18.3.1.
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const isGroupPost = !!groupId && !postId;
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -76,6 +80,8 @@ export function PostComposer({
         location,
         type,
         imageUrls: images.map((i) => i.url),
+        // Create-time only — edits keep the original group.
+        groupId: postId ? undefined : groupId,
       });
       // savePost redirects on success; Next handles the navigation.
     } catch (err) {
@@ -100,6 +106,13 @@ export function PostComposer({
       {error && (
         <div className="rounded-xl border border-warm bg-warm-tint px-4 py-3 text-sm text-warm">
           {String(error)}
+        </div>
+      )}
+
+      {isGroupPost && (
+        <div className="rounded-xl border border-line bg-surface px-4 py-3 text-xs font-medium text-ink-muted">
+          Posting into this group — it appears on the group page and, if the
+          group is public, in main feeds with a group chip.
         </div>
       )}
 

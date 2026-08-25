@@ -37,6 +37,8 @@ export type PostInput = {
   location?: string;
   type?: string;
   imageUrls: string[];
+  /** Post into a group (members only; create-time only, never moved). */
+  groupId?: string;
 };
 
 export async function savePost(input: PostInput) {
@@ -112,8 +114,20 @@ export async function savePost(input: PostInput) {
     const lim = await newAccountOverLimit(me.id, me.createdAt, "post");
     if (lim.limited) throw new Error(newAccountLimitMessage("post", lim.cap));
 
+    // Group posting — members only, and never moved after creation.
+    let groupId: string | null = null;
+    if (input.groupId) {
+      const gm = await prisma.groupMember.findUnique({
+        where: {
+          groupId_userId: { groupId: input.groupId, userId: me.id },
+        },
+      });
+      if (!gm) throw new Error("Join the group before posting into it");
+      groupId = input.groupId;
+    }
+
     const post = await prisma.post.create({
-      data: { ...data, authorId: me.id },
+      data: { ...data, authorId: me.id, groupId },
     });
     if (input.imageUrls.length) {
       await prisma.postImage.createMany({
