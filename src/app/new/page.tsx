@@ -14,12 +14,26 @@ export const dynamic = "force-dynamic";
 export default async function NewPostPage({
   searchParams,
 }: {
-  searchParams: Promise<{ category?: string; edit?: string }>;
+  searchParams: Promise<{ category?: string; edit?: string; group?: string }>;
 }) {
   const session = await auth();
   if (!session?.user?.id) redirect("/auth/signin?callbackUrl=/new");
 
-  const { category, edit } = await searchParams;
+  const { category, edit, group } = await searchParams;
+
+  // Group posting: verify membership up-front so the composer can promise it.
+  let groupName: string | undefined;
+  let groupId: string | undefined;
+  if (group && !edit) {
+    const g = await prisma.group.findUnique({
+      where: { id: group },
+      select: { id: true, name: true, members: { where: { userId: session.user.id }, select: { userId: true } } },
+    });
+    if (g && g.members.length > 0) {
+      groupId = g.id;
+      groupName = g.name;
+    }
+  }
 
   // Edit mode: load the post and verify ownership before offering it.
   let postId: string | undefined;
@@ -75,6 +89,7 @@ export default async function NewPostPage({
         initial={composerInitial}
         postId={postId}
         lockedCategory={postId ? (initial!.category as PostCategory) : undefined}
+        groupId={groupId}
       />
     </div>
   );

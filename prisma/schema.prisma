@@ -66,11 +66,42 @@ model User {
   // Poll votes (E's polls; pending schema window)
   pollVotes PollVote[]
 
-  // Groups V1 (window-ready — list relations, one owner per group is NOT
-  // one-to-one: a user may own many groups)
-  ownedGroups      Group[]      @relation("GroupOwner")
-  groupMemberships GroupMember[] @relation("GroupMemberships")
+  // Groups (v1: owner + members, no channels/roles) — F's field naming,
+  // adopted verbatim so the groups-ui code matches the generated client.
+  groupsCreated     Group[]       @relation("GroupCreator")
+  groupMemberships  GroupMember[] @relation("GroupMemberships")
+}
 
+// Discord-style groups v1: a page with its own post feed. Owner-managed;
+// visibility gates the feed, joinMode gates membership.
+model Group {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  coverUrl    String?
+  // "public" (listed + feed-visible) | "private" (members only)
+  visibility  String   @default("public")
+  // "open" (join instantly) | "approval" (contact owner — DM deep-link v1)
+  joinMode    String   @default("open")
+  creatorId   String
+  creator     User     @relation("GroupCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  members     GroupMember[]
+  posts       Post[]
+  createdAt   DateTime @default(now())
+}
+
+model GroupMember {
+  group    Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  groupId  String
+  user     User     @relation("GroupMemberships", fields: [userId], references: [id], onDelete: Cascade)
+  userId   String
+  // "owner" | "member" (no richer roles in v1)
+  role     String   @default("member")
+  joinedAt DateTime @default(now())
+
+  @@id([groupId, userId])
+  @@index([userId])
 }
 
 model Account {
@@ -143,9 +174,10 @@ model Post {
   notifications Notification[]
   feedback      PostFeedback[]
   polls         Poll[]
+  // Optional group ownership — set when posted inside a group page.
+  // Group delete SETS NULL: posts unscope to the community feed, never destroyed.
   groupId       String?
   group         Group?       @relation(fields: [groupId], references: [id], onDelete: SetNull)
-
 
   @@index([category])
   @@index([authorId])
@@ -485,44 +517,5 @@ model PollVote {
 
   @@unique([pollId, userId])
   @@index([optionId])
-}
-
-// ── Groups V1 (pending schema window — schema only, NO db push until the
-//    Groups UI window; Discord-inspired, scoped tight: group page + its own
-//    post feed + member list. NO channels, NO roles beyond OWNER/Member.) ──
-// name <=50 / description <=500 assertClean+length-enforced app-side; slug is
-// app-generated URL-safe (unique). Group delete SETS NULL on posts (they
-// unscope back to the community feed — user content is never destroyed).
-model Group {
-  id          String   @id @default(cuid())
-  name        String
-  slug        String   @unique
-  description String
-  coverUrl    String?
-  visibility  String   @default("PUBLIC") // PUBLIC | PRIVATE
-  joinMode    String   @default("OPEN") // OPEN | ASK (request-to-join DMs the owner)
-  createdBy   String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  owner   User          @relation("GroupOwner", fields: [createdBy], references: [id], onDelete: Cascade)
-  members GroupMember[]
-  posts   Post[]
-
-  @@index([visibility])
-}
-
-model GroupMember {
-  id       String   @id @default(cuid())
-  groupId  String
-  userId   String
-  role     String   @default("Member") // OWNER | Member
-  joinedAt DateTime @default(now())
-
-  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  user  User  @relation("GroupMemberships", fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([groupId, userId])
-  @@index([userId])
 }
 

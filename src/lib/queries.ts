@@ -78,6 +78,7 @@ export type PostWithRelations = Awaited<
   _count: { comments: number; applications: number; images: number };
   bookmarks?: { userId: string }[];
   feedback?: { value: string }[];
+  group?: { slug: string; name: string; visibility: string } | null;
 };
 
 export async function getPost(id: string, viewerId?: string) {
@@ -109,6 +110,7 @@ export async function getPosts({
   types,
   location,
   hasBudget,
+  groupId,
 }: {
   category?: PostCategory;
   categories?: PostCategory[];
@@ -130,6 +132,8 @@ export async function getPosts({
   location?: string;
   /** Only posts that carry a budget. */
   hasBudget?: boolean;
+  /** Group feed opt-in — when absent, private-group posts stay out. */
+  groupId?: string;
 } = {}) {
   const where: Record<string, unknown> = {};
 
@@ -144,6 +148,12 @@ export async function getPosts({
   else if (authorIds && authorIds.length) where.authorId = { in: authorIds };
 
   if (!includeClosed) where.status = "open";
+
+  // Group scoping: group pages filter by groupId; every other surface hides
+  // PRIVATE-group posts while public-group posts flow into main feeds
+  // (they carry a group badge via postInclude).
+  if (groupId) where.groupId = groupId;
+  else where.NOT = [{ group: { visibility: "private" } }];
 
   // Moderation: hidden posts stay out of every feed unless explicitly asked.
   if (!includeHidden) where.hidden = false;

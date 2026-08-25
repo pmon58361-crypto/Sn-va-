@@ -68,6 +68,14 @@ export async function PostCard({
                   · <MapPinIcon className="h-3 w-3" /> {post.author.location}
                 </span>
               )}
+              {/* Group context chip — informational only: the author block
+                  is server-rendered inside a parent <Link>, so nesting an
+                  anchor here would be invalid HTML. */}
+              {post.group && (
+                <span className="inline-flex items-center gap-0.5 font-medium text-accent">
+                  · <span aria-hidden>👥</span> {post.group.name}
+                </span>
+              )}
             </div>
           </div>
           <span
