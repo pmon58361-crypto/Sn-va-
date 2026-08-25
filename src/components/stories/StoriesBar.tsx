@@ -334,33 +334,24 @@ function StoryComposer({ onClose }: { onClose: () => void }) {
 
         {mode === "text" ? (
           <>
-            {/* Live preview — the tall card the story will render as */}
-            <div
-              className="mx-auto mb-3 grid aspect-[9/16] max-h-[46vh] w-full max-w-[260px] place-items-center rounded-2xl p-6 text-center font-bold break-words"
-              style={{ background: noteStyle(bg).css, color: noteStyle(bg).fg }}
-            >
-              <span className={noteTextClass(caption.length)}>
-                {caption || "Your text here"}
-              </span>
-            </div>
             <textarea
               value={caption}
               onChange={(e) => setCaption(e.target.value)}
-              rows={2}
+              rows={3}
               maxLength={200}
               placeholder="What's happening?"
-              className="input mb-3 resize-none"
+              className="input resize-none"
               autoFocus
             />
             {/* Five curated note styles — key hex is what gets stored */}
-            <div className="flex gap-2">
-              {NOTE_STYLES.map((s, i) => (
+            <div className="mt-3 flex gap-2">
+              {NOTE_STYLES.map((s) => (
                 <button
                   key={s.key}
                   type="button"
                   onClick={() => setBg(s.key)}
-                  aria-label={`Note style ${i + 1} of ${NOTE_STYLES.length}`}
-                  title={`Note style ${i + 1}`}
+                  aria-label={`Note style ${s.key}`}
+                  title={`Note style ${s.key}`}
                   className={`h-10 flex-1 rounded-xl border-2 transition ${
                     bg === s.key
                       ? "border-ink"

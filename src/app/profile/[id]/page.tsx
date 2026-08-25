@@ -210,9 +210,13 @@ export default async function ProfilePage({
           MOBILE (<sm): avatar 80px left, handle+stats right; name/badges/
           bio/meta below, left-aligned. DESKTOP (sm+): classic two-column. */}
       <section className="card px-4 py-5 sm:px-7 sm:py-6">
-        <div className="grid grid-cols-[80px_minmax(0,1fr)] items-center gap-x-4 gap-y-3 sm:grid-cols-[144px_minmax(0,1fr)] sm:items-start sm:gap-x-7 sm:gap-y-0">
+        {/* Tracks sized to the RINGED avatar (img + padding + border):
+            96px mobile / 160px desktop. The !important img overrides beat
+            Avatar's inline width/height style — plain classes lose to
+            inline styles, which is what blew the avatar up at 630px. */}
+        <div className="grid grid-cols-[96px_minmax(0,1fr)] items-center gap-x-4 gap-y-3 sm:grid-cols-[160px_minmax(0,1fr)] sm:items-start sm:gap-x-7 sm:gap-y-0">
           {/* Avatar — 80px phones / 144px desktop; ring kept */}
-          <div className="[&_img]:h-20 [&_img]:w-20 sm:[&_img]:h-36 sm:[&_img]:w-36">
+          <div className="[&_img]:!h-20 [&_img]:!w-20 sm:[&_img]:!h-36 sm:[&_img]:!w-36">
             {hasActiveStory ? (
               <span className="inline-block rounded-full bg-gradient-to-tr from-accent to-like p-[3px] sm:p-[4px]">
                 <span className="inline-block rounded-full border-2 border-[var(--bg-elevated)] shadow-lg sm:border-[3px]">
@@ -272,14 +276,6 @@ export default async function ProfilePage({
             <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
               <h1 className="break-words text-2xl font-bold leading-tight text-ink">
                 {user.name || "Anonymous"}
-                {founding && (
-                  <span
-                    title="Founding Member — first 500 accounts"
-                    className="ml-2 inline-block align-middle badge bg-accent-tint text-[10px] font-semibold uppercase tracking-wide text-accent"
-                  >
-                    ★ Founding Member
-                  </span>
-                )}
               </h1>
               <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm text-ink-faint">
                 <span>{handle}</span>
@@ -297,6 +293,30 @@ export default async function ProfilePage({
                 )}
               </p>
             </div>
+
+            {/* Compact identity chips — founding/streak stay small + inline,
+                never stacked pills (they lived inside the h1 before and blew
+                up at mid widths) */}
+            {(founding || streak.current > 0) && (
+              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                {founding && (
+                  <span
+                    title="Founding Member — first 500 accounts"
+                    className="badge bg-accent-tint px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-accent"
+                  >
+                    ★ Founding
+                  </span>
+                )}
+                {streak.current > 0 && (
+                  <span
+                    title={`${streak.current}-day activity streak`}
+                    className="badge bg-accent-tint px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-accent"
+                  >
+                    🔥 {streak.current}d
+                  </span>
+                )}
+              </div>
+            )}
 
             {/* Inline stats — posts · followers · following. Units are
                 nowrap so numbers never separate from their labels. */}
@@ -321,14 +341,9 @@ export default async function ProfilePage({
               </span>
             </p>
 
-            {/* Badges — activity-derived, not fake */}
-            {(badges.length > 0 || streak.current > 0) && (
-              <div className="mt-3 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
-                {streak.current > 0 && (
-                  <span className="badge bg-accent/10 text-xs text-accent">
-                    🔥 {streak.current}-day streak
-                  </span>
-                )}
+            {/* Earned badges — activity-derived, not fake */}
+            {badges.length > 0 && (
+              <div className="mt-3 flex flex-wrap items-center gap-2">
                 {badges.map((b) => (
                   <span
                     key={b}
@@ -393,24 +408,26 @@ export default async function ProfilePage({
               )}
             </h1>
 
-            {(badges.length > 0 || streak.current > 0) && (
-              <div className="mt-2 flex flex-wrap items-center gap-2">
+            {(streak.current > 0 || badges.length > 0) && (
+              <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                 {streak.current > 0 && (
-                  <span className="badge bg-accent/10 text-xs text-accent">
-                    🔥 {streak.current}-day streak
+                  <span
+                    title={`${streak.current}-day activity streak`}
+                    className="badge bg-accent-tint px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-accent"
+                  >
+                    🔥 {streak.current}d
                   </span>
                 )}
                 {badges.map((b) => (
                   <span
                     key={b}
-                    className="badge bg-accent/10 text-xs text-accent"
+                    className="badge bg-accent-tint px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-accent"
                   >
                     {b}
                   </span>
                 ))}
               </div>
             )}
-
             {user.bio ? (
               <p className="mt-2 whitespace-pre-wrap break-words text-[15px] leading-relaxed text-ink-soft">
                 {user.bio}
