@@ -28,6 +28,10 @@ const POLL_MS = 3000;
 // Time divider appears when this much time passes between messages.
 const DIVIDER_GAP_MS = 30 * 60 * 1000;
 
+// Consecutive same-sender messages within this window stack tight
+// (Discord-style grouping) instead of full-gap bubbles.
+const GROUP_WINDOW_MS = 5 * 60 * 1000;
+
 // One-tap openers for brand-new conversations.
 const ICEBREAKERS = [
   "What are you building right now?",
@@ -381,9 +385,10 @@ export function DmThread({
             </div>
           </div>
         )}
-        <div className="mx-auto flex max-w-3xl flex-col gap-4">
+        <div className="mx-auto flex max-w-3xl flex-col">
           {messages.map((m, i) => {
             const mine = m.senderId === meId;
+            const prev = i > 0 ? messages[i - 1] : null;
             const showSeen =
               mine &&
               i === lastMineIdx &&
@@ -395,6 +400,15 @@ export function DmThread({
                 new Date(messages[i - 1].createdAt).getTime() >
                 DIVIDER_GAP_MS;
             const menuOpen = menuFor === m.id;
+            // Discord-style stacking: same sender within the window glues to
+            // the previous bubble (tight gap, flattened top seam corners).
+            const stacked =
+              !isNewDay &&
+              !!prev &&
+              prev.senderId === m.senderId &&
+              new Date(m.createdAt).getTime() -
+                new Date(prev.createdAt).getTime() <
+                GROUP_WINDOW_MS;
 
             // Aggregate reactions for this message from the thread-wide map.
             const grouped = new Map<
@@ -411,7 +425,10 @@ export function DmThread({
             const hasReactions = grouped.size > 0;
 
             return (
-              <div key={m.id} className="flex flex-col dm-in">
+              <div
+                key={m.id}
+                className={`flex flex-col dm-in ${stacked ? "-mt-2.5" : ""}`}
+              >
                 {isNewDay && (
                   <p className="my-2 text-center text-[11px] font-medium text-ink-faint">
                     {dividerLabel(m.createdAt)}
@@ -482,7 +499,11 @@ export function DmThread({
                         setMenuMode("main");
                         setMenuFor(m.id);
                       }}
-                      className={`w-fit cursor-default rounded-3xl px-4 py-2.5 text-[15px] leading-snug ${
+                      className={`w-fit cursor-default px-4 py-2.5 text-[15px] leading-snug ${
+                        stacked
+                          ? "rounded-xl rounded-t-md" // seam side flattened
+                          : "rounded-3xl"
+                      } ${
                         mine
                           ? "rounded-br-md bg-accent text-white"
                           : "rounded-bl-md bg-surface-hover"
