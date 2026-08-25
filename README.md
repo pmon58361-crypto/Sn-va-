@@ -78,9 +78,10 @@ The four OAuth providers are wired up but stay hidden until you add their keys.
 ## 🛠️ Tech stack
 
 - **[Next.js 15](https://nextjs.org/)** (App Router) — full-stack React framework
-- **[Prisma](https://www.prisma.io/) + SQLite** — type-safe database, file-based (no external DB server)
+- **[Prisma](https://www.prisma.io/)** — type-safe database client
 - **[Auth.js v5 / NextAuth](https://authjs.dev/)** — OAuth + credentials auth
 - **[Tailwind CSS](https://tailwindcss.com/)** — styling, white/red theme via CSS variables
+- **[ogl](https://github.com/oframe/ogl)** — tiny WebGL library, used ONLY by the landing page's `SpecularButton` CTA (user-requested addition, 2026-08-25). No other component depends on it.
 - **TypeScript** end-to-end
 
 ---

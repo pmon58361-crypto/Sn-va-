@@ -3,6 +3,9 @@ import { Logo } from "@/components/ui/Logo";
 import { getPosts } from "@/lib/queries";
 import { prisma } from "@/lib/prisma";
 import { timeAgo } from "@/lib/utils";
+import { SpecularButton } from "@/components/landing/SpecularButton";
+import { SplitFlapText } from "@/components/landing/SplitFlapText";
+import { LiveTicker, type TickerItem } from "@/components/landing/LiveTicker";
 
 // ─────────────────────────────────────────────────────────────────────────
 // THE FRONT — builder terminal.
@@ -43,20 +46,51 @@ export async function Landing() {
   let posts: Awaited<ReturnType<typeof getPosts>> = [];
   let users = 0;
   let postCount = 0;
+  let joins: { id: string; name: string | null; createdAt: Date }[] = [];
   try {
     posts = await getPosts({ limit: 8, sort: "new" as never });
     const counts = await Promise.all([
       prisma.user.count(),
       prisma.post.count(),
+      prisma.user.findMany({
+        orderBy: { createdAt: "desc" },
+        take: 4,
+        select: { id: true, name: true, createdAt: true },
+      }),
     ]);
     users = counts[0];
     postCount = counts[1];
+    joins = counts[2];
   } catch {
     /* render with defaults */
   }
 
-  const log = posts.slice(0, 6);
   const proof = posts.slice(0, 3);
+
+  // Live ticker feed: real recent posts + real recent joins, newest first.
+  // Zero synthetic entries — an empty DB simply renders the waiting state.
+  const tickerItems: TickerItem[] = [
+    ...posts.slice(0, 6).map((p) => ({
+      id: p.id,
+      kind: "post" as const,
+      time: utcHM(p.createdAt),
+      name: p.author?.name || "someone",
+      verb: catVerb(p.category),
+      title: p.title,
+      href: catHref(p.category, p.id),
+      at: new Date(p.createdAt).getTime(),
+    })),
+    ...joins.map((u) => ({
+      id: `join-${u.id}`,
+      kind: "join" as const,
+      time: utcHM(u.createdAt),
+      name: u.name || "someone",
+      at: new Date(u.createdAt).getTime(),
+    })),
+  ]
+    .sort((a, b) => b.at - a.at)
+    .slice(0, 6)
+    .map(({ at: _at, ...item }) => item);
 
   return (
     <>
@@ -153,14 +187,20 @@ export async function Landing() {
               résumé theater.
             </p>
 
-            <div className="mt-9 flex flex-col items-start gap-3 sm:flex-row">
-              <Link
-                href={AUTH_ENTRY}
-                className="group inline-flex items-center gap-2 rounded-full bg-white px-8 py-3.5 text-base font-bold text-black transition hover:bg-white/90"
-              >
+            <div className="mt-9">
+              <SplitFlapText
+                words={["SNÍVAŤ", "LAUNCH READY", "YOUR FEED"]}
+                padTo={12}
+                loop
+                tileColor="#241b03"
+                textColor="#fcd34d"
+              />
+            </div>
+            <div className="mt-6 flex flex-col items-start gap-3 sm:flex-row">
+              <SpecularButton href={AUTH_ENTRY} className="w-full sm:w-auto">
                 Start growing — it&apos;s free
                 <span aria-hidden className="transition-transform duration-300 group-hover:translate-x-1">→</span>
-              </Link>
+              </SpecularButton>
               <Link
                 href="/community"
                 className="inline-flex items-center gap-2 rounded-full border border-white/15 px-8 py-3.5 font-mono text-sm text-white/75 transition hover:border-white/40 hover:text-white"
@@ -187,22 +227,10 @@ export async function Landing() {
               <span className="w-10" />
             </div>
             <div className="space-y-3 px-4 py-4 font-mono text-[13px] leading-relaxed">
-              {log.length === 0 ? (
+              {tickerItems.length === 0 ? (
                 <p className="text-white/35">// waiting for the first entry…</p>
               ) : (
-                log.map((p, i) => (
-                  <Link
-                    key={p.id}
-                    href={catHref(p.category, p.id)}
-                    className="log-line block truncate transition-colors hover:text-amber-200"
-                    style={{ animationDelay: `${i * 120 + 150}ms` }}
-                  >
-                    <span className="text-white/30">[{utcHM(p.createdAt)}]</span>{" "}
-                    <span className="text-amber-300">@{p.author?.name || "someone"}</span>{" "}
-                    <span className="text-white/50">{catVerb(p.category)}</span>{" "}
-                    <span className="text-white/85">&quot;{p.title}&quot;</span>
-                  </Link>
-                ))
+                <LiveTicker items={tickerItems} />
               )}
               <p className="text-white/40">
                 <span className="text-amber-300">$</span>{" "}
