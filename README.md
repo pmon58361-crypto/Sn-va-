@@ -1,132 +1,160 @@
-# 🐝 Snívať
+# Snívať
 
-A full-stack **job application + community** platform built with Next.js.
+**Dream. Grow. Connect.**
 
-Find work, find workers, and share your story — all in one place.
+Snívať (Slovak for *"to dream"*) is a community where people grow together —
+share progress publicly, find collaborators and work, and keep up with the
+people you follow. It is deliberately **not a job board and not LinkedIn**:
+no follower counts as status, no engagement games. Just a quiet, fast feed,
+honest numbers, and tools that respect your attention.
 
 ---
 
-## ✨ Features
+## What's inside
 
-| Section | What it's for |
+| Area | What you get |
 |---|---|
-| **Community** | Share experiences, ask for advice, hold threaded discussions |
-| **Jobs** | Two tabs — **Work Offers** ("I do this work") and **Work Requests** ("I need someone") |
-| **Applications** | Browse job openings and apply with a single message |
+| **Community** | A ranked "For you" feed plus a chronological "Following" tab, threaded comments, reactions, bookmarks, topic tags |
+| **Stories** | 24-hour Instagram-style story circles with seen/unseen rings, text notes, photo uploads, and a personal archive |
+| **Jobs & Applications** | Work offers ("I do this"), work requests ("I need someone"), and open listings with a one-message apply flow |
+| **Profiles** | Highlights collections, stats strip, follow graph, public/private privacy control |
+| **Direct messages** | Per-user threads with read receipts, unread badges, and starter prompts for brand-new conversations |
+| **Creator dashboard** | Real analytics from database events only — range switcher, tabbed SVG charts, period-over-period deltas, recent posts. Never estimated, never faked |
+| **Notifications** | In-app notifications for comments, reactions, follows, applications and messages |
+| **Moderation** | Community reporting with an admin queue, hide/restore, bans, and Cloudinary storage visibility |
+| **PWA** | Installable app, offline page, service-worker asset caching with explicit version bumps |
 
-**Core capabilities**
+### Privacy by default
 
-- 🔐 **Sign in** with **GitHub, Google, Facebook, Yahoo**, or the built-in **demo account** (works instantly, zero setup)
-- 🖼️ **Image uploads** — drag & drop, up to **100 images per post**, enforced server-side
-- 🎨 **System settings** — profile, light/dark theme, accent color (default red), privacy & notification toggles
-- 💬 **Comments** on community & job posts
-- 📨 **Job applications** with a per-listing applicant dashboard for the post owner
-- 👤 **Public profiles** showing a user's posts
-- ⚪ **White background + red primary** theme (fully recolorable in Settings)
+- Zero third-party tracking, pixels or ads scripts
+- Emails are visible only to their owner; profile handles derive from names
+- Self-deactivation is built in: hide your entire account instantly, sign back
+  in to restore everything — reversible, nothing deleted
 
 ---
 
-## 🚀 Quick start
+## Tech stack
+
+- [Next.js 15](https://nextjs.org/) App Router + React 18, TypeScript strict
+- [Prisma 5](https://www.prisma.io/) + PostgreSQL ([Neon](https://neon.tech) serverless in production)
+- [Auth.js v5](https://authjs.dev/) (JWT sessions) — GitHub, Google, Facebook, Microsoft and Yahoo OAuth wired up, plus a credentials path with bcrypt hashing
+- [Cloudinary](https://cloudinary.com/) for image storage with reference-aware garbage collection
+- [Tailwind CSS](https://tailwindcss.com/) theming through CSS variables — dark/light plus user-chosen accent and background presets
+- Pure-SVG charts and hand-rolled components; the dependency list stays short on purpose
+
+---
+
+## Quick start
+
+Requirements: Node 18+, a PostgreSQL database (local or Neon).
 
 ```bash
-# 1. Install dependencies
-npm install
-
-# 2. Create the database + run migrations (creates prisma/dev.db)
-npx prisma db push
-
-# 3. Seed sample users + posts (optional but recommended)
-npm run db:seed
-
-# 4. Start the dev server
-npm run dev
+git clone https://github.com/pmon58361-crypto/Sn-va-.git
+cd snivat            # repository folder
+npm ci               # installs deps and runs prisma generate automatically
 ```
 
-Open **http://localhost:3000**.
+Create `.env` (see `.env.example`):
 
-### Sign in
+```ini
+DATABASE_URL="postgresql://…"     # Neon or local Postgres
+AUTH_SECRET="random-string"       # openssl rand -base64 32
+NEXT_PUBLIC_SITE_URL="http://localhost:3000"
 
-The app ships with a **demo account** so you can explore immediately:
+# Optional — instant demo sign-in without any setup:
+DEMO_CODE="letmein"               # access-code login
+DEMO_EMAIL="demo@snivat.local"
+DEMO_PASSWORD="demo1234"
 
-| Field | Value |
-|---|---|
-| Email | `demo@snivat.local` |
-| Password | `demo1234` |
+# Optional providers — each activates when its keys exist:
+# AUTH_GITHUB_ID / AUTH_GITHUB_SECRET, AUTH_GOOGLE_ID / AUTH_GOOGLE_SECRET,
+# AUTH_FACEBOOK_ID / AUTH_FACEBOOK_SECRET, AUTH_MICROSOFT_ID / AUTH_MICROSOFT_SECRET,
+# AUTH_YAHOO_ID / AUTH_YAHOO_SECRET, CLOUDINARY_URL, ADMIN_EMAILS
+```
 
-On the sign-in page these are prefilled — just press **Sign in**.
+Push the schema and run:
 
----
+```bash
+npm run db:push        # create tables (safe on an empty database)
+npm run dev            # http://localhost:3000
+```
 
-## 🔑 Enabling real OAuth (optional)
+Sign in with the access code (`DEMO_CODE`) or `demo@snivat.local` /
+`demo1234` to explore immediately.
 
-The four OAuth providers are wired up but stay hidden until you add their keys.
-
-1. Copy `.env.example` → `.env`
-2. Create an OAuth app at each provider and paste the Client ID + Secret:
-   - **GitHub** — https://github.com/settings/developers
-   - **Google** — https://console.cloud.google.com/apis/credentials
-   - **Facebook** — https://developers.facebook.com/apps/
-   - **Yahoo** — https://developer.yahoo.com/apps/
-3. Set `AUTH_SECRET` to a random string (`openssl rand -base64 32`).
-4. Set `NEXT_PUBLIC_APP_URL` to your final URL.
-5. Restart the dev server. Provider buttons become clickable.
-
-> **Note:** For production, make sure each provider's authorized redirect URI is set to `https://YOUR_DOMAIN/api/auth/callback/<provider>`.
-
----
-
-## 🛠️ Tech stack
-
-- **[Next.js 15](https://nextjs.org/)** (App Router) — full-stack React framework
-- **[Prisma](https://www.prisma.io/) + SQLite** — type-safe database, file-based (no external DB server)
-- **[Auth.js v5 / NextAuth](https://authjs.dev/)** — OAuth + credentials auth
-- **[Tailwind CSS](https://tailwindcss.com/)** — styling, white/red theme via CSS variables
-- **TypeScript** end-to-end
+> For production builds, run `npm run build && npm start`. On Windows,
+> `npm start` wraps `start.ps1`, which frees port 3000 and rebuilds
+> `.next` if corruption is detected.
 
 ---
 
-## 📁 Project structure
+## Project structure
 
 ```
 src/
 ├── app/
-│   ├── actions.ts            # Server actions (save/delete posts, comments, apply)
-│   ├── api/
-│   │   ├── auth/[...nextauth]/  # Auth.js route handlers
-│   │   └── upload/              # Image upload API
-│   ├── auth/signin/          # Sign-in page (OAuth + demo)
-│   ├── community/            # Community list + [id] detail
-│   ├── jobs/                 # Jobs list (offer/request tabs) + [id] detail
-│   ├── applications/         # Job applications list + [id] detail + apply
-│   ├── settings/             # Settings page + form + action
-│   ├── profile/[id]/         # Public profile
-│   ├── new/                  # Create post
-│   ├── layout.tsx            # Root layout (navbar/footer/providers)
-│   └── page.tsx              # Landing page
-├── auth.ts                   # Auth.js config (providers, callbacks)
-├── components/               # Navbar, Footer, PostCard, ImageUploader, etc.
-└── lib/                      # prisma client, queries, types, utils
-prisma/
-├── schema.prisma             # Database models
-└── seed.js                   # Sample data
+│   ├── admin/              # Moderation queue (role-gated) + actions
+│   ├── api/                # auth handlers, upload, dm, notifications
+│   ├── auth/signin/        # Sign-in (OAuth buttons + access code)
+│   ├── community/          # Main feed + post detail
+│   ├── jobs/ applications/ # Work sections + detail pages
+│   ├── dashboard/          # Creator analytics
+│   ├── dm/                 # Conversations + thread view
+│   ├── people/ profile/    # Directory and profiles (highlights included)
+│   ├── settings/           # Account / appearance / interests / privacy tabs
+│   └── stories/ highlights/# Server actions for ephemeral + curated content
+├── auth.ts                 # Auth.js config: throttling, providers, callbacks
+├── components/
+│   ├── layout/             # Navbar, Sidebar, BottomNav, RightSidebar
+│   ├── posts/ stories/ dm/ # Feed cards, composers, thread UI
+│   ├── dashboard/ pwa/     # Analytics charts, install prompt
+│   └── ui/                 # Icons, Avatar, Logo primitives
+├── lib/                    # prisma, queries, feed ranking, session cache, utils
+└── middleware.ts           # Auth error self-healing
+prisma/schema.prisma        # 20 models — additive-only evolution policy
+public/sw.js                # Service worker; VERSION bumps on asset changes
 ```
 
 ---
 
-## 📜 Scripts
+## Scripts
 
 | Command | What it does |
 |---|---|
-| `npm run dev` | Start the dev server |
-| `npm run build` | Production build (runs `prisma generate`) |
-| `npm run db:push` | Create/apply schema to the SQLite file |
-| `npm run db:seed` | Insert sample users + posts |
-| `npm run db:studio` | Open Prisma Studio (GUI for the DB) |
+| `npm run dev` | Dev server on :3000 |
+| `npm run build` | Prisma generate + production build |
+| `npm start` | Production server via `start.ps1` |
+| `npm run db:push` | Sync schema to the database |
+| `npm run db:seed` | Insert sample users and posts |
+| `npm run db:studio` | Prisma Studio GUI |
+| `npm run smoke` | Route-level smoke checks |
+| `npm run test:e2e` | Playwright end-to-end suite |
+| `npm run check` | tsc + e2e + smoke in one gate |
 
 ---
 
-## ⚠️ Notes
+## Operating notes
 
-- **OneDrive sync:** if you keep this project inside a OneDrive folder, the `node_modules` directory (thousands of tiny files) can slow sync or cause lock errors. Consider excluding the project folder from OneDrive sync, or moving it outside OneDrive.
-- **Storage:** uploaded images are saved to `public/uploads/` (git-ignored). For production, swap the upload route for a cloud provider (S3, Cloudinary, etc.).
-- **Database:** SQLite is great for local/demo use. For production, change the Prisma `datasource` to Postgres/MySQL.
+- **Schema changes are additive only.** Columns are added, never dropped or
+  retyped, and pushes run exclusively from a worktree whose
+  `prisma/schema.prisma` matches origin/main HEAD (verified with
+  `prisma migrate diff`). This policy exists because a stale checkout once
+  dropped a column from the shared database.
+- **Service worker:** bump `VERSION` in `public/sw.js` whenever anything in
+  `public/` changes, or returning PWA users will serve stale assets.
+- **Real data only:** every number shown in product or analytics comes from
+  actual events. Nothing is estimated or simulated.
+
+---
+
+## Credits
+
+Snívať is **built by a room of AI agents** — that's not marketing, it's the
+actual process. A coordinator agent holds the roadmap and sequences deploys;
+worker agents claim tickets, develop in isolated git worktrees, and hand
+gated commits to a single integrator who runs the merge train, rehearses
+type-checks, ships, smokes production and reverts on red. Humans set the
+taste, the priorities and the guardrails; the agents do the typing.
+
+The result is an app designed the way good teams actually work: small
+reversible changes, honest metrics, one deployer at a time.
