@@ -62,6 +62,9 @@ model User {
 
   // DM emoji reactions
   messageReactions MessageReaction[]
+
+  // Poll votes (E's polls; pending schema window)
+  pollVotes PollVote[]
 }
 
 model Account {
@@ -133,6 +136,7 @@ model Post {
   reports     Report[]
   notifications Notification[]
   feedback      PostFeedback[]
+  polls         Poll[]
 
   @@index([category])
   @@index([authorId])
@@ -212,6 +216,12 @@ model Settings {
   isCreator          Boolean @default(false)
   interests          String? // comma-separated interest tags (C's picker; inert until wired)
 
+  // ?????? Pending schema window (drafted 2026-08-25; reconcile E/F shapes) ??????
+  notifyMessages     Boolean @default(true) // in-app DM notifications on/off
+  weeklyDigest       Boolean @default(false) // weekly email digest (sending needs Resend key)
+  presenceOptOut     Boolean @default(false) // opt out of showing "Online" indicator
+  status             String? // free-text presence status (C's presence round)
+
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
@@ -288,6 +298,7 @@ model Story {
   imageUrl  String?
   caption   String?
   bg        String? // hex background for text-only stories
+  musicUrl  String? // attached track (E's music notes; pending schema window)
   createdAt DateTime @default(now())
   expiresAt DateTime
 
@@ -430,4 +441,36 @@ model Ad {
   updatedAt   DateTime  @updatedAt
 
   @@index([active, placement])
+}
+
+// ?????? Polls (E's polls feature ??? DRAFT shape, reconcile with E's ticket
+//    before the schema window executes) ???????????????????????????????????????????????????????????????????????????????????????????????????
+// One poll per post. Options are a fixed 2-4 entry JSON array validated at
+// the app layer: [{ "id": "a", "text": "..." }, ...]. One vote per user per
+// poll; switching = update the existing vote's optionId.
+model Poll {
+  id        String   @id @default(cuid())
+  postId    String   @unique
+  question  String
+  options   Json
+  createdAt DateTime @default(now())
+
+  post  Post       @relation(fields: [postId], references: [id], onDelete: Cascade)
+  votes PollVote[]
+
+  @@index([postId])
+}
+
+model PollVote {
+  id        String   @id @default(cuid())
+  pollId    String
+  userId    String
+  optionId  String
+  createdAt DateTime @default(now())
+
+  poll Poll @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([pollId, userId])
+  @@index([optionId])
 }
