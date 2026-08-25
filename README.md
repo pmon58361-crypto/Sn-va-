@@ -88,6 +88,35 @@ Sign in with the access code (`DEMO_CODE`) or `demo@snivat.local` /
 
 ---
 
+## 🔑 Enabling real OAuth (optional)
+
+The four OAuth providers are wired up but stay hidden until you add their keys.
+
+1. Copy `.env.example` → `.env`
+2. Create an OAuth app at each provider and paste the Client ID + Secret:
+   - **GitHub** — https://github.com/settings/developers
+   - **Google** — https://console.cloud.google.com/apis/credentials
+   - **Facebook** — https://developers.facebook.com/apps/
+   - **Yahoo** — https://developer.yahoo.com/apps/
+3. Set `AUTH_SECRET` to a random string (`openssl rand -base64 32`).
+4. Set `NEXT_PUBLIC_APP_URL` to your final URL.
+5. Restart the dev server. Provider buttons become clickable.
+
+> **Note:** For production, make sure each provider's authorized redirect URI is set to `https://YOUR_DOMAIN/api/auth/callback/<provider>`.
+
+---
+
+## 🛠️ Tech stack
+
+- **[Next.js 15](https://nextjs.org/)** (App Router) — full-stack React framework
+- **[Prisma](https://www.prisma.io/)** — type-safe database client
+- **[Auth.js v5 / NextAuth](https://authjs.dev/)** — OAuth + credentials auth
+- **[Tailwind CSS](https://tailwindcss.com/)** — styling, white/red theme via CSS variables
+- **[ogl](https://github.com/oframe/ogl)** — tiny WebGL library, used ONLY by the landing page's `SpecularButton` CTA (user-requested addition, 2026-08-25). No other component depends on it.
+- **TypeScript** end-to-end
+
+---
+
 ## Project structure
 
 ```

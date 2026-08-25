@@ -3,6 +3,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { MapPinIcon, MessageIcon, BriefcaseIcon } from "@/components/ui/Icons";
 import { PostActions } from "@/components/posts/PostActions";
 import { ImageGrid } from "@/components/posts/ImageGrid";
+import { PostEmbeds } from "@/components/posts/PostEmbeds";
 import { InterestPrompt } from "@/components/posts/InterestPrompt";
 import { timeAgo, parseTags } from "@/lib/utils";
 import { CATEGORY_META } from "@/lib/types";
@@ -101,6 +102,9 @@ export async function PostCard({
           <p className="mt-1 line-clamp-4 text-sm leading-relaxed text-ink-muted">
             {post.content}
           </p>
+
+          {/* Video link embed — first recognized YouTube/TikTok/Reels URL */}
+          <PostEmbeds content={post.content} />
 
           {/* Job metadata */}
           {(post.budget || post.location || post.type) && (
