@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+﻿import { test, expect, type Page } from "@playwright/test";
 import {
   E2E_PREFIX,
   cleanupE2EData,
@@ -32,9 +32,9 @@ test("poll: author creates via composer, peer votes, real results render", async
   try {
     // Create through the real composer UI.
     await author.page.goto("/new");
-    await author.page.getByPlaceholder(/Give it a title/i).fill(title);
+    await author.page.getByPlaceholder(/Give it a title/i).first().fill(title);
     await author.page
-      .getByPlaceholder(/Describe what you're posting/i)
+      .getByPlaceholder(/Describe what you're posting/i).first()
       .fill("Poll body text for e2e verification.");
     await author.page.getByRole("button", { name: /Add a poll/ }).click();
     await author.page.getByPlaceholder("Poll question").fill("Best sprint snack?");
@@ -67,12 +67,12 @@ test("music note: link field persists and chip renders on the bubble", async ({
   try {
     await page.goto("/community");
     await page.getByRole("button", { name: /Add a note/i }).click();
-    await page.getByPlaceholder("Share a quick thought…").fill(`${NOTE_TAG} 🎧`);
+    await page.getByPlaceholder("Share a quick thoughtâ€¦").fill(`${NOTE_TAG} ðŸŽ§`);
     await page
       .getByPlaceholder(/Add a Spotify/)
       .fill("https://open.spotify.com/track/e2e-verify");
     await page.getByRole("button", { name: "Share", exact: true }).click();
-    await expect(page.getByText(`${NOTE_TAG} 🎧`).first()).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText(`${NOTE_TAG} ðŸŽ§`).first()).toBeVisible({ timeout: 30_000 });
     // Chip deep-links out with the provider label.
     const chip = page.locator('a[aria-label="Listen on Spotify"]').first();
     await expect(chip).toBeVisible();
@@ -112,8 +112,8 @@ test("DM toolbar: hover pill has react/copy/more; smiley opens emoji popup that 
 
     // Smiley click opens the popup; tapping an emoji creates a reaction pill.
     await react.dispatchEvent("click");
-    await sender.page.getByLabel("React ❤️").last().dispatchEvent("click");
-    await expect(sender.page.getByText("❤️").first()).toBeVisible({
+    await sender.page.getByLabel("React â¤ï¸").last().dispatchEvent("click");
+    await expect(sender.page.getByText("â¤ï¸").first()).toBeVisible({
       timeout: 30_000,
     });
   } finally {
@@ -125,16 +125,16 @@ test("install button: hidden on desktop without prompt availability, iOS shows h
   browser,
 }) => {
   test.setTimeout(90_000);
-  // Desktop chromium headless never fires beforeinstallprompt → honest hide.
+  // Desktop chromium headless never fires beforeinstallprompt â†’ honest hide.
   const desktop = await signedInPage(browser, "demo");
   try {
     await desktop.page.goto("/community");
     await expect(desktop.page.getByRole("button", { name: "Install app" })).toHaveCount(0);
 
-    // iPhone UA → iOS branch → button visible, popover explains the flow.
+    // iPhone UA â†’ iOS branch â†’ button visible, popover explains the flow.
     // iPhone UA at DESKTOP viewport (the sidebar is lg-only): exercises the
     // component's iOS branch. NOTE: on real phones the sidebar doesn't render
-    // at all — mobile reachability is a separate design question.
+    // at all â€” mobile reachability is a separate design question.
     const ctx = await browser.newContext({
       baseURL: process.env.E2E_BASE_URL ?? "http://localhost:3000",
       userAgent:
