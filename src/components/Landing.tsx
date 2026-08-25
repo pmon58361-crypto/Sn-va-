@@ -3,6 +3,7 @@ import { Logo } from "@/components/ui/Logo";
 import { getPosts } from "@/lib/queries";
 import { prisma } from "@/lib/prisma";
 import { timeAgo } from "@/lib/utils";
+import { DriftWall } from "@/components/landing/DriftWall";
 
 // ─────────────────────────────────────────────────────────────────────────
 // THE FRONT — builder terminal.
@@ -43,6 +44,7 @@ export async function Landing() {
   let posts: Awaited<ReturnType<typeof getPosts>> = [];
   let users = 0;
   let postCount = 0;
+  let wallItems: { image: string; title: string; href: string }[] = [];
   try {
     posts = await getPosts({ limit: 8, sort: "new" as never });
     const counts = await Promise.all([
@@ -51,6 +53,30 @@ export async function Landing() {
     ]);
     users = counts[0];
     postCount = counts[1];
+
+    // Real community imagery for the DriftWall hero background.
+    const withImages = await prisma.post.findMany({
+      where: { hidden: false, images: { some: {} } },
+      select: {
+        id: true,
+        title: true,
+        category: true,
+        createdAt: true,
+        images: { select: { url: true }, orderBy: { order: "asc" }, take: 1 },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 14,
+    });
+    wallItems = withImages
+      .filter((p) => p.images[0]?.url)
+      .map((p) => ({
+        image: p.images[0].url,
+        title: p.title,
+        href:
+          p.category === "COMMUNITY"
+            ? `/community/${p.id}`
+            : `/jobs/${p.id}`,
+      }));
   } catch {
     /* render with defaults */
   }
@@ -99,7 +125,31 @@ export async function Landing() {
       </header>
 
       {/* ── HERO ─────────────────────────────────────────────────────── */}
-      <section className="relative pt-16">
+      <section className="relative overflow-hidden pt-16">
+        {/* Drifting 3D wall of real community imagery — the launch shot */}
+        <DriftWall
+          items={wallItems}
+          columns={8}
+          tileWidth={200}
+          tileHeight={140}
+          gap={16}
+          tilt={6}
+          turn={10}
+          perspective={1300}
+          depth={700}
+          speed={26}
+          direction="up"
+          variance={0.4}
+          parallax={0.7}
+          lift={26}
+          fade={0.6}
+          dim={0.5}
+          overlayColor="rgba(10,10,11,0.74)"
+          radius={14}
+          roll={2.5}
+          pauseOnHover
+        />
+
         {/* hairline grid backdrop */}
         <div aria-hidden className="term-grid pointer-events-none absolute inset-0 abs-bleed" />
         <div
