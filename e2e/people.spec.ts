@@ -18,9 +18,6 @@ test("people search filters results", async ({ browser }) => {
 
 // The admin private-profile override shipped in commit 04748a4 (train
 // f0b1422). This test guards that override against regressions.
-// NOTE: the display-name <h1> currently renders 0-width at desktop sizes
-// (identity column collapse — filed separately), so visibility is asserted
-// on stable profile content instead of the name until that is fixed.
 test("an admin can view a private profile", async ({ browser }) => {
   const { demo2 } = await demoUsers();
   const previous = await prisma.settings.findUnique({ where: { userId: demo2.id } });
@@ -29,8 +26,10 @@ test("an admin can view a private profile", async ({ browser }) => {
   try {
     await page.goto(`/profile/${demo2.id}`);
     await expect(page.getByText("This profile is private.")).toHaveCount(0);
-    await expect(page.getByText("followers")).toBeVisible();
-    await expect(page.getByText("posts").first()).toBeVisible();
+    // Name renders again after the 4556e25 identity-column fix.
+    await expect(page.getByRole("heading", { name: demo2.name || "Demo 2" })).toBeVisible();
+    // Stats render in both the mobile and desktop blocks; assert the visible one.
+    await expect(page.getByText("follower").filter({ visible: true }).first()).toBeVisible();
   } finally {
     await context.close();
     if (previous) await prisma.settings.update({ where: { id: previous.id }, data: { publicProfile: previous.publicProfile } });
@@ -54,9 +53,8 @@ async function expectsFounding(userId: string): Promise<boolean> {
   return me.createdAt <= (nth[0]?.createdAt ?? new Date(0));
 }
 
-// The badge ships in bfc3f14; it goes live locally with the midday
-// schema-window rebuild. Re-activate at the EOD gate.
-test.fixme("founding member badge follows account seniority", async ({ browser }) => {
+// The badge shipped in bfc3f14 and went live locally with the EOD rebuild.
+test("founding member badge follows account seniority", async ({ browser }) => {
   const { demo2 } = await demoUsers();
   const shouldShow = await expectsFounding(demo2.id);
   const { context, page } = await signedInPage(browser, "demo");
