@@ -2,7 +2,8 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { createStory, viewStory } from "@/app/stories/actions";
+import Link from "next/link";
+import { createStory, viewStory, deleteStory } from "@/app/stories/actions";
 import { cdnUrl } from "@/lib/cdn";
 import { timeAgo } from "@/lib/utils";
 import { Avatar } from "@/components/ui/Avatar";
@@ -25,15 +26,53 @@ export type StoryGroup = {
 
 const BG_CHOICES = ["#1d9bf0", "#f91880", "#00ba7c", "#ffd400", "#7856ff", "#ff7a00"];
 
+// Five curated NOTE-bubble styles. Only the signature hex is stored in
+// Story.bg (server validates hex-only) — rendering resolves it to full CSS
+// here, so legacy flat-color notes keep working via the fallback below.
+export const NOTE_STYLES = [
+  { key: "#2f9e6b", css: "linear-gradient(135deg,#34b577,#2f9e6b)", fg: "#ffffff" },
+  { key: "#1d9bf0", css: "linear-gradient(135deg,#47b1f5,#1d9bf0)", fg: "#ffffff" },
+  { key: "#262626", css: "linear-gradient(135deg,#3d3d3d,#151515)", fg: "#ffffff" },
+  { key: "#7856ff", css: "linear-gradient(135deg,#9b81ff,#6a3df5)", fg: "#ffffff" },
+  { key: "#ffd400", css: "linear-gradient(135deg,#ffe066,#f5b800)", fg: "#141414" },
+] as const;
+
+export function noteStyle(bg?: string | null) {
+  return (
+    NOTE_STYLES.find((s) => s.key === bg) ?? {
+      key: bg || "#262626",
+      css: bg || "#262626",
+      fg: "#ffffff",
+    }
+  );
+}
+
 export function StoriesBar({
   groups,
   meId,
 }: {
   groups: StoryGroup[];
   meId?: string | null;
-}) {
+ }) {
+  const router = useRouter();
   const [composerOpen, setComposerOpen] = useState(false);
   const [viewing, setViewing] = useState<StoryGroup | null>(null);
+  // Note popover — notes never open the fullscreen story viewer.
+  const [notePop, setNotePop] = useState<{
+    g: StoryGroup;
+    cx: number;
+    cy: number;
+  } | null>(null);
+
+  // Close the note popover on Escape.
+  useEffect(() => {
+    if (!notePop) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setNotePop(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [notePop]);
 
   return (
     <div className="border-b border-line px-4 py-3">
@@ -56,30 +95,41 @@ export function StoriesBar({
         {groups.map((g) => {
           // Latest story drives the IG-notes-style bubble above the ring.
           const latest = g.items[g.items.length - 1];
-          const showNote = !!latest && !latest.imageUrl && !!latest.caption;
+          const isNote = !!latest && !latest.imageUrl && !!latest.caption;
           return (
             <button
               key={g.author.id}
-              onClick={() => setViewing(g)}
+              onClick={(e) => {
+                if (isNote) {
+                  const r = e.currentTarget.getBoundingClientRect();
+                  setNotePop({ g, cx: r.left + r.width / 2, cy: r.top });
+                } else {
+                  setViewing(g);
+                }
+              }}
               className="flex w-[84px] shrink-0 flex-col items-center"
             >
               {/* Reserved slot: note bubble sits above the ring without shifting rows */}
               <span className="mb-1 flex h-8 items-end justify-center">
-                {showNote && (
-                  <span className="relative inline-block max-w-[80px]">
-                    <span
-                      className="block truncate rounded-lg border border-line-strong px-2 py-1 text-[11px] font-medium text-white"
-                      style={{ background: latest!.bg || "#262626" }}
-                    >
-                      {latest!.caption}
-                    </span>
-                    <span
-                      aria-hidden
-                      className="absolute -bottom-0.5 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rotate-45 rounded-[1px]"
-                      style={{ background: latest!.bg || "#262626", borderTop: "1px solid rgba(255,255,255,0.15)", borderLeft: "1px solid rgba(255,255,255,0.15)" }}
-                    />
-                  </span>
-                )}
+                {isNote &&
+                  (() => {
+                    const st = noteStyle(latest!.bg);
+                    return (
+                      <span className="relative inline-block max-w-[80px]">
+                        <span
+                          className="block truncate rounded-lg border border-line-strong px-2 py-1 text-[11px] font-medium"
+                          style={{ background: st.css, color: st.fg }}
+                        >
+                          {latest!.caption}
+                        </span>
+                        <span
+                          aria-hidden
+                          className="absolute -bottom-0.5 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rotate-45 rounded-[1px]"
+                          style={{ background: st.css, borderTop: "1px solid rgba(255,255,255,0.15)", borderLeft: "1px solid rgba(255,255,255,0.15)" }}
+                        />
+                      </span>
+                    );
+                  })()}
               </span>
               <Ring seen={!g.hasUnseen} image={g.author.image} name={g.author.name} />
               <span className="mt-0.5 w-full truncate text-center text-[13px] text-ink-secondary">
@@ -90,11 +140,94 @@ export function StoriesBar({
         })}
       </div>
 
+      {/* Note popover — anchored to the tapped avatar, fixed-position so the
+          rail's horizontal scroll never clips it. */}
+      {notePop &&
+        (() => {
+          const latest = notePop.g.items[notePop.g.items.length - 1];
+          const st = noteStyle(latest?.bg);
+          const mine = notePop.g.author.id === meId;
+          const popW = 224;
+          const left = Math.min(
+            Math.max(notePop.cx - popW / 2, 12),
+            window.innerWidth - popW - 12
+          );
+          return (
+            <>
+              <div
+                className="fixed inset-0 z-[60]"
+                onClick={() => setNotePop(null)}
+                aria-hidden
+              />
+              <div
+                role="dialog"
+                aria-label={`Note from ${notePop.g.author.name || "someone"}`}
+                className="fixed z-[61] w-56 rounded-xl border border-line bg-bg p-3 shadow-2xl"
+                style={{ left, top: notePop.cy + 8 }}
+              >
+                <p
+                  className="rounded-lg px-2.5 py-2 text-sm font-semibold leading-snug"
+                  style={{ background: st.css, color: st.fg }}
+                >
+                  {latest?.caption}
+                </p>
+                {mine ? (
+                  <DeleteNoteButton
+                    storyId={latest!.id}
+                    onDone={() => {
+                      setNotePop(null);
+                      router.refresh();
+                    }}
+                  />
+                ) : (
+                  <Link
+                    href={`/dm/${notePop.g.author.id}?text=${encodeURIComponent(
+                      `> ${latest?.caption ?? ""}\n`
+                    )}`}
+                    className="btn-outline mt-2 block w-full py-1.5 text-center text-xs"
+                  >
+                    Quick reply
+                  </Link>
+                )}
+              </div>
+            </>
+          );
+        })()}
+
       {composerOpen && <StoryComposer onClose={() => setComposerOpen(false)} />}
       {viewing && (
         <StoryViewer group={viewing} meId={meId} onClose={() => setViewing(null)} />
       )}
     </div>
+  );
+}
+
+// Owner-side popover action: delete the note outright (server action
+// redirects are not involved; refresh re-renders the rail).
+function DeleteNoteButton({
+  storyId,
+  onDone,
+}: {
+  storyId: string;
+  onDone: () => void;
+}) {
+  const [pending, setPending] = useState(false);
+  return (
+    <button
+      type="button"
+      disabled={pending}
+      onClick={async () => {
+        setPending(true);
+        try {
+          await deleteStory(storyId);
+        } finally {
+          onDone();
+        }
+      }}
+      className="mt-2 block w-full rounded-lg border border-warm/50 py-1.5 text-center text-xs font-semibold text-warm transition hover:bg-warm-tint disabled:opacity-50"
+    >
+      {pending ? "Deleting…" : "Delete note"}
+    </button>
   );
 }
 
@@ -194,8 +327,8 @@ function StoryComposer({ onClose }: { onClose: () => void }) {
         {mode === "text" ? (
           <>
             <div
-              className="mb-3 grid min-h-[180px] place-items-center rounded-2xl p-6 text-center text-xl font-bold text-white"
-              style={{ background: bg }}
+              className="mb-3 grid min-h-[180px] place-items-center rounded-2xl p-6 text-center text-xl font-bold"
+              style={{ background: noteStyle(bg).css, color: noteStyle(bg).fg }}
             >
               {caption || "Your text here"}
             </div>
@@ -207,15 +340,17 @@ function StoryComposer({ onClose }: { onClose: () => void }) {
               placeholder="What's happening?"
               className="input mb-3 resize-none"
             />
+            {/* Five curated note styles — key hex is what gets stored */}
             <div className="mb-4 flex gap-2">
-              {BG_CHOICES.map((c) => (
+              {NOTE_STYLES.map((s) => (
                 <button
-                  key={c}
+                  key={s.key}
                   type="button"
-                  onClick={() => setBg(c)}
-                  aria-label={`Background ${c}`}
-                  className={`h-7 w-7 rounded-full border-2 ${bg === c ? "border-ink" : "border-transparent"}`}
-                  style={{ background: c }}
+                  onClick={() => setBg(s.key)}
+                  aria-label={`Note style ${s.key}`}
+                  title={`Note style ${s.key}`}
+                  className={`h-7 w-7 rounded-full border-2 ${bg === s.key ? "border-ink" : "border-transparent"}`}
+                  style={{ background: s.css }}
                 />
               ))}
             </div>
@@ -413,15 +548,15 @@ function StoryViewer({
           <div className="flex flex-col items-center">
             <div className="relative z-10 mb-[-14px] flex justify-center">
               <div
-                className="max-w-[230px] rounded-2xl px-4 py-2.5 text-center text-sm font-semibold text-white shadow-xl"
-                style={{ background: item.bg || "#1d9bf0" }}
+                className="max-w-[230px] rounded-2xl px-4 py-2.5 text-center text-sm font-semibold shadow-xl"
+                style={{ background: noteStyle(item.bg).css, color: noteStyle(item.bg).fg }}
               >
                 {item.caption}
               </div>
               <span
                 aria-hidden
                 className="absolute -bottom-1 right-8 h-2.5 w-2.5 rotate-45 rounded-[2px]"
-                style={{ background: item.bg || "#1d9bf0" }}
+                style={{ background: noteStyle(item.bg).css }}
               />
             </div>
             <Avatar name={group.author.name} image={group.author.image} size={84} />
