@@ -76,11 +76,42 @@ export async function createStory(
     return { ok: false, error: err instanceof Error ? err.message : "Blocked" };
   }
 
+  // Optional attached track — link-out only (no hosting/licensing). Strict
+  // provider allowlist; a bad link is an explicit error, never silent.
+  const MUSIC_HOSTS = [
+    "spotify.com",
+    "youtu.be",
+    "youtube.com",
+    "music.apple.com",
+  ];
+  const rawMusic = (form.get("musicUrl") as string | null)?.trim() || null;
+  let musicUrl: string | null = null;
+  if (rawMusic) {
+    let okHost = false;
+    try {
+      const u = new URL(rawMusic);
+      const host = u.hostname.replace(/^www\./, "");
+      okHost =
+        u.protocol === "https:" &&
+        MUSIC_HOSTS.some((h) => host === h || host.endsWith("." + h));
+    } catch {
+      okHost = false;
+    }
+    if (!okHost) {
+      return {
+        ok: false,
+        error: "Music must be a Spotify, YouTube, or Apple Music link",
+      };
+    }
+    musicUrl = rawMusic;
+  }
+
   await prisma.story.create({
     data: {
       authorId: me,
       imageUrl,
       caption,
+      musicUrl,
       bg: bg && /^#[0-9a-fA-F]{6}$/.test(bg) ? bg : "#1d9bf0",
       expiresAt: new Date(Date.now() + STORY_TTL_HOURS * 3600 * 1000),
     },
