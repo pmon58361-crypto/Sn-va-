@@ -47,6 +47,14 @@ export function noteStyle(bg?: string | null) {
   );
 }
 
+// Caption-length auto-scaling — short notes read BIG (IG behavior). Shared
+// by composer preview and the viewer so what you type is what renders.
+export function noteTextClass(len: number) {
+  if (len <= 40) return "text-3xl sm:text-4xl";
+  if (len <= 110) return "text-2xl";
+  return "text-lg";
+}
+
 export function StoriesBar({
   groups,
   meId,
@@ -309,28 +317,31 @@ function StoryComposer({ onClose }: { onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 px-4" onClick={onClose}>
       <div
-        className="card w-full max-w-md bg-bg p-5"
+        className="card w-full max-w-sm bg-bg p-4"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-xl font-extrabold">Add to your story</h3>
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="text-lg font-extrabold">Add to your story</h3>
           <button onClick={onClose} aria-label="Close" className="rounded-full p-1 hover:bg-surface-hover">
             <XIcon className="h-5 w-5" />
           </button>
         </div>
 
-        <div className="mb-4 grid grid-cols-2 gap-2 rounded-xl border border-line bg-surface-hover/50 p-1 text-sm font-bold">
+        <div className="mb-3 grid grid-cols-2 gap-2 rounded-xl border border-line bg-surface-hover/50 p-1 text-sm font-bold">
           <button onClick={() => setMode("text")} className={`rounded-lg py-1.5 ${mode === "text" ? "bg-bg" : "text-ink-secondary"}`}>Text</button>
           <button onClick={() => setMode("image")} className={`rounded-lg py-1.5 ${mode === "image" ? "bg-bg" : "text-ink-secondary"}`}>Photo</button>
         </div>
 
         {mode === "text" ? (
           <>
+            {/* Live preview — the tall card the story will render as */}
             <div
-              className="mb-3 grid min-h-[180px] place-items-center rounded-2xl p-6 text-center text-xl font-bold"
+              className="mx-auto mb-3 grid aspect-[9/16] max-h-[46vh] w-full max-w-[260px] place-items-center rounded-2xl p-6 text-center font-bold break-words"
               style={{ background: noteStyle(bg).css, color: noteStyle(bg).fg }}
             >
-              {caption || "Your text here"}
+              <span className={noteTextClass(caption.length)}>
+                {caption || "Your text here"}
+              </span>
             </div>
             <textarea
               value={caption}
@@ -339,17 +350,22 @@ function StoryComposer({ onClose }: { onClose: () => void }) {
               maxLength={200}
               placeholder="What's happening?"
               className="input mb-3 resize-none"
+              autoFocus
             />
             {/* Five curated note styles — key hex is what gets stored */}
-            <div className="mb-4 flex gap-2">
-              {NOTE_STYLES.map((s) => (
+            <div className="flex gap-2">
+              {NOTE_STYLES.map((s, i) => (
                 <button
                   key={s.key}
                   type="button"
                   onClick={() => setBg(s.key)}
-                  aria-label={`Note style ${s.key}`}
-                  title={`Note style ${s.key}`}
-                  className={`h-7 w-7 rounded-full border-2 ${bg === s.key ? "border-ink" : "border-transparent"}`}
+                  aria-label={`Note style ${i + 1} of ${NOTE_STYLES.length}`}
+                  title={`Note style ${i + 1}`}
+                  className={`h-10 flex-1 rounded-xl border-2 transition ${
+                    bg === s.key
+                      ? "border-ink"
+                      : "border-transparent opacity-80 hover:opacity-100"
+                  }`}
                   style={{ background: s.css }}
                 />
               ))}
@@ -357,17 +373,26 @@ function StoryComposer({ onClose }: { onClose: () => void }) {
           </>
         ) : (
           <>
-            <button
-              onClick={() => fileRef.current?.click()}
-              className="mb-3 grid h-[220px] w-full place-items-center overflow-hidden rounded-2xl border-2 border-dashed border-line-strong text-sm text-ink-secondary"
-            >
-              {preview ? (
-                // eslint-disable-next-line @next/next/no-img-element
+            {preview ? (
+              <div className="relative mx-auto mb-3 aspect-[9/16] max-h-[42vh] w-full max-w-[260px] overflow-hidden rounded-2xl border border-line">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={preview} alt="" className="h-full w-full object-cover" />
-              ) : (
-                "Tap to choose a photo"
-              )}
-            </button>
+                <button
+                  type="button"
+                  onClick={() => fileRef.current?.click()}
+                  className="absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-black/60 px-3 py-1 text-xs font-medium text-white backdrop-blur"
+                >
+                  Change photo
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => fileRef.current?.click()}
+                className="mx-auto mb-3 grid aspect-[9/16] max-h-[42vh] w-full max-w-[260px] place-items-center rounded-2xl border-2 border-dashed border-line-strong text-sm text-ink-secondary"
+              >
+                Tap to choose a photo
+              </button>
+            )}
             <input
               ref={fileRef}
               type="file"
@@ -386,22 +411,22 @@ function StoryComposer({ onClose }: { onClose: () => void }) {
               value={caption}
               onChange={(e) => setCaption(e.target.value)}
               placeholder="Optional caption"
-              className="input mb-4"
+              className="input"
               maxLength={200}
             />
           </>
         )}
 
-        {error && <p className="mb-3 text-sm text-warm">{error}</p>}
+        {error && <p className="mb-2 mt-2 text-sm text-warm">{error}</p>}
 
         <button
           onClick={submit}
           disabled={pending}
-          className="btn-primary w-full py-2.5"
+          className="btn-primary mt-3 w-full py-3 text-base"
         >
           {pending ? "Sharing..." : "Share story"}
         </button>
-        <p className="mt-2 text-center text-xs text-ink-faint">Stories disappear after 24 hours.</p>
+        <p className="mt-2 text-center text-[11px] text-ink-faint">Stories disappear after 24 hours.</p>
       </div>
     </div>
   );
@@ -544,22 +569,14 @@ function StoryViewer({
             )}
           </figure>
         ) : (
-          /* Text notes float as a small bubble tucked onto the avatar -- IG-notes style */
-          <div className="flex flex-col items-center">
-            <div className="relative z-10 mb-[-14px] flex justify-center">
-              <div
-                className="max-w-[230px] rounded-2xl px-4 py-2.5 text-center text-sm font-semibold shadow-xl"
-                style={{ background: noteStyle(item.bg).css, color: noteStyle(item.bg).fg }}
-              >
-                {item.caption}
-              </div>
-              <span
-                aria-hidden
-                className="absolute -bottom-1 right-8 h-2.5 w-2.5 rotate-45 rounded-[2px]"
-                style={{ background: noteStyle(item.bg).css }}
-              />
-            </div>
-            <Avatar name={group.author.name} image={group.author.image} size={84} />
+          /* Text note — same tall card the composer previews (WYSIWYG) */
+          <div
+            className="grid aspect-[9/16] max-h-[72vh] w-full max-w-[340px] place-items-center rounded-3xl p-8 text-center font-bold shadow-2xl break-words"
+            style={{ background: noteStyle(item.bg).css, color: noteStyle(item.bg).fg }}
+          >
+            <span className={noteTextClass((item.caption || "").length)}>
+              {item.caption}
+            </span>
           </div>
         )}
 
