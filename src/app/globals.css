@@ -4,7 +4,7 @@
 
 /*
  * Snívať design language.
- * Dark-first: true-black canvas (#121212), luminous green accent,
+ * Dark-first: true-black canvas (#121212), luminous gold accent,
  * crisp white text. Light theme available via html.light override.
  * The living DNA field provides organic color movement behind content.
  */
@@ -32,15 +32,15 @@
   --ink-faint-rgb: 106 106 106;
   --line-rgb: 42 42 42;
   --line-strong-rgb: 56 56 56;
-  --accent-rgb: 47 158 107;
+  --accent-rgb: 232 163 61;
   --warm-rgb: 224 136 85;
 
-  /* Accent — luminous green (echoes the brand mark's teal→lime gradient) */
-  --accent: #2f9e6b;
-  --accent-hover: #34b577;
-  --accent-soft: #5bb98c;
-  --accent-tint: #1a2e24;
-  --accent-ink: #ffffff;
+  /* Accent — luminous gold (brand default; users may override in Settings) */
+  --accent: #e8a33d;
+  --accent-hover: #be8632;
+  --accent-soft: #eec163;
+  --accent-tint: #2b2317;
+  --accent-ink: #161616;
 
   /* Supporting tones */
   --warm: #e08855;          /* warm orange (terracotta) */
@@ -80,13 +80,13 @@ html.light {
   --ink-faint-rgb: 157 166 159;
   --line-rgb: 227 221 210;
   --line-strong-rgb: 212 204 189;
-  --accent-rgb: 47 158 107;
+  --accent-rgb: 232 163 61;
   --warm-rgb: 201 123 58;
-  --accent: #2f9e6b;
-  --accent-hover: #247a52;
-  --accent-soft: #5bb98c;
-  --accent-tint: #e8f5ee;
-  --accent-ink: #fffdf9;
+  --accent: #e8a33d;
+  --accent-hover: #be8632;
+  --accent-soft: #eec163;
+  --accent-tint: #f7edd8;
+  --accent-ink: #161616;
   --warm: #c97b3a;
   --warm-tint: #f4e6d7;
   --deep: #1d3557;

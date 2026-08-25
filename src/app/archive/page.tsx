@@ -47,7 +47,7 @@ export default async function ArchivePage() {
               ) : (
                 <div
                   className="grid aspect-[9/16] place-items-center p-4 text-center text-sm font-semibold text-white"
-                  style={{ background: s.bg || "#2f9e6b" }}
+                  style={{ background: s.bg || "#262626" }}
                 >
                   {s.caption}
                 </div>

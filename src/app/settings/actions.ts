@@ -74,7 +74,7 @@ export async function saveSettings(input: SettingsInput) {
     where: { userId: session.user.id },
     update: {
       theme: themeOk ? input.theme : "light",
-      accent: accentOk ? input.accent : "#2f9e6b",
+      accent: accentOk ? input.accent : "#e8a33d",
         background: bgOk ? input.background.toUpperCase() : null,
       publicProfile: input.publicProfile,
       showEmail: input.showEmail,
@@ -83,7 +83,7 @@ export async function saveSettings(input: SettingsInput) {
     create: {
       userId: session.user.id,
       theme: themeOk ? input.theme : "light",
-      accent: accentOk ? input.accent : "#2f9e6b",
+      accent: accentOk ? input.accent : "#e8a33d",
         background: bgOk ? input.background.toUpperCase() : null,
       publicProfile: input.publicProfile,
       showEmail: input.showEmail,

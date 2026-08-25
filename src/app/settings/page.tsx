@@ -34,7 +34,7 @@ export default async function SettingsPage() {
     location: user.location || "",
     image: user.image || "",
     theme: s?.theme || "light",
-    accent: s?.accent || "#2f9e6b",
+    accent: s?.accent || "#e8a33d",
     background: s?.background ?? "",
     publicProfile: s?.publicProfile ?? true,
     showEmail: s?.showEmail ?? false,

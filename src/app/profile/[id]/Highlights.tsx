@@ -30,6 +30,8 @@ function HighlightThumb({
   const [stage, setStage] = useState(0);
   const src =
     stage === 0 ? coverUrl : stage === 1 ? (items[0]?.imageUrl ?? null) : null;
+  // Never render a bare "?" — real first letter, else a folder glyph.
+  const letter = (title ?? "").trim().charAt(0).toUpperCase();
 
   if (!src) {
     return (
@@ -37,7 +39,7 @@ function HighlightThumb({
         className={`grid ${CIRCLE} place-items-center rounded-full bg-gradient-to-tr from-accent to-like p-[3px]`}
       >
         <span className="grid h-full w-full place-items-center rounded-full bg-bg text-xl font-bold text-ink">
-          {(title || "•").charAt(0).toUpperCase()}
+          {letter || "📁"}
         </span>
       </span>
     );

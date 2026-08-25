@@ -1,5 +1,8 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "npx prisma generate && npx next build",
-  "framework": "nextjs"
+  "crons": [
+    {
+      "path": "/api/cron/story-sweep",
+      "schedule": "0 3 * * *"
+    }
+  ]
 }
