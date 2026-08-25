@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { LogoMark } from "@/components/ui/Logo";
 import { Avatar } from "@/components/ui/Avatar";
+import { SidebarInstallButton } from "@/components/pwa/SidebarInstallButton";
 import {
   UsersIcon,
   UserIcon,
@@ -99,8 +100,13 @@ export function Sidebar() {
         New post
       </Link>
 
-      {/* User card at bottom — click goes straight to your profile */}
+      {/* Install app — native prompt / iOS hint; hidden when installed */}
       <div className="mt-auto">
+        <SidebarInstallButton />
+      </div>
+
+      {/* User card at bottom — click goes straight to your profile */}
+      <div className="mt-2">
         <Link
           href={`/profile/${session.user.id}`}
           aria-label="Your profile"

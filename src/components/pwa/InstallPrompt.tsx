@@ -24,6 +24,37 @@ function isIos() {
   return apple || desktopTouchMac;
 }
 
+// ── Shared capture ──────────────────────────────────────────────────────────
+// Chrome fires beforeinstallprompt ONCE per page load. The banner below and
+// any other surface (e.g. the sidebar Install button) share it through this
+// module-level store — the banner's dismiss flag does NOT affect others.
+let capturedPrompt: BeforeInstallPromptEvent | null = null;
+type PromptListener = (p: BeforeInstallPromptEvent | null) => void;
+const promptListeners = new Set<PromptListener>();
+
+/** Subscribe to the deferred install prompt. Fires immediately if already captured. */
+export function onInstallPromptAvailable(fn: PromptListener): () => void {
+  promptListeners.add(fn);
+  if (capturedPrompt) fn(capturedPrompt);
+  return () => {
+    promptListeners.delete(fn);
+  };
+}
+
+/** Fire the native install prompt; null when no deferred prompt exists. */
+export async function promptInstall(): Promise<"accepted" | "dismissed" | null> {
+  if (!capturedPrompt) return null;
+  await capturedPrompt.prompt();
+  const { outcome } = await capturedPrompt.userChoice;
+  if (outcome === "accepted") {
+    capturedPrompt = null;
+    promptListeners.forEach((fn) => fn(null));
+  }
+  return outcome;
+}
+
+export { isStandalone, isIos };
+
 export function InstallPrompt() {
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
   const [iosHint, setIosHint] = useState(false);
@@ -44,10 +75,16 @@ export function InstallPrompt() {
 
     const onPrompt = (e: Event) => {
       e.preventDefault();
+      capturedPrompt = e as BeforeInstallPromptEvent;
+      promptListeners.forEach((fn) => fn(capturedPrompt));
       setDeferred(e as BeforeInstallPromptEvent);
       setVisible(true);
     };
-    const onInstalled = () => setVisible(false);
+    const onInstalled = () => {
+      capturedPrompt = null;
+      promptListeners.forEach((fn) => fn(null));
+      setVisible(false);
+    };
 
     window.addEventListener("beforeinstallprompt", onPrompt);
     window.addEventListener("appinstalled", onInstalled);
