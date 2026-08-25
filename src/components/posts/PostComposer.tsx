@@ -62,7 +62,18 @@ export function PostComposer({
   // runs React 18.3.1.
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Optional poll attachment (create-time only, COMMUNITY posts only).
+  const [pollOn, setPollOn] = useState(false);
+  const [pollQuestion, setPollQuestion] = useState("");
+  const [pollOptions, setPollOptions] = useState(["", ""]);
   const isGroupPost = !!groupId && !postId;
+
+  function pollPayload() {
+    if (postId || !pollOn) return undefined;
+    const options = pollOptions.map((o) => o.trim()).filter(Boolean);
+    if (!pollQuestion.trim() && options.length === 0) return undefined;
+    return { question: pollQuestion.trim(), options };
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -82,6 +93,7 @@ export function PostComposer({
         imageUrls: images.map((i) => i.url),
         // Create-time only — edits keep the original group.
         groupId: postId ? undefined : groupId,
+        poll: postId ? undefined : pollPayload(),
       });
       // savePost redirects on success; Next handles the navigation.
     } catch (err) {
@@ -230,6 +242,73 @@ export function PostComposer({
       </div>
 
       <ImageUploader images={images} onChange={setImages} postId={postId} />
+
+      {/* Poll builder — COMMUNITY posts, create-time only. */}
+      {!postId && category === "COMMUNITY" && (
+        <div className="rounded-xl border border-line bg-soft/60 p-3">
+          <button
+            type="button"
+            onClick={() => setPollOn((v) => !v)}
+            aria-expanded={pollOn}
+            className={`flex items-center gap-2 text-sm font-medium transition ${
+              pollOn ? "text-accent" : "text-ink-muted hover:text-ink"
+            }`}
+          >
+            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+              <path d="M5 20V10M12 20V4M19 20v-7" strokeLinecap="round" />
+            </svg>
+            {pollOn ? "Remove poll" : "Add a poll"}
+          </button>
+
+          {pollOn && (
+            <div className="mt-3 space-y-2">
+              <input
+                value={pollQuestion}
+                onChange={(e) => setPollQuestion(e.target.value)}
+                maxLength={200}
+                placeholder="Poll question"
+                className="input py-2 text-sm"
+              />
+              {pollOptions.map((opt, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <input
+                    value={opt}
+                    onChange={(e) =>
+                      setPollOptions((opts) =>
+                        opts.map((o, j) => (j === i ? e.target.value : o))
+                      )
+                    }
+                    maxLength={80}
+                    placeholder={`Option ${i + 1}`}
+                    className="input py-2 text-sm"
+                  />
+                  {pollOptions.length > 2 && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setPollOptions((opts) => opts.filter((_, j) => j !== i))
+                      }
+                      aria-label={`Remove option ${i + 1}`}
+                      className="shrink-0 rounded-lg px-2 py-1.5 text-xs text-warm transition hover:bg-warm-tint"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+              ))}
+              {pollOptions.length < 4 && (
+                <button
+                  type="button"
+                  onClick={() => setPollOptions((opts) => [...opts, ""])}
+                  className="text-xs font-medium text-accent hover:underline"
+                >
+                  + Add option
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Sticky action bar */}
       <div className="sticky bottom-4 z-10 flex items-center justify-between gap-3 rounded-2xl border border-line bg-surface/90 px-4 py-3 shadow-lg backdrop-blur">
