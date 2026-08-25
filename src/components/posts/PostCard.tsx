@@ -143,7 +143,8 @@ export async function PostCard({
       {/* Attached poll — interactive, so it lives OUTSIDE the card Link
           (same reasoning as the image grid). Authors see totals directly. */}
       {(() => {
-        const poll = (post as { poll?: PollData | null }).poll;
+        const polls = (post as { polls?: PollData[] | null }).polls;
+        const poll = polls?.[0];
         if (!poll) return null;
         return (
           <div className="px-4 pt-3 sm:px-5">

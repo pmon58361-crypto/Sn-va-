@@ -183,7 +183,7 @@ export async function savePost(input: PostInput) {
         ...data,
         authorId: me.id,
         groupId,
-        ...(input.poll ? { poll: { create: buildPollCreate(input.poll) } } : {}),
+        ...(input.poll ? { polls: { create: buildPollCreate(input.poll) } } : {}),
       },
     });
     if (input.imageUrls.length) {

@@ -8,6 +8,7 @@ import {
 import { PostActions } from "@/components/posts/PostActions";
 import { OwnerControls } from "@/components/posts/OwnerControls";
 import { PostEmbeds } from "@/components/posts/PostEmbeds";
+import { PollBox, type PollData } from "@/components/posts/PollBox";
 import { ReportMenu } from "@/components/moderation/ReportMenu";
 import { timeAgo, formatDate, parseTags } from "@/lib/utils";
 import { cdnUrl } from "@/lib/cdn";
@@ -135,6 +136,19 @@ export function PostDetail({
 
           {/* Video link embed — first recognized YouTube/TikTok/Reels URL */}
           <PostEmbeds content={post.content} />
+
+          {(() => {
+            const polls = (post as { polls?: PollData[] | null }).polls;
+            const poll = polls?.[0];
+            if (!poll) return null;
+            return (
+              <PollBox
+                poll={poll}
+                meId={viewerId}
+                forceResults={viewerId === post.authorId}
+              />
+            );
+          })()}
 
           {tags.length > 0 && (
             <div className="mt-5 flex flex-wrap gap-1.5">

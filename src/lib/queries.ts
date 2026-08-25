@@ -20,7 +20,7 @@ export const postInclude = {
   reactions: { select: { id: true, type: true, userId: true } },
   // Attached poll with its votes (optionId-light rows) so cards render real
   // tallies and the viewer's own choice without extra round trips.
-  poll: {
+  polls: {
     include: { votes: { select: { optionId: true, userId: true } } },
   },
   _count: { select: { comments: true, applications: true, images: true } },
