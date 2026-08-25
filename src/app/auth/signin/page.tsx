@@ -1,5 +1,8 @@
 import { Suspense } from "react";
 import { SignInForm } from "./SignInForm";
+import { getTopTags } from "@/lib/queries";
+
+export const dynamic = "force-dynamic";
 
 // Only OAuth providers with credentials in env are offered — clicking an
 // unconfigured provider would error at runtime. Demo credentials login is
@@ -15,12 +18,22 @@ function enabledOAuthProviders(): string[] {
   return ids;
 }
 
-export default function SignInPage() {
+export default async function SignInPage() {
+  // Live tag suggestions feed the stepper's interests step.
+  let suggestions: string[] = [];
+  try {
+    suggestions = (await getTopTags(24)).map(([t]) => t);
+  } catch {
+    /* cold DB — empty suggestions are fine */
+  }
   // Suspense boundary required: SignInForm reads useSearchParams() to show
   // friendly denial states for ?error=CredentialsSignin / Configuration.
   return (
     <Suspense>
-      <SignInForm oauthProviders={enabledOAuthProviders()} />
+      <SignInForm
+        oauthProviders={enabledOAuthProviders()}
+        suggestions={suggestions}
+      />
     </Suspense>
   );
 }

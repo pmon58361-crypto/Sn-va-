@@ -6,7 +6,9 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Logo } from "@/components/ui/Logo";
 import { LegalLinks } from "@/components/legal/LegalLinks";
+import { InterestChips } from "@/components/onboarding/InterestChips";
 import { createAccount } from "./actions";
+import { saveInterests } from "@/app/actions";
 
 type OAuthProvider = { id: string; name: string; mark: React.ReactNode };
 
@@ -51,7 +53,13 @@ const NAMES: Record<string, string> = {
 const FIELD =
   "w-full rounded-lg border border-white/10 bg-black/50 px-4 py-3 text-sm text-white placeholder:text-white/30 outline-none transition focus:border-amber-400/60";
 
-export function SignInForm({ oauthProviders }: { oauthProviders: string[] }) {
+export function SignInForm({
+  oauthProviders,
+  suggestions = [],
+}: {
+  oauthProviders: string[];
+  suggestions?: string[];
+}) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<string | null>(null);
   // "signin" = access code / email+password / OAuth · "create" = registration.
@@ -60,6 +68,13 @@ export function SignInForm({ oauthProviders }: { oauthProviders: string[] }) {
   const [mode, setMode] = useState<"signin" | "create">(
     searchParams.get("mode") === "create" ? "create" : "signin"
   );
+  // Stepper signup: 1 name → 2 credentials → 3 interests.
+  const [step, setStep] = useState(1);
+  const [suName, setSuName] = useState("");
+  const [suEmail, setSuEmail] = useState("");
+  const [suPass, setSuPass] = useState("");
+  const [suConfirm, setSuConfirm] = useState("");
+  const [suInterests, setSuInterests] = useState<string[]>([]);
 
   // Failed credentials attempts land back here with ?error=... after the
   // full-page redirect — surface a real message instead of a bare URL.
@@ -120,30 +135,43 @@ export function SignInForm({ oauthProviders }: { oauthProviders: string[] }) {
 
   // Open registration: create the account server-side, then sign straight in
   // with the same credentials so the new user lands in the feed.
+  // Stepper step 2 → creates the account, advances to interests.
   async function handleCreate(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (loading) return;
-    const fd = new FormData(e.currentTarget);
-    const name = ((fd.get("name") as string) || "").trim();
-    const email = ((fd.get("email") as string) || "").trim();
-    const password = (fd.get("password") as string) || "";
-    const confirm = (fd.get("confirm") as string) || "";
-    if (password !== confirm) {
+    if (suPass !== suConfirm) {
       setError("Passwords don't match.");
       return;
     }
     setError(null);
     setLoading("create");
     try {
-      const res = await createAccount({ name, email, password });
+      const res = await createAccount({ name: suName, email: suEmail, password: suPass });
       if (!res.ok) {
         setError(res.error || "Couldn't create your account.");
         setLoading(null);
         return;
       }
-      await signIn("credentials", { email, password, callbackUrl: "/community", redirect: true });
+      // Keep suPass in memory — step 3 signs straight in with it.
+      setStep(3);
     } catch {
       setError("Couldn't create your account right now. Please try again.");
+    } finally {
+      setLoading(null);
+    }
+  }
+
+  // Stepper step 3 → persist picks, then sign straight in with the
+  // credentials held in memory from step 2.
+  async function finishSignup() {
+    if (loading) return;
+    setError(null);
+    setLoading("finish");
+    try {
+      await saveInterests(suInterests);
+      await signIn("credentials", { email: suEmail, password: suPass, callbackUrl: "/community", redirect: true });
+    } catch {
+      setError("Almost there — sign in manually to finish.");
       setLoading(null);
     }
   }
@@ -303,52 +331,153 @@ export function SignInForm({ oauthProviders }: { oauthProviders: string[] }) {
             )}
 
             {mode === "create" && (
-              <form onSubmit={handleCreate} className="space-y-3">
-                <input
-                  name="name"
-                  required
-                  maxLength={60}
-                  placeholder="Your name"
-                  autoComplete="name"
-                  className={FIELD}
-                />
-                <input
-                  name="email"
-                  type="email"
-                  required
-                  placeholder="you@example.com"
-                  autoComplete="email"
-                  className={FIELD}
-                />
-                <input
-                  name="password"
-                  type="password"
-                  required
-                  minLength={8}
-                  maxLength={200}
-                  placeholder="password (min 8 characters)"
-                  autoComplete="new-password"
-                  className={FIELD}
-                />
-                <input
-                  name="confirm"
-                  type="password"
-                  required
-                  placeholder="confirm password"
-                  autoComplete="new-password"
-                  className={FIELD}
-                />
-                <button
-                  type="submit"
-                  disabled={loading === "create"}
-                  className="w-full rounded-lg bg-amber-400 py-3 text-sm font-bold text-black transition hover:bg-amber-300 disabled:opacity-50"
-                >
-                  {loading === "create" ? "Creating…" : "Create account"}
-                </button>
-                <p className="text-center font-mono text-xs text-white/30">
-                  // 8+ characters · your email stays private
-                </p>
-              </form>
+              <div>
+                {/* Stepper progress */}
+                <div className="mb-5 flex items-center gap-2" aria-hidden>
+                  {[1, 2, 3].map((s) => (
+                    <span
+                      key={s}
+                      className={`h-1 flex-1 rounded-full transition-colors ${
+                        step >= s ? "bg-amber-400" : "bg-white/10"
+                      }`}
+                    />
+                  ))}
+                  <span className="font-mono text-[11px] text-white/40">
+                    {step}/3
+                  </span>
+                </div>
+
+                {step === 1 && (
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      if (!suName.trim()) {
+                        setError("Please tell us your name.");
+                        return;
+                      }
+                      setError(null);
+                      setStep(2);
+                    }}
+                    className="space-y-3"
+                  >
+                    <input
+                      value={suName}
+                      onChange={(e) => setSuName(e.target.value)}
+                      required
+                      maxLength={60}
+                      placeholder="Your name"
+                      autoComplete="name"
+                      autoFocus
+                      className={FIELD}
+                    />
+                    <button
+                      type="submit"
+                      disabled={!suName.trim()}
+                      className="w-full rounded-lg bg-white py-3 text-sm font-bold text-black transition hover:bg-white/90 disabled:opacity-50"
+                    >
+                      Continue
+                    </button>
+                  </form>
+                )}
+
+                {step === 2 && (
+                  <form onSubmit={handleCreate} className="space-y-3">
+                    <input
+                      value={suEmail}
+                      onChange={(e) => setSuEmail(e.target.value)}
+                      type="email"
+                      required
+                      placeholder="you@example.com"
+                      autoComplete="email"
+                      autoFocus
+                      className={FIELD}
+                    />
+                    <input
+                      value={suPass}
+                      onChange={(e) => setSuPass(e.target.value)}
+                      type="password"
+                      required
+                      minLength={8}
+                      maxLength={200}
+                      placeholder="password (min 8 characters)"
+                      autoComplete="new-password"
+                      className={FIELD}
+                    />
+                    <input
+                      value={suConfirm}
+                      onChange={(e) => setSuConfirm(e.target.value)}
+                      type="password"
+                      required
+                      placeholder="confirm password"
+                      autoComplete="new-password"
+                      className={FIELD}
+                    />
+                    <button
+                      type="submit"
+                      disabled={loading === "create"}
+                      className="w-full rounded-lg bg-amber-400 py-3 text-sm font-bold text-black transition hover:bg-amber-300 disabled:opacity-50"
+                    >
+                      {loading === "create" ? "Creating…" : "Create account"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setStep(1); setError(null); }}
+                      className="w-full text-center font-mono text-xs text-white/40 transition-colors hover:text-white/70"
+                    >
+                      ← back
+                    </button>
+                    <p className="text-center font-mono text-xs text-white/30">
+                      // your email stays private
+                    </p>
+                  </form>
+                )}
+
+                {step === 3 && (
+                  <div className="space-y-4">
+                    <p className="font-mono text-xs text-white/50">
+                      account created ✓ — last step:
+                    </p>
+                    <div className="max-h-[34vh] overflow-y-auto pr-1">
+                      <InterestChips
+                        suggestions={suggestions}
+                        selected={suInterests}
+                        onToggle={(tag) =>
+                          setSuInterests((s) =>
+                            s.includes(tag)
+                              ? s.filter((t) => t !== tag)
+                              : [...s, tag]
+                          )
+                        }
+                      />
+                    </div>
+                    {suInterests.length > 0 && suInterests.length < 3 && (
+                      <p className="text-xs text-white/40">
+                        Pick 3 for a sharper feed.
+                      </p>
+                    )}
+                    <button
+                      type="button"
+                      onClick={finishSignup}
+                      disabled={loading === "finish"}
+                      className="w-full rounded-lg bg-amber-400 py-3 text-sm font-bold text-black transition hover:bg-amber-300 disabled:opacity-50"
+                    >
+                      {loading === "finish"
+                        ? "Tuning…"
+                        : suInterests.length
+                        ? `Tune my feed (${suInterests.length})`
+                        : "Take me in"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={finishSignup}
+                      disabled={loading === "finish"}
+                      className="w-full text-center font-mono text-xs text-white/40 transition-colors hover:text-white/70"
+                    >
+                      skip interests
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
 
             
