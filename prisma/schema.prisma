@@ -65,6 +65,11 @@ model User {
 
   // Poll votes (E's polls; pending schema window)
   pollVotes PollVote[]
+
+  // Groups V1 (window-ready — list relations, one owner per group is NOT
+  // one-to-one: a user may own many groups)
+  ownedGroups      Group[]      @relation("GroupOwner")
+  groupMemberships GroupMember[] @relation("GroupMemberships")
 }
 
 model Account {
@@ -137,10 +142,13 @@ model Post {
   notifications Notification[]
   feedback      PostFeedback[]
   polls         Poll[]
+  groupId       String?
+  group         Group?       @relation(fields: [groupId], references: [id], onDelete: SetNull)
 
   @@index([category])
   @@index([authorId])
   @@index([createdAt])
+  @@index([groupId])
 }
 
 // A like or dislike on a post. One reaction per user per post (unique).
@@ -473,4 +481,43 @@ model PollVote {
 
   @@unique([pollId, userId])
   @@index([optionId])
+}
+
+// ── Groups V1 (pending schema window — schema only, NO db push until the
+//    Groups UI window; Discord-inspired, scoped tight: group page + its own
+//    post feed + member list. NO channels, NO roles beyond OWNER/Member.) ──
+// name <=50 / description <=500 assertClean+length-enforced app-side; slug is
+// app-generated URL-safe (unique). Group delete SETS NULL on posts (they
+// unscope back to the community feed — user content is never destroyed).
+model Group {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String
+  coverUrl    String?
+  visibility  String   @default("PUBLIC") // PUBLIC | PRIVATE
+  joinMode    String   @default("OPEN") // OPEN | ASK (request-to-join DMs the owner)
+  createdBy   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  owner   User          @relation("GroupOwner", fields: [createdBy], references: [id], onDelete: Cascade)
+  members GroupMember[]
+  posts   Post[]
+
+  @@index([visibility])
+}
+
+model GroupMember {
+  id       String   @id @default(cuid())
+  groupId  String
+  userId   String
+  role     String   @default("Member") // OWNER | Member
+  joinedAt DateTime @default(now())
+
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user  User  @relation("GroupMemberships", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+  @@index([userId])
 }
