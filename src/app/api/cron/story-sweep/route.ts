@@ -8,10 +8,11 @@ export const dynamic = "force-dynamic";
 const BATCH = 500;
 
 /**
- * Story expiry sweeper. Stories expire after 24h, but nothing else destroys
- * their Cloudinary assets — manual/admin deletes cover only explicit removals.
- * Without this sweep every expired photo story leaks its asset permanently
- * against the free-tier storage quota.
+ * Story expiry sweeper — STORAGE-ONLY cleanup. Expired story ROWS are
+ * intentionally KEPT: they power the profile Archive (lib/stories keeps
+ * expired rows by design). This job therefore only clears the Cloudinary
+ * asset and nulls imageUrl, leaving caption/bg/history intact — the
+ * archive renders those rows via its text/letter fallback.
  *
  * Vercel Cron hits this daily (see vercel.json) with
  * Authorization: Bearer $CRON_SECRET. Requires CRON_SECRET to be set.
@@ -29,26 +30,32 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Photo stories in this batch get their assets destroyed first, then all
-  // expired rows (photo + text notes) are removed in one statement.
+  // Photo stories in this batch get their assets destroyed first, then the
+  // rows are kept but stripped of the (now-dead) URL.
   const expiredWithAssets = await prisma.story.findMany({
     where: { expiresAt: { lt: new Date() }, imageUrl: { not: null } },
-    select: { id: true, imageUrl: true },
+    select: { id: true },
     orderBy: { expiresAt: "asc" },
     take: BATCH,
   });
 
+  let cleared = 0;
   if (expiredWithAssets.length > 0) {
-    await destroyAssets(expiredWithAssets.map((s) => s.imageUrl));
+    const urls = await prisma.story.findMany({
+      where: { id: { in: expiredWithAssets.map((s) => s.id) } },
+      select: { imageUrl: true },
+    });
+    await destroyAssets(urls.map((s) => s.imageUrl));
+    const res = await prisma.story.updateMany({
+      where: { id: { in: expiredWithAssets.map((s) => s.id) } },
+      data: { imageUrl: null },
+    });
+    cleared = res.count;
   }
-
-  const deleted = await prisma.story.deleteMany({
-    where: { expiresAt: { lt: new Date() } },
-  });
 
   return NextResponse.json({
     assetsDestroyed: expiredWithAssets.length,
-    rowsDeleted: deleted.count,
-    moreRemaining: deleted.count === BATCH,
+    rowsCleared: cleared,
+    moreRemaining: expiredWithAssets.length === BATCH,
   });
 }
