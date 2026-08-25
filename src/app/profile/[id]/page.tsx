@@ -226,9 +226,23 @@ export default async function ProfilePage({
             )}
           </div>
 
-          {/* MOBILE right cell — handle on top, inline stats under */}
+          {/* MOBILE right cell — handle (+presence) on top, inline stats */}
           <div className="min-w-0 sm:hidden">
-            <p className="truncate text-sm text-ink-faint">{handle}</p>
+            <p className="flex flex-wrap items-center gap-x-2 text-sm text-ink-faint">
+              <span className="truncate">{handle}</span>
+              {mePresence?.online && (
+                <>
+                  <span
+                    aria-label="Online now"
+                    title="Online now"
+                    className="h-2 w-2 rounded-full bg-emerald-400"
+                  />
+                  <span className="text-emerald-600 dark:text-emerald-400">
+                    Online
+                  </span>
+                </>
+              )}
+            </p>
             <p className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink-muted">
               <span className="whitespace-nowrap">
                 <b className="font-semibold text-ink">{visiblePosts.length}</b>{" "}
@@ -326,44 +340,42 @@ export default async function ProfilePage({
               </div>
             )}
 
-          </div>
+            {/* Bio — break-words stops long words painting over neighbours */}
+            {user.bio ? (
+              <p className="mt-3 whitespace-pre-wrap break-words text-[15px] leading-relaxed text-ink-soft">
+                {user.bio}
+              </p>
+            ) : isOwner ? (
+              <p className="mt-3 text-sm text-ink-faint">
+                No bio yet.{" "}
+                <Link href="/settings" className="text-accent hover:underline">
+                  Add one
+                </Link>
+                .
+              </p>
+            ) : null}
 
-          {/* Bio — prominent, left-aligned under identity; break-words keeps
-              long URLs/words from painting over neighbouring content */}
-          {user.bio ? (
-            <p className="mt-4 whitespace-pre-wrap break-words text-[15px] leading-relaxed text-ink-soft">
-              {user.bio}
-            </p>
-          ) : isOwner ? (
-            <p className="mt-4 text-sm text-ink-faint">
-              No bio yet.{" "}
-              <Link href="/settings" className="text-accent hover:underline">
-                Add one
-              </Link>
-              .
-            </p>
-          ) : null}
-
-          {/* Meta row */}
-          <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-ink-muted">
-            {user.location && (
+            {/* Meta row */}
+            <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-ink-muted">
+              {user.location && (
+                <span className="inline-flex items-center gap-1.5">
+                  <MapPinIcon className="h-4 w-4" />
+                  {user.location}
+                </span>
+              )}
+              {/* Email is owner-only — never rendered on public profiles,
+                  regardless of the retired showEmail preference. */}
+              {isOwner && user.email && (
+                <span className="inline-flex items-center gap-1.5">
+                  <MailIcon className="h-4 w-4" />
+                  {user.email}
+                </span>
+              )}
               <span className="inline-flex items-center gap-1.5">
-                <MapPinIcon className="h-4 w-4" />
-                {user.location}
+                <CalendarIcon className="h-4 w-4" />
+                Joined {joinDate}
               </span>
-            )}
-            {/* Email is owner-only — never rendered on public profiles,
-                regardless of the retired showEmail preference. */}
-            {isOwner && user.email && (
-              <span className="inline-flex items-center gap-1.5">
-                <MailIcon className="h-4 w-4" />
-                {user.email}
-              </span>
-            )}
-            <span className="inline-flex items-center gap-1.5">
-              <CalendarIcon className="h-4 w-4" />
-              Joined {joinDate}
-            </span>
+            </div>
           </div>
 
           {/* MOBILE below-row — name/badges/bio/meta full-width, left-aligned
@@ -371,10 +383,23 @@ export default async function ProfilePage({
           <div className="min-w-0 sm:hidden">
             <h1 className="break-words text-lg font-bold leading-tight text-ink">
               {user.name || "Anonymous"}
+              {founding && (
+                <span
+                  title="Founding Member — first 500 accounts"
+                  className="ml-2 inline-block align-middle badge bg-accent-tint text-[10px] font-semibold uppercase tracking-wide text-accent"
+                >
+                  ★ Founding Member
+                </span>
+              )}
             </h1>
 
-            {badges.length > 0 && (
+            {(badges.length > 0 || streak.current > 0) && (
               <div className="mt-2 flex flex-wrap items-center gap-2">
+                {streak.current > 0 && (
+                  <span className="badge bg-accent/10 text-xs text-accent">
+                    🔥 {streak.current}-day streak
+                  </span>
+                )}
                 {badges.map((b) => (
                   <span
                     key={b}
