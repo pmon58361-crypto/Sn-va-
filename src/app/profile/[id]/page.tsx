@@ -345,6 +345,8 @@ export default async function ProfilePage({
           ) : null}
 
           {/* Meta row */}
+          <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-ink-muted">
+            {user.location && (
               <span className="inline-flex items-center gap-1.5">
                 <MapPinIcon className="h-4 w-4" />
                 {user.location}
@@ -405,7 +407,9 @@ export default async function ProfilePage({
                   {user.location}
                 </span>
               )}
-              {settings?.showEmail && (
+              {/* Email is owner-only — never rendered on public profiles,
+                  regardless of the retired showEmail preference. */}
+              {isOwner && user.email && (
                 <span className="inline-flex items-center gap-1.5">
                   <MailIcon className="h-3.5 w-3.5" />
                   {user.email}
