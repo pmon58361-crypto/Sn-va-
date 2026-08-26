@@ -4,6 +4,7 @@ import { MapPinIcon, MessageIcon, BriefcaseIcon } from "@/components/ui/Icons";
 import { PostActions } from "@/components/posts/PostActions";
 import { ImageGrid } from "@/components/posts/ImageGrid";
 import { PostEmbeds } from "@/components/posts/PostEmbeds";
+import { PollBox, type PollData } from "@/components/posts/PollBox";
 import { InterestPrompt } from "@/components/posts/InterestPrompt";
 import { timeAgo, parseTags } from "@/lib/utils";
 import { CATEGORY_META } from "@/lib/types";
@@ -138,6 +139,23 @@ export async function PostCard({
           )}
         </div>
       </Link>
+
+      {/* Attached poll — interactive, so it lives OUTSIDE the card Link
+          (same reasoning as the image grid). Authors see totals directly. */}
+      {(() => {
+        const polls = (post as { polls?: PollData[] | null }).polls;
+        const poll = polls?.[0];
+        if (!poll) return null;
+        return (
+          <div className="px-4 pt-3 sm:px-5">
+            <PollBox
+              poll={poll}
+              meId={viewerId}
+              forceResults={viewerId === post.authorId}
+            />
+          </div>
+        );
+      })()}
 
       {/* Row 3: Image grid — Facebook-style. Separate from the link so
           individual tiles can navigate independently. */}

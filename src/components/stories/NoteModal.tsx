@@ -24,6 +24,7 @@ export function NoteModal({
     : "#1d9bf0";
 
   const [note, setNote] = useState("");
+  const [music, setMusic] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -46,6 +47,7 @@ export function NoteModal({
       const form = new FormData();
       form.append("caption", note.trim());
       form.append("bg", accent);
+      if (music.trim()) form.append("musicUrl", music.trim());
       const res = await createStory(form);
       if (!res.ok) {
         setError(res.error || "Failed to share");
@@ -92,6 +94,11 @@ export function NoteModal({
                 style={{ background: accent }}
               >
                 {note.trim()}
+                {music.trim() && (
+                  <span className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-white/20 px-2 py-0.5 text-[11px] font-medium">
+                    🎵 Music attached
+                  </span>
+                )}
               </div>
             ) : (
               <div className="rounded-2xl border-2 border-dashed border-line-strong px-5 py-3 text-center text-[15px] text-ink-faint">
@@ -119,6 +126,21 @@ export function NoteModal({
           autoFocus
           className="input resize-none"
         />
+
+        {/* Optional attached track — link-out only (no hosting). */}
+        <div className="relative mt-2">
+          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm" aria-hidden>
+            🎵
+          </span>
+          <input
+            value={music}
+            onChange={(e) => setMusic(e.target.value)}
+            type="url"
+            placeholder="Add a Spotify / YouTube / Apple Music link (optional)"
+            className="input !pl-9 text-xs"
+            aria-label="Music link"
+          />
+        </div>
 
         {error && (
           <p className="mb-3 mt-3 rounded-xl border border-warm bg-warm-tint px-4 py-2.5 text-sm text-warm">

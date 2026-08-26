@@ -18,6 +18,11 @@ export const postInclude = {
   },
   images: { select: { id: true, url: true, order: true }, orderBy: { order: "asc" } },
   reactions: { select: { id: true, type: true, userId: true } },
+  // Attached poll with its votes (optionId-light rows) so cards render real
+  // tallies and the viewer's own choice without extra round trips.
+  polls: {
+    include: { votes: { select: { optionId: true, userId: true } } },
+  },
   _count: { select: { comments: true, applications: true, images: true } },
 } as const;
 

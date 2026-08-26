@@ -97,6 +97,10 @@ export function DmThread({
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [menuMode, setMenuMode] = useState<"main" | "reasons">("main");
   const [copied, setCopied] = useState(false);
+  // Which message's emoji picker popup is open (Discord-style toolbar).
+  const [emojiFor, setEmojiFor] = useState<string | null>(null);
+  // Transient toolbar copy confirmation (icon swap to a checkmark).
+  const [quickCopiedId, setQuickCopiedId] = useState<string | null>(null);
   // Mobile affordance: tapped bubble reveals its quick-bar.
   const [activeBarId, setActiveBarId] = useState<string | null>(null);
   const [reportedId, setReportedId] = useState<string | null>(null);
@@ -122,8 +126,11 @@ export function DmThread({
 
   // Close popovers on outside click / Escape.
   useEffect(() => {
-    if (!menuFor) return;
-    const close = () => setMenuFor(null);
+    if (!menuFor && !emojiFor) return;
+    const close = () => {
+      setMenuFor(null);
+      setEmojiFor(null);
+    };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") close();
     };
@@ -133,7 +140,7 @@ export function DmThread({
       document.removeEventListener("click", close);
       document.removeEventListener("keydown", onKey);
     };
-  }, [menuFor]);
+  }, [menuFor, emojiFor]);
 
   // Only autoscroll when the user is already reading the latest message.
   useEffect(() => {
@@ -320,6 +327,16 @@ export function DmThread({
     setMenuFor(null);
   }
 
+  // Toolbar copy: same clipboard write as the menu item, but feedback is the
+  // button itself swapping to a checkmark for a beat.
+  function quickCopy(m: Msg) {
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(m.content).catch(() => {});
+    }
+    setQuickCopiedId(m.id);
+    window.setTimeout(() => setQuickCopiedId(null), 1200);
+  }
+
   async function react(m: Msg, emoji: string) {
     if (m.id.startsWith("tmp-")) return;
     // Optimistic toggle; the next poll reconciles any drift.
@@ -439,12 +456,14 @@ export function DmThread({
                     mine ? "justify-end" : "justify-start"
                   }`}
                 >
-                  {/* Hover / tap quick-bar: reactions + options trigger.
+                  {/* Discord-style hover / tap toolbar: monochrome icon pill
+                      (react · copy · more). The emoji row lives in a small
+                      popup opened by the smiley — never permanently visible.
                       Anchored INSIDE the bubble's top edge so it can never
                       clip against the scroll container or viewport edge. */}
                   {!m.id.startsWith("tmp-") && (
                     <div
-                      className={`absolute top-1 z-20 items-center gap-0.5 whitespace-nowrap rounded-full border border-line bg-surface px-1 py-0.5 shadow-md transition-opacity ${
+                      className={`absolute top-1 z-20 items-center gap-0.5 whitespace-nowrap rounded-lg border border-line bg-surface px-0.5 py-0.5 shadow-md transition-opacity ${
                         mine ? "right-1" : "left-1"
                       } ${
                         activeBarId === m.id
@@ -453,18 +472,47 @@ export function DmThread({
                       }`}
                       onClick={(e) => e.stopPropagation()}
                     >
-                      {QUICK_EMOJIS.map((emoji) => (
-                        <button
-                          key={emoji}
-                          type="button"
-                          onClick={() => react(m, emoji)}
-                          className="rounded-full px-0.5 text-sm leading-none transition-transform hover:scale-125"
-                          aria-label={`React ${emoji}`}
-                        >
-                          {emoji}
-                        </button>
-                      ))}
-                      <span className="mx-0.5 h-4 w-px bg-line" />
+                      <button
+                        type="button"
+                        aria-label="Add reaction"
+                        aria-expanded={emojiFor === m.id}
+                        onClick={() =>
+                          setEmojiFor(emojiFor === m.id ? null : m.id)
+                        }
+                        className={`grid h-6 w-6 place-items-center rounded-md transition hover:bg-soft hover:text-ink ${
+                          emojiFor === m.id
+                            ? "text-accent"
+                            : "text-ink-faint"
+                        }`}
+                      >
+                        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
+                          <circle cx="12" cy="12" r="9" />
+                          <path d="M8.5 14.5c.9 1 2.1 1.6 3.5 1.6s2.6-.6 3.5-1.6" strokeLinecap="round" />
+                          <circle cx="9" cy="10" r="0.6" fill="currentColor" stroke="none" />
+                          <circle cx="15" cy="10" r="0.6" fill="currentColor" stroke="none" />
+                        </svg>
+                      </button>
+                      <span className="h-4 w-px bg-line" />
+                      <button
+                        type="button"
+                        aria-label="Copy message"
+                        onClick={() => quickCopy(m)}
+                        className={`grid h-6 w-6 place-items-center rounded-md transition hover:bg-soft hover:text-ink ${
+                          quickCopiedId === m.id ? "text-accent" : "text-ink-faint"
+                        }`}
+                      >
+                        {quickCopiedId === m.id ? (
+                          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        ) : (
+                          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
+                            <rect x="9" y="9" width="11" height="11" rx="2" />
+                            <path d="M5 15V5a2 2 0 0 1 2-2h10" strokeLinecap="round" />
+                          </svg>
+                        )}
+                      </button>
+                      <span className="h-4 w-px bg-line" />
                       <button
                         type="button"
                         aria-label="Message options"
@@ -475,7 +523,7 @@ export function DmThread({
                           setMenuMode("main");
                           setMenuFor(menuOpen ? null : m.id);
                         }}
-                        className="grid h-6 w-6 place-items-center rounded-full text-ink-faint transition hover:bg-soft hover:text-ink"
+                        className="grid h-6 w-6 place-items-center rounded-md text-ink-faint transition hover:bg-soft hover:text-ink"
                       >
                         <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor">
                           <circle cx="12" cy="5" r="1.6" />
@@ -483,6 +531,28 @@ export function DmThread({
                           <circle cx="12" cy="19" r="1.6" />
                         </svg>
                       </button>
+
+                      {/* Emoji picker popup — opened from the smiley icon. */}
+                      {emojiFor === m.id && (
+                        <div
+                          className="absolute right-0 top-full z-30 mt-1 flex gap-0.5 rounded-xl border border-line bg-surface p-1 shadow-lg"
+                        >
+                          {QUICK_EMOJIS.map((emoji) => (
+                            <button
+                              key={emoji}
+                              type="button"
+                              onClick={() => {
+                                react(m, emoji);
+                                setEmojiFor(null);
+                              }}
+                              className="rounded-full px-1 text-base leading-none transition-transform hover:scale-125"
+                              aria-label={`React ${emoji}`}
+                            >
+                              {emoji}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
 

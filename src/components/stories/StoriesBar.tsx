@@ -8,6 +8,7 @@ import { cdnUrl } from "@/lib/cdn";
 import { timeAgo } from "@/lib/utils";
 import { Avatar } from "@/components/ui/Avatar";
 import { XIcon } from "@/components/ui/Icons";
+import { MusicChip } from "@/components/stories/MusicChip";
 
 export type StoryGroup = {
   author: { id: string; name: string | null; image: string | null };
@@ -16,6 +17,7 @@ export type StoryGroup = {
     imageUrl: string | null;
     caption: string | null;
     bg: string | null;
+    musicUrl: string | null;
     createdAt: Date | string;
     seen: boolean;
     isMine: boolean;
@@ -125,10 +127,13 @@ export function StoriesBar({
                     return (
                       <span className="relative inline-block max-w-[80px]">
                         <span
-                          className="block truncate rounded-lg border border-line-strong px-2 py-1 text-[11px] font-medium"
+                          className="block rounded-lg border border-line-strong px-2 py-1 text-[11px] font-medium"
                           style={{ background: st.css, color: st.fg }}
                         >
-                          {latest!.caption}
+                          <span className="block truncate">{latest!.caption}</span>
+                          {latest!.musicUrl && (
+                            <MusicChip url={latest!.musicUrl} compact />
+                          )}
                         </span>
                         <span
                           aria-hidden
@@ -178,6 +183,7 @@ export function StoriesBar({
                   style={{ background: st.css, color: st.fg }}
                 >
                   {latest?.caption}
+                  {latest?.musicUrl && <MusicChip url={latest.musicUrl} />}
                 </p>
                 {mine ? (
                   <DeleteNoteButton

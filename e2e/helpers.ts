@@ -9,7 +9,9 @@ loadEnvConfig(process.cwd());
 export const prisma = new PrismaClient();
 export const RUN_ID = `e2e-${Date.now()}-${process.pid}`;
 export const E2E_PREFIX = `E2E ${RUN_ID}`;
-export const BASE_URL = "http://localhost:3000";
+// Target server override for parallel local verification
+// (E2E_BASE_URL=http://localhost:<port> playwright test …).
+export const BASE_URL = process.env.E2E_BASE_URL ?? "http://localhost:3000";
 export const DEMO_EMAIL = "demo@snivat.local";
 export const DEMO2_EMAIL = "demo2@snivat.local";
 

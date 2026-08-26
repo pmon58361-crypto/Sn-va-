@@ -27,6 +27,56 @@ function sectionPath(category: string) {
   return map[category] || "/community";
 }
 
+// Poll validation shared by savePost. Returns the nested Prisma create shape
+// with stable option ids so votes can reference them.
+function buildPollCreate(poll: { question: string; options: string[] }) {
+  const question = poll.question.trim();
+  const options = poll.options.map((o) => o.trim()).filter(Boolean);
+  if (!question || options.length < 2 || options.length > 4) {
+    throw new Error("A poll needs a question and 2-4 options");
+  }
+  if (question.length > 200 || options.some((o) => o.length > 80)) {
+    throw new Error("Poll question/options are too long");
+  }
+  assertClean(question, "Poll");
+  for (const o of options) assertClean(o, "Poll option");
+  return {
+    question,
+    options: options.map((label, i) => ({
+      id: `opt_${i}_${Math.random().toString(36).slice(2, 8)}`,
+      label,
+    })),
+  };
+}
+
+/**
+ * Vote on a poll: one vote per user; switching = update in place
+ * (PollVote @@unique([pollId, userId])). Real counts only.
+ */
+export async function votePoll(pollId: string, optionId: string) {
+  const me = await requireActiveUser();
+
+  const poll = await prisma.poll.findUnique({
+    where: { id: pollId },
+    select: { options: true },
+  });
+  if (!poll) throw new Error("Poll not found");
+
+  // optionId must be one of THIS poll's stored options (options is JSON).
+  const opts = Array.isArray(poll.options)
+    ? (poll.options as { id?: unknown }[])
+    : [];
+  if (!opts.some((o) => o?.id === optionId)) {
+    throw new Error("Invalid poll option");
+  }
+
+  await prisma.pollVote.upsert({
+    where: { pollId_userId: { pollId, userId: me.id } },
+    update: { optionId },
+    create: { pollId, userId: me.id, optionId },
+  });
+}
+
 export type PostInput = {
   id?: string;
   category: PostCategory;
@@ -39,6 +89,8 @@ export type PostInput = {
   imageUrls: string[];
   /** Post into a group (members only; create-time only, never moved). */
   groupId?: string;
+  /** Optional poll attachment (create-time only). */
+  poll?: { question: string; options: string[] };
 };
 
 export async function savePost(input: PostInput) {
@@ -127,7 +179,12 @@ export async function savePost(input: PostInput) {
     }
 
     const post = await prisma.post.create({
-      data: { ...data, authorId: me.id, groupId },
+      data: {
+        ...data,
+        authorId: me.id,
+        groupId,
+        ...(input.poll ? { polls: { create: buildPollCreate(input.poll) } } : {}),
+      },
     });
     if (input.imageUrls.length) {
       await prisma.postImage.createMany({
