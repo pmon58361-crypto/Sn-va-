@@ -42,6 +42,10 @@ Last updated: 2026-08-25. Everything else is LIVE on prod (see README.md for the
 - [ ] VS Code / external-app presence extension — store review + permission friction; manual custom status covers it
 - [ ] Brand-sponsored Quests (Discord Orbs model) — needs real reach before brands pay; builds on the weekly challenge system
 
+## Known infrastructure note (documented, not migrating)
+
+- [ ] Vercel production and the local dev environment point at DIFFERENT Neon database branches (Vercel uses a Neon-integration branch; local .env uses the manual `ep-square-smoke-at3rpw20` branch). The platform works as deployed; owner may consolidate to ONE branch someday so local dev and prod share data. Until then: schema changes must be pushed to BOTH branches (local branch for development, prod branch via Vercel dashboard env or Neon console).
+
 ## Known minor issues
 
 - [ ] Poll shape reconciliation (worker E vs executed window draft — empty tables, zero lock-in)
