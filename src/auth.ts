@@ -180,9 +180,16 @@ async function verifyCredentials(
   const acc = await prisma.account.findFirst({
     where: { userId: user.id, provider: "credentials" },
   });
+  // TEMP DEBUG (email sign-in incident): reason codes only — no secrets.
+  console.warn(
+    `[auth-debug] email path: userFound=true accFound=${!!acc} hashLen=${
+      acc?.refresh_token ? acc.refresh_token.length : 0
+    } emailLen=${(email || "").length}`
+  );
   if (acc?.refresh_token) {
     // We reuse refresh_token to store the bcrypt hash (cheap reuse, avoids schema churn).
     const ok = await bcrypt.compare(password, acc.refresh_token);
+    console.warn(`[auth-debug] bcrypt.compare result: ${ok}`);
     if (ok) {
       await reactivateIfNeeded(user.id, user.deactivatedAt);
       return { id: user.id, name: user.name, email: user.email, image: user.image };
