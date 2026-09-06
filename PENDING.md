@@ -11,6 +11,9 @@ Last updated: 2026-09-04. Everything else is LIVE on prod (see README.md for the
 
 ## Needs one schema window (batched)
 
+- [x] Challenge model + Post.challengeId — CODE DONE (93259a2), unpushed
+- [ ] Message.imageUrl (DM photo attachments — Wave 2)
+- [ ] PushSubscription model (endpoint/p256dh/auth per user — Wave 2 push)
 - [ ] Groups category column (for directory filter chips)
 - [ ] musicTitle column (real song titles on note chips instead of URL-derived)
 - [ ] Notification preferences UI (columns already live: notifyMessages, weeklyDigest)
