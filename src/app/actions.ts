@@ -107,6 +107,15 @@ export async function savePost(input: PostInput) {
   if (!input.title.trim() || !input.content.trim()) {
     throw new Error("Title and content are required");
   }
+  // Junk filter: titles/content made only of punctuation ("...", "!!!")
+  // render as empty cards everywhere. Require at least one letter/number
+  // (unicode-aware, so Nepali and emoji-titled posts still pass).
+  if (!/[\p{L}\p{N}]/u.test(input.title)) {
+    throw new Error("Title must contain at least one letter or number");
+  }
+  if (!/[\p{L}\p{N}]/u.test(input.content)) {
+    throw new Error("Post content must contain at least one letter or number");
+  }
   if (input.imageUrls.length > MAX_IMAGES_PER_POST) {
     throw new Error(`Max ${MAX_IMAGES_PER_POST} images per post`);
   }

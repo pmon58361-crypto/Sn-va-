@@ -89,6 +89,15 @@ export default async function ProfilePage({
               select: { id: true, url: true, order: true },
               orderBy: { order: "asc" },
             },
+            // Polls surface on grid cells as a compact strip (full voting
+            // stays on the post detail page).
+            polls: {
+              select: {
+                id: true,
+                question: true,
+                _count: { select: { votes: true } },
+              },
+            },
             _count: { select: { comments: true, reactions: true } },
           },
         },
@@ -366,7 +375,7 @@ export default async function ProfilePage({
                       {steps.map((s) => (
                         <li
                           key={s.label}
-                          className={`text-xs ${s.done ? "text-ink-faint line-through" : "text-ink-muted"}`}
+                          className={`text-xs ${s.done ? "font-medium text-accent" : "text-ink-muted"}`}
                         >
                           {s.done ? "✓ " : "○ "}
                           {s.label}
@@ -698,6 +707,7 @@ type GridPost = {
   category: string;
   createdAt: Date;
   images: { id: string; url: string; order: number }[];
+  polls?: { id: string; question: string; _count: { votes: number } }[];
   _count?: { comments: number; reactions: number };
 };
 
@@ -733,13 +743,20 @@ function PostGrid({ posts }: { posts: GridPost[] }) {
             className="group relative aspect-square overflow-hidden rounded-lg border border-line bg-soft"
           >
             {img ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={cdnUrl(img.url, 480)}
-                alt={p.title}
-                loading="lazy"
-                className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-              />
+              <>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={cdnUrl(img.url, 480)}
+                  alt={p.title}
+                  loading="lazy"
+                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                />
+                {p.polls?.[0] && (
+                  <span className="absolute bottom-1.5 left-1.5 z-10 rounded-full bg-black/65 px-2 py-0.5 text-[10px] font-semibold text-white">
+                    📊 {p.polls[0]._count.votes}
+                  </span>
+                )}
+              </>
             ) : (
               <span className="absolute inset-0 flex flex-col justify-between bg-surface p-3 text-left">
                 <span className="badge w-fit bg-accent/10 text-[10px] uppercase tracking-wide text-accent">
@@ -758,6 +775,12 @@ function PostGrid({ posts }: { posts: GridPost[] }) {
                 </span>
                 <span className="text-[11px] text-ink-faint">
                   {relativeDate(p.createdAt)}
+                  {p.polls?.[0] && (
+                    <>
+                      {" "}· 📊 {p.polls[0]._count.votes}{" "}
+                      {p.polls[0]._count.votes === 1 ? "vote" : "votes"}
+                    </>
+                  )}
                 </span>
               </span>
             )}

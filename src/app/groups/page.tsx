@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { getPresence } from "@/lib/presence";
+import { Avatar } from "@/components/ui/Avatar";
 import { CreateGroupButton } from "@/components/groups/CreateGroupModal";
+import { GroupCover } from "@/components/groups/GroupCover";
 
 export const metadata = { title: "Groups" };
 export const dynamic = "force-dynamic";
@@ -33,8 +36,33 @@ export default async function GroupsPage({
     include: {
       _count: { select: { members: true, posts: true } },
       creator: { select: { name: true } },
+      members: {
+        take: 6,
+        orderBy: { joinedAt: "desc" },
+        select: {
+          userId: true,
+          user: { select: { id: true, name: true, image: true } },
+        },
+      },
     },
   });
+
+  // Online-now per group (in-memory presence over member ids — one call).
+  const presence = getPresence(groups.flatMap((g) => g.members.map((m) => m.userId)));
+  const onlineCount = (members: { userId: string }[]) =>
+    members.filter((m) => presence[m.userId]?.online).length;
+
+  // Featured hero: most-posted group (ties → most members). Rendered big
+  // above the grid and excluded from it — no duplicates.
+  const featured =
+    groups.length > 1
+      ? [...groups].sort(
+          (a, b) =>
+            b._count.posts - a._count.posts ||
+            b._count.members - a._count.members
+        )[0]
+      : null;
+  const rest = featured ? groups.filter((g) => g.id !== featured.id) : groups;
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-8">
@@ -97,51 +125,128 @@ export default async function GroupsPage({
           </p>
         </div>
       ) : (
-        <div className="mt-6 grid gap-3 sm:grid-cols-2">
-          {groups.map((g) => (
+        <>
+          {featured && (
             <Link
-              key={g.id}
-              href={`/groups/${g.slug}`}
-              className="card card-hover overflow-hidden transition-all"
+              href={`/groups/${featured.slug}`}
+              className="card card-hover mt-6 block overflow-hidden transition-all"
             >
-              {g.coverUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={g.coverUrl}
-                  alt=""
-                  className="h-24 w-full object-cover"
-                />
-              ) : (
-                <div className="grid h-24 w-full place-items-center bg-gradient-to-tr from-accent/25 to-like/20 text-2xl font-black text-ink">
-                  {(g.name || "?").trim().charAt(0).toUpperCase()}
+              <div className="relative">
+                <div className="h-36 w-full overflow-hidden sm:h-44">
+                  <div className="h-full w-full [&>div]:h-full [&>img]:h-full">
+                    <GroupCover name={featured.name} coverUrl={featured.coverUrl} />
+                  </div>
                 </div>
-              )}
+                <span className="absolute left-4 top-3 rounded-full bg-black/60 px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-widest text-amber-300">
+                  Featured
+                </span>
+              </div>
               <div className="p-4">
                 <div className="flex items-center gap-2">
-                  <h2 className="truncate text-base font-bold text-ink">
-                    {g.name}
-                  </h2>
-                  {g.visibility === "private" && (
-                    <span className="badge shrink-0 bg-[var(--bg-soft)] text-xs text-ink-muted">
-                      private
-                    </span>
-                  )}
+                  <MemberStack members={featured.members} />
+                  <div className="min-w-0">
+                    <h2 className="truncate text-lg font-bold text-ink">
+                      {featured.name}
+                    </h2>
+                    <p className="font-mono text-xs text-ink-faint">
+                      {featured._count.members}{" "}
+                      {featured._count.members === 1 ? "member" : "members"} ·{" "}
+                      {featured._count.posts}{" "}
+                      {featured._count.posts === 1 ? "post" : "posts"}
+                      {onlineCount(featured.members) > 0 && (
+                        <>
+                          {" "}·{" "}
+                          <span className="text-emerald-500">
+                            {onlineCount(featured.members)} online now
+                          </span>
+                        </>
+                      )}
+                    </p>
+                  </div>
                 </div>
-                {g.description && (
-                  <p className="mt-1 line-clamp-2 text-sm leading-snug text-ink-muted">
-                    {g.description}
+                {featured.description && (
+                  <p className="mt-2 line-clamp-2 text-sm leading-snug text-ink-muted">
+                    {featured.description}
                   </p>
                 )}
-                <p className="mt-2 font-mono text-xs text-ink-faint">
-                  {g._count.members}{" "}
-                  {g._count.members === 1 ? "member" : "members"} ·{" "}
-                  {g._count.posts} {g._count.posts === 1 ? "post" : "posts"}
-                </p>
               </div>
             </Link>
-          ))}
-        </div>
+          )}
+          <div className="mt-6 grid gap-3 sm:grid-cols-2">
+            {rest.map((g) => (
+              <Link
+                key={g.id}
+                href={`/groups/${g.slug}`}
+                className="card card-hover overflow-hidden transition-all"
+              >
+                <GroupCover name={g.name} coverUrl={g.coverUrl} />
+                <div className="p-4">
+                  <div className="flex items-center gap-2">
+                    <h2 className="truncate text-base font-bold text-ink">
+                      {g.name}
+                    </h2>
+                    {g.visibility === "private" && (
+                      <span className="badge shrink-0 bg-[var(--bg-soft)] text-xs text-ink-muted">
+                        private
+                      </span>
+                    )}
+                  </div>
+                  {g.description && (
+                    <p className="mt-1 line-clamp-2 text-sm leading-snug text-ink-muted">
+                      {g.description}
+                    </p>
+                  )}
+                  <div className="mt-2 flex items-center gap-2">
+                    <MemberStack members={g.members} small />
+                    <p className="truncate font-mono text-xs text-ink-faint">
+                      {g._count.members}{" "}
+                      {g._count.members === 1 ? "member" : "members"} ·{" "}
+                      {g._count.posts} {g._count.posts === 1 ? "post" : "posts"}
+                      {onlineCount(g.members) > 0 && (
+                        <>
+                          {" "}·{" "}
+                          <span className="text-emerald-500">
+                            {onlineCount(g.members)} online
+                          </span>
+                        </>
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </>
       )}
     </div>
+  );
+}
+
+// Overlapping member avatar stack (Discord-server-card language).
+function MemberStack({
+  members,
+  small,
+}: {
+  members: { user: { id: string; name: string | null; image: string | null } }[];
+  small?: boolean;
+}) {
+  const shown = members.slice(0, 5);
+  if (shown.length === 0) return null;
+  const size = small ? 22 : 26;
+  return (
+    <span className="flex shrink-0 -space-x-1.5">
+      {shown.map((m) => (
+        <span
+          key={m.user.id}
+          className="rounded-full ring-2 ring-[var(--bg-surface,#1a1a1c)]"
+        >
+          <Avatar
+            name={m.user.name}
+            image={m.user.image}
+            size={size}
+          />
+        </span>
+      ))}
+    </span>
   );
 }

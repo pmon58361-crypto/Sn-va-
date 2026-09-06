@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getPresence } from "@/lib/presence";
 import { Avatar } from "@/components/ui/Avatar";
+import { FollowButton } from "@/components/profile/FollowButton";
 import { ProfileHover } from "@/components/profile/ProfileHover";
 
 export const metadata = { title: "People",
@@ -59,6 +60,18 @@ export default async function PeoplePage({
 
   const presence = getPresence(users.map((u) => u.id));
 
+  // Viewer follow state in ONE query — drives inline follow buttons.
+  const followedIds = new Set(
+    meId
+      ? (
+          await prisma.follow.findMany({
+            where: { followerId: meId },
+            select: { followingId: true },
+          })
+        ).map((f) => f.followingId)
+      : []
+  );
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
       <h1 className="text-2xl font-extrabold">People</h1>
@@ -95,41 +108,52 @@ export default async function PeoplePage({
         <div className="grid gap-3 sm:grid-cols-2">
           {users.map((u) => (
             <ProfileHover key={u.id} userId={u.id}>
-              <Link
-                href={`/profile/${u.id}`}
-                className="card card-hover flex items-start gap-3 p-4"
-              >
-              <span className="relative">
-                <Avatar name={u.name} image={u.image} size={44} />
-                {presence[u.id]?.online && (
-                  <span
-                    aria-label="Online now"
-                    title="Online now"
-                    className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-bg bg-emerald-400"
+              {/* Card is a plain div (not a link): the follow button inside
+                  must stay a real button, so only the identity row links. */}
+              <div className="card card-hover p-4">
+                <Link
+                  href={`/profile/${u.id}`}
+                  className="flex items-start gap-3"
+                >
+                  <span className="relative shrink-0">
+                    <Avatar name={u.name} image={u.image} size={44} />
+                    {presence[u.id]?.online && (
+                      <span
+                        aria-label="Online now"
+                        title="Online now"
+                        className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-bg bg-emerald-400"
+                      />
+                    )}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center gap-2 truncate text-sm font-bold">
+                      {u.name || "Someone"}
+                      {presence[u.id]?.online && (
+                        <span className="text-[10px] font-medium uppercase tracking-wide text-emerald-500">
+                          online{presence[u.id].page ? ` · ${presence[u.id].page}` : ""}
+                        </span>
+                      )}
+                    </span>
+                    <span className="block truncate text-xs text-ink-faint">
+                      {u._count.followers}{" "}
+                      {u._count.followers === 1 ? "follower" : "followers"} ·{" "}
+                      {u._count.posts} {u._count.posts === 1 ? "post" : "posts"}
+                    </span>
+                    {u.bio && (
+                      <span className="mt-1 line-clamp-2 block text-xs leading-relaxed text-ink-muted">
+                        {u.bio}
+                      </span>
+                    )}
+                  </span>
+                </Link>
+                {meId && (
+                  <FollowButton
+                    targetUserId={u.id}
+                    following={followedIds.has(u.id)}
+                    className="mt-3 w-full !px-4 !py-1.5 !text-sm"
                   />
                 )}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="flex items-center gap-2 truncate text-sm font-bold">
-                  {u.name || "Someone"}
-                  {presence[u.id]?.online && (
-                    <span className="text-[10px] font-medium uppercase tracking-wide text-emerald-500">
-                      online{presence[u.id].page ? ` · ${presence[u.id].page}` : ""}
-                    </span>
-                  )}
-                </p>
-                <p className="truncate text-xs text-ink-faint">
-                  {u._count.followers}{" "}
-                  {u._count.followers === 1 ? "follower" : "followers"} ·{" "}
-                  {u._count.posts} {u._count.posts === 1 ? "post" : "posts"}
-                </p>
-                {u.bio && (
-                  <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-ink-muted">
-                    {u.bio}
-                  </p>
-                )}
               </div>
-              </Link>
             </ProfileHover>
           ))}
         </div>
