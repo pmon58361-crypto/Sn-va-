@@ -1,4 +1,4 @@
-const VERSION = "snivat-v6";
+const VERSION = "snivat-v7";
 const CORE = [
   "/offline.html",
   "/manifest.webmanifest",
