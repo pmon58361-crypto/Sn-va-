@@ -10,7 +10,7 @@ import { prisma } from "@/lib/prisma";
 // The cutoff (500th createdAt) is cached for an hour; per-user results are
 // memoized for 6h so feed rendering never hammers the DB.
 
-const FOUNDING_LIMIT = Number(process.env.FOUNDING_MEMBER_LIMIT || 500);
+export const FOUNDING_LIMIT = Number(process.env.FOUNDING_MEMBER_LIMIT || 500);
 
 let cutoffCache: { value: Date | null; at: number } | null = null;
 const CUTOFF_TTL_MS = 3_600_000;
@@ -66,4 +66,27 @@ export async function isFoundingMember(
   memo.set(userId, { v, at: Date.now() });
   if (memo.size > MEMO_MAX_ENTRIES) memo.clear();
   return v;
+}
+
+// Scarcity rail: how many of the first-500 founding spots are claimed.
+// Cached like the cutoff (counts drift slowly); null when closed or on
+// DB hiccups — callers hide the slot entirely.
+let spotsCache: { value: { total: number; limit: number } | null; at: number } | null = null;
+
+export async function getFoundingSpots(): Promise<{
+  total: number;
+  limit: number;
+} | null> {
+  if (spotsCache && Date.now() - spotsCache.at < CUTOFF_TTL_MS) {
+    return spotsCache.value;
+  }
+  try {
+    const total = await prisma.user.count();
+    const value =
+      total < FOUNDING_LIMIT ? { total, limit: FOUNDING_LIMIT } : null;
+    spotsCache = { value, at: Date.now() };
+    return value;
+  } catch {
+    return null;
+  }
 }

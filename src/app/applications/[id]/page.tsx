@@ -84,6 +84,10 @@ export default async function ApplicationDetailPage({
       orderBy: { createdAt: "desc" },
     });
   }
+  // Viewers get the honest count only (no names) — drives the early-bird rail.
+  const applicantCount = isOwner
+    ? applications.length
+    : await prisma.application.count({ where: { postId: id } });
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
@@ -153,12 +157,23 @@ export default async function ApplicationDetailPage({
             </div>
           )
         ) : (
-          <ApplyForm
-            postId={post.id}
-            hasApplied={hasApplied}
-            myStatus={myStatus}
-            isOwner={false}
-          />
+          <>
+            {!hasApplied && applicantCount > 0 && (
+              <p className="mb-3 text-xs text-ink-muted">
+                {applicantCount}{" "}
+                {applicantCount === 1
+                  ? "person has applied"
+                  : "people have applied"}{" "}
+                so far — early applications get seen first.
+              </p>
+            )}
+            <ApplyForm
+              postId={post.id}
+              hasApplied={hasApplied}
+              myStatus={myStatus}
+              isOwner={false}
+            />
+          </>
         )}
       </section>
     </div>

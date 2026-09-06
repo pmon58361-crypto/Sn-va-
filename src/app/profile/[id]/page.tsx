@@ -318,6 +318,65 @@ export default async function ProfilePage({
               </div>
             )}
 
+            {/* Goal-gradient onboarding: gifted first stamp ("Joined") plus
+                five real checks. Owner-only, collapses forever at 6/6. */}
+            {isOwner &&
+              (() => {
+                const steps = [
+                  { label: "Joined Snívať", done: true },
+                  { label: "Add a photo", done: !!user.image },
+                  { label: "Write a bio", done: !!user.bio?.trim() },
+                  { label: "Add your location", done: !!user.location?.trim() },
+                  {
+                    label: "Publish your first post",
+                    done: user._count.posts > 0,
+                  },
+                  {
+                    label: "Follow someone",
+                    done: user._count.following > 0,
+                  },
+                ];
+                const done = steps.filter((s) => s.done).length;
+                if (done >= steps.length) return null;
+                const pct = Math.round((done / steps.length) * 100);
+                return (
+                  <div className="card mt-4 p-4">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <p className="text-sm font-bold text-ink">
+                        Finish your profile
+                      </p>
+                      <p className="font-mono text-xs text-ink-faint">
+                        {done} of {steps.length}
+                      </p>
+                    </div>
+                    <div
+                      className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface"
+                      role="progressbar"
+                      aria-valuenow={done}
+                      aria-valuemin={0}
+                      aria-valuemax={steps.length}
+                      aria-label={`${done} of ${steps.length} profile steps complete`}
+                    >
+                      <div
+                        className="h-full rounded-full bg-accent transition-all"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    <ul className="mt-2 space-y-1">
+                      {steps.map((s) => (
+                        <li
+                          key={s.label}
+                          className={`text-xs ${s.done ? "text-ink-faint line-through" : "text-ink-muted"}`}
+                        >
+                          {s.done ? "✓ " : "○ "}
+                          {s.label}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })()}
+
             {/* Inline stats — posts · followers · following. Units are
                 nowrap so numbers never separate from their labels. */}
             <p className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink-muted">

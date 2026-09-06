@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { Avatar } from "@/components/ui/Avatar";
 
@@ -96,8 +97,14 @@ export default async function LeaderboardPage({
     )
   )
     .filter((r): r is NonNullable<typeof r> => !!r && r.points > 0)
-    .sort((a, b) => b.points - a.points)
-    .slice(0, 10);
+    .sort((a, b) => b.points - a.points);
+
+  // Goal-gradient rail: where YOU stand and exactly how far the next rank
+  // is — "4 pts behind #5" pulls harder than a bare table.
+  const session = await auth().catch(() => null);
+  const meId = session?.user?.id;
+  const myIdx = meId ? ranked.findIndex((r) => r.user.id === meId) : -1;
+  const top = ranked.slice(0, 10);
 
   const tabHref = (r: RangeKey) => `/leaderboard?range=${r}`;
 
@@ -132,8 +139,22 @@ export default async function LeaderboardPage({
           The board resets every week — be the first on it.
         </p>
       ) : (
-        <ol className="mt-8 space-y-2">
-          {ranked.map((r, i) => (
+        <>
+          {myIdx >= 0 && (
+            <p className="card mt-6 border-accent/30 bg-accent/5 p-4 text-sm text-ink">
+              You&apos;re <b>#{myIdx + 1}</b> with{" "}
+              <b>{ranked[myIdx].points} pts</b>
+              {myIdx > 0 && (
+                <>
+                  {" "}— <b>{ranked[myIdx - 1].points - ranked[myIdx].points} pts</b>{" "}
+                  behind {ranked[myIdx - 1].user.name || "the rank above"}
+                </>
+              )}
+              {myIdx === 0 && " — top of the board. Defend it."}
+            </p>
+          )}
+          <ol className="mt-8 space-y-2">
+            {top.map((r, i) => (
             <li
               key={r.user.id}
               className="card flex items-center gap-3 p-3.5"
@@ -158,6 +179,7 @@ export default async function LeaderboardPage({
             </li>
           ))}
         </ol>
+        </>
       )}
     </main>
   );

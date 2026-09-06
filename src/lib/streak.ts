@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 // streak). Bounded to a 90-day scan; display caps there too.
 export async function getStreak(
   userId: string
-): Promise<{ current: number; activeToday: boolean }> {
+): Promise<{ current: number; activeToday: boolean; best: number }> {
   const DAY = 86_400_000;
   const since = new Date(Date.now() - 90 * DAY);
   const [posts, comments, reactions] = await Promise.all([
@@ -28,7 +28,7 @@ export async function getStreak(
   for (const row of [...posts, ...comments, ...reactions]) {
     days.add(row.createdAt.toISOString().slice(0, 10));
   }
-  if (days.size === 0) return { current: 0, activeToday: false };
+  if (days.size === 0) return { current: 0, activeToday: false, best: 0 };
 
   const keyOf = (d: Date) => d.toISOString().slice(0, 10);
   // Today not yet active doesn't break the streak — the day isn't over.
@@ -41,5 +41,30 @@ export async function getStreak(
     cursor = new Date(cursor.getTime() - DAY);
   }
 
-  return { current, activeToday: days.has(keyOf(new Date())) };
+  // Personal best: longest run anywhere in the window (same day-set, free).
+  // Drives the "X days from your best" gradient rail — real history only.
+  const sorted = Array.from(days).sort();
+  let best = 1;
+  let run = 1;
+  for (let i = 1; i < sorted.length; i++) {
+    const prev = new Date(sorted[i - 1] + "T00:00:00Z").getTime();
+    const cur = new Date(sorted[i] + "T00:00:00Z").getTime();
+    if (cur - prev === DAY) {
+      run += 1;
+      best = Math.max(best, run);
+    } else {
+      run = 1;
+    }
+  }
+  best = Math.max(best, current);
+
+  return { current, activeToday: days.has(keyOf(new Date())), best };
+}
+
+// Next milestone above n (3/7/14/30/60/90), or null at the cap.
+export function nextMilestone(n: number): number | null {
+  for (const m of [3, 7, 14, 30, 60, 90]) {
+    if (m > n) return m;
+  }
+  return null;
 }

@@ -103,6 +103,43 @@ export default async function ChallengePage({
           {ranked.length} {ranked.length === 1 ? "entry" : "entries"} ·{" "}
           {endsLabel(challenge)}
         </p>
+        {challenge.endsAt &&
+          (() => {
+            const total =
+              challenge.endsAt!.getTime() - challenge.startsAt.getTime();
+            const elapsed = Math.max(
+              0,
+              Date.now() - challenge.startsAt.getTime()
+            );
+            const pct =
+              total > 0 ? Math.min(100, Math.round((elapsed / total) * 100)) : 0;
+            const day = Math.max(
+              1,
+              Math.ceil(elapsed / 86_400_000)
+            );
+            const days = Math.max(1, Math.ceil(total / 86_400_000));
+            return (
+              <div className="mt-3">
+                <div
+                  className="h-1.5 overflow-hidden rounded-full bg-surface"
+                  role="progressbar"
+                  aria-valuenow={pct}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-label={`Day ${Math.min(day, days)} of ${days}`}
+                >
+                  <div
+                    className="h-full rounded-full bg-accent transition-all"
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+                <p className="mt-1 text-xs text-ink-muted">
+                  Day {Math.min(day, days)} of {days}
+                  {live && " — entries close when the bar fills"}
+                </p>
+              </div>
+            );
+          })()}
         {live &&
           (meId ? (
             <Link

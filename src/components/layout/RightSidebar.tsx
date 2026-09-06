@@ -5,7 +5,8 @@ import { FollowButton } from "@/components/profile/FollowButton";
 import { ProfileHover } from "@/components/profile/ProfileHover";
 import { getSidebarAd } from "@/lib/ads";
 import { AdCard } from "@/components/ads/AdCard";
-import { getStreak } from "@/lib/streak";
+import { getStreak, nextMilestone } from "@/lib/streak";
+import { FOUNDING_LIMIT } from "@/lib/founding";
 
 // Right sidebar for the community page. Shows ONLY real data —
 // suggestions, trends, rankings and stats computed from the DB.
@@ -119,10 +120,79 @@ export async function RightSidebar({ viewerId }: { viewerId?: string | null }) {
               day{streak.current === 1 ? "" : "s"}
             </span>
           </p>
+          {(() => {
+            const next = nextMilestone(streak.current);
+            if (!next) {
+              return (
+                <p className="mt-1 text-xs text-ink-muted">
+                  Max milestone reached — legend status.
+                </p>
+              );
+            }
+            const pct = Math.min(
+              100,
+              Math.round((streak.current / next) * 100)
+            );
+            return (
+              <div className="mt-2">
+                <div
+                  className="h-1.5 overflow-hidden rounded-full bg-surface"
+                  role="progressbar"
+                  aria-valuenow={streak.current}
+                  aria-valuemin={0}
+                  aria-valuemax={next}
+                  aria-label={`${streak.current} of ${next} days to your next milestone`}
+                >
+                  <div
+                    className="h-full rounded-full bg-accent transition-all"
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+                <p className="mt-1 text-xs text-ink-muted">
+                  {next - streak.current}{" "}
+                  {next - streak.current === 1 ? "day" : "days"} to your{" "}
+                  {next}-day milestone
+                  {streak.best > streak.current &&
+                    ` · best ${streak.best}d`}
+                </p>
+              </div>
+            );
+          })()}
           <p className="mt-1 text-xs text-ink-muted">
             {streak.activeToday
               ? "Active today — streak safe."
               : "No activity today yet — post, comment, or react to keep it alive."}
+          </p>
+        </div>
+      )}
+
+      {/* Founding spots — real member count vs the 500 cap. Only while
+          spots remain; vanishes the moment the window closes. */}
+      {memberCount < FOUNDING_LIMIT && (
+        <div className="rounded-xl border border-line bg-surface p-4">
+          <h3 className="mb-1 text-xs font-semibold uppercase tracking-wider text-ink-faint">
+            Founding members
+          </h3>
+          <p className="text-sm font-bold text-ink">
+            {FOUNDING_LIMIT - memberCount} spots left
+          </p>
+          <div
+            className="mt-2 h-1.5 overflow-hidden rounded-full bg-soft"
+            role="progressbar"
+            aria-valuenow={memberCount}
+            aria-valuemin={0}
+            aria-valuemax={FOUNDING_LIMIT}
+            aria-label={`${memberCount} of ${FOUNDING_LIMIT} founding spots claimed`}
+          >
+            <div
+              className="h-full rounded-full bg-accent transition-all"
+              style={{
+                width: `${Math.round((memberCount / FOUNDING_LIMIT) * 100)}%`,
+              }}
+            />
+          </div>
+          <p className="mt-1 text-xs text-ink-muted">
+            First {FOUNDING_LIMIT} accounts keep the ★ badge forever.
           </p>
         </div>
       )}

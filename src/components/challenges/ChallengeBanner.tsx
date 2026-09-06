@@ -9,6 +9,17 @@ export async function ChallengeBanner() {
   const challenge = await getActiveChallenge().catch(() => null);
   if (!challenge) return null;
 
+  // Time rail: real elapsed-vs-total — "Day 4 of 7" pulls entries in as the
+  // window closes. Open-ended challenges show entries only.
+  const total = challenge.endsAt
+    ? challenge.endsAt.getTime() - challenge.startsAt.getTime()
+    : 0;
+  const elapsed = challenge.endsAt
+    ? Math.max(0, Date.now() - challenge.startsAt.getTime())
+    : 0;
+  const pct =
+    total > 0 ? Math.min(100, Math.round((elapsed / total) * 100)) : 0;
+
   return (
     <Link
       href={`/challenges/${challenge.id}`}
@@ -21,7 +32,22 @@ export async function ChallengeBanner() {
       <p className="mt-1 truncate text-[15px] font-bold text-ink">
         {challenge.title}
       </p>
-      <p className="mt-0.5 text-xs text-ink-muted">
+      {total > 0 && (
+        <div
+          className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface"
+          role="progressbar"
+          aria-valuenow={pct}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label={`Challenge ${pct}% elapsed`}
+        >
+          <div
+            className="h-full rounded-full bg-accent transition-all"
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      )}
+      <p className="mt-1.5 text-xs text-ink-muted">
         Tap to view the leaderboard and enter →
       </p>
     </Link>
