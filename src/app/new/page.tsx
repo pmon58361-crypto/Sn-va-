@@ -40,10 +40,12 @@ export default async function NewPostPage({
   let challengeTitle: string | undefined;
   let challengeId: string | undefined;
   if (challenge && !edit) {
-    const c = await prisma.challenge.findUnique({
-      where: { id: challenge },
-      select: { id: true, title: true, endsAt: true },
-    });
+    const c = await prisma.challenge
+      .findUnique({
+        where: { id: challenge },
+        select: { id: true, title: true, endsAt: true },
+      })
+      .catch(() => null);
     if (c && (!c.endsAt || c.endsAt.getTime() > Date.now())) {
       challengeId = c.id;
       challengeTitle = c.title;

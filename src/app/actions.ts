@@ -185,11 +185,13 @@ export async function savePost(input: PostInput) {
     // never moved between challenges after creation.
     let challengeId: string | null = null;
     if (input.challengeId) {
-      const ch = await prisma.challenge.findUnique({
-        where: { id: input.challengeId },
-        select: { endsAt: true },
-      });
-      if (!ch) throw new Error("Challenge not found");
+      const ch = await prisma.challenge
+        .findUnique({
+          where: { id: input.challengeId },
+          select: { endsAt: true },
+        })
+        .catch(() => null);
+      if (!ch) throw new Error("Challenge not found or still activating");
       if (ch.endsAt && ch.endsAt.getTime() <= Date.now()) {
         throw new Error("That challenge has ended");
       }

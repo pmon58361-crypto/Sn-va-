@@ -61,25 +61,41 @@ export async function getConversations(meId: string) {
 }
 
 export async function getThread(meId: string, otherId: string) {
-  return prisma.message.findMany({
-    where: {
-      OR: [
-        { senderId: meId, recipientId: otherId },
-        { senderId: otherId, recipientId: meId },
-      ],
-    },
-    orderBy: { createdAt: "asc" },
-    take: 200,
-    select: {
-      id: true,
-      senderId: true,
-      content: true,
-      imageUrl: true,
-      readAt: true,
-      createdAt: true,
-      reactions: { select: { userId: true, emoji: true } },
-    },
-  });
+  const where = {
+    OR: [
+      { senderId: meId, recipientId: otherId },
+      { senderId: otherId, recipientId: meId },
+    ],
+  };
+  const select = {
+    id: true,
+    senderId: true,
+    content: true,
+    imageUrl: true,
+    readAt: true,
+    createdAt: true,
+    reactions: { select: { userId: true, emoji: true } },
+  };
+  try {
+    return await prisma.message.findMany({
+      where,
+      orderBy: { createdAt: "asc" },
+      take: 200,
+      select,
+    });
+  } catch (err) {
+    // Schema-window resilience: if Message.imageUrl hasn't landed on this
+    // database branch yet, fall back to text-only instead of 500ing DMs.
+    if (!(err instanceof Error) || !/imageUrl|does not exist/i.test(err.message)) throw err;
+    const { imageUrl: _dropped, ...textSelect } = select;
+    const rows = await prisma.message.findMany({
+      where,
+      orderBy: { createdAt: "asc" },
+      take: 200,
+      select: textSelect,
+    });
+    return rows.map((r) => ({ ...r, imageUrl: null as string | null }));
+  }
 }
 
 export async function getUnreadCount(meId: string) {

@@ -20,11 +20,23 @@ export async function POST(req: NextRequest) {
   if (!endpoint.startsWith("https://") || !p256dh || !authKey) {
     return NextResponse.json({ error: "Invalid subscription" }, { status: 400 });
   }
-  await prisma.pushSubscription.upsert({
-    where: { endpoint },
-    update: { userId: session.user.id, p256dh, auth: authKey },
-    create: { userId: session.user.id, endpoint, p256dh, auth: authKey },
-  });
+  try {
+    await prisma.pushSubscription.upsert({
+      where: { endpoint },
+      update: { userId: session.user.id, p256dh, auth: authKey },
+      create: { userId: session.user.id, endpoint, p256dh, auth: authKey },
+    });
+  } catch (err) {
+    // Schema-window resilience: friendly 503 until PushSubscription lands
+    // on this database branch, instead of a 500.
+    if (err instanceof Error && /does not exist|relation/i.test(err.message)) {
+      return NextResponse.json(
+        { error: "Push is still activating — try again shortly" },
+        { status: 503 }
+      );
+    }
+    throw err;
+  }
   await prisma.settings.upsert({
     where: { userId: session.user.id },
     update: { notifyMessages: true },

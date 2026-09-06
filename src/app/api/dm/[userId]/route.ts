@@ -18,28 +18,51 @@ export async function GET(
   const afterParam = req.nextUrl.searchParams.get("after");
   const after = afterParam ? new Date(afterParam) : null;
 
-  const messages = await prisma.message.findMany({
-    where: {
-      OR: [
-        { senderId: meId, recipientId: userId },
-        { senderId: userId, recipientId: meId },
-      ],
-      // gte (not gt): same-millisecond messages must not be skipped; the
-      // client dedupes by id, so re-delivering the boundary row is harmless.
-      ...(after && !isNaN(after.getTime()) ? { createdAt: { gte: after } } : {}),
-    },
-    orderBy: { createdAt: "asc" },
-    take: 100,
-    select: {
-      id: true,
-      senderId: true,
-      content: true,
-      imageUrl: true,
-      readAt: true,
-      createdAt: true,
-      reactions: { select: { userId: true, emoji: true } },
-    },
-  });
+  const messageSelect = {
+    id: true,
+    senderId: true,
+    content: true,
+    imageUrl: true,
+    readAt: true,
+    createdAt: true,
+    reactions: { select: { userId: true, emoji: true } },
+  };
+
+  let messages;
+  try {
+    messages = await prisma.message.findMany({
+      where: {
+        OR: [
+          { senderId: meId, recipientId: userId },
+          { senderId: userId, recipientId: meId },
+        ],
+        // gte (not gt): same-millisecond messages must not be skipped; the
+        // client dedupes by id, so re-delivering the boundary row is harmless.
+        ...(after && !isNaN(after.getTime()) ? { createdAt: { gte: after } } : {}),
+      },
+      orderBy: { createdAt: "asc" },
+      take: 100,
+      select: messageSelect,
+    });
+  } catch (err) {
+    // Schema-window resilience (see lib/dm.ts getThread): text-only poll
+    // when Message.imageUrl hasn't landed on this database branch yet.
+    if (!(err instanceof Error) || !/imageUrl|does not exist/i.test(err.message)) throw err;
+    const { imageUrl: _dropped, ...textSelect } = messageSelect;
+    const rows = await prisma.message.findMany({
+      where: {
+        OR: [
+          { senderId: meId, recipientId: userId },
+          { senderId: userId, recipientId: meId },
+        ],
+        ...(after && !isNaN(after.getTime()) ? { createdAt: { gte: after } } : {}),
+      },
+      orderBy: { createdAt: "asc" },
+      take: 100,
+      select: textSelect,
+    });
+    messages = rows.map((r) => ({ ...r, imageUrl: null as string | null }));
+  }
 
   // Full reaction map for the thread tail — lets every client reconcile
   // reaction state each tick (toggles by the peer show up without reload).

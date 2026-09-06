@@ -12,12 +12,15 @@ export default async function AdminChallengesPage() {
   if (!session?.user?.id) redirect("/");
   if (session.user.role !== "admin") redirect("/");
 
-  const challenges = await prisma.challenge.findMany({
-    orderBy: { createdAt: "desc" },
-    include: { _count: { select: { posts: true } } },
-  });
+  // Resilient while the Challenge table lands on every database branch.
+  const challenges = await prisma.challenge
+    .findMany({
+      orderBy: { createdAt: "desc" },
+      include: { _count: { select: { posts: true } } },
+    })
+    .catch(() => null);
 
-  const initial = challenges.map((c) => ({
+  const initial = (challenges ?? []).map((c) => ({
     id: c.id,
     title: c.title,
     prompt: c.prompt,
@@ -43,6 +46,12 @@ export default async function AdminChallengesPage() {
       </header>
 
       <ChallengeManager initial={initial} />
+      {challenges === null && (
+        <p className="mt-4 text-sm text-ink-muted">
+          Database is still activating the Challenge table — creating unlocks
+          once the schema lands.
+        </p>
+      )}
     </div>
   );
 }

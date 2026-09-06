@@ -35,14 +35,24 @@ export async function sendMessage(recipientId: string, content: string, imageUrl
   });
   if (!recipient) throw new Error("User not found");
 
-  const msg = await prisma.message.create({
-    data: {
-      senderId: me.id,
-      recipientId,
-      content: text,
-      ...(image ? { imageUrl: image } : {}),
-    },
-  });
+  let msg;
+  try {
+    msg = await prisma.message.create({
+      data: {
+        senderId: me.id,
+        recipientId,
+        content: text,
+        ...(image ? { imageUrl: image } : {}),
+      },
+    });
+  } catch (err) {
+    // Schema-window resilience: photo sends before Message.imageUrl lands
+    // on this database branch get a plainspoken error instead of a 500.
+    if (image && err instanceof Error && /imageUrl|does not exist/i.test(err.message)) {
+      throw new Error("Photo sending is still activating — text works, try the photo shortly");
+    }
+    throw err;
+  }
 
   await createNotification({
     userId: recipientId,

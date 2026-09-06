@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getPosts, reactionCounts } from "@/lib/queries";
@@ -14,11 +13,15 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const c = await prisma.challenge.findUnique({
-    where: { id },
-    select: { title: true },
-  });
-  return { title: c ? `${c.title} — Challenge` : "Challenge" };
+  try {
+    const c = await prisma.challenge.findUnique({
+      where: { id },
+      select: { title: true },
+    });
+    return { title: c ? `${c.title} — Challenge` : "Challenge" };
+  } catch {
+    return { title: "Challenge" };
+  }
 }
 
 function endsLabel(c: { endsAt: Date | null }) {
@@ -42,11 +45,25 @@ export default async function ChallengePage({
   const session = await auth();
   const meId = session?.user?.id;
 
-  const challenge = await prisma.challenge.findUnique({
-    where: { id },
-    include: { createdBy: { select: { id: true, name: true } } },
-  });
-  if (!challenge) notFound();
+  const challenge = await prisma.challenge
+    .findUnique({
+      where: { id },
+      include: { createdBy: { select: { id: true, name: true } } },
+    })
+    .catch(() => null);
+  if (!challenge) {
+    return (
+      <div className="mx-auto w-full max-w-[640px] px-4 py-5">
+        <div className="card p-6 text-center">
+          <p className="text-sm font-semibold text-ink">Setting up…</p>
+          <p className="mt-1 text-sm text-ink-muted">
+            Challenges are still activating on this server — check back
+            shortly.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const live = isChallengeLive(challenge);
 
