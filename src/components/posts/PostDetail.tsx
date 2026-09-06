@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Avatar } from "@/components/ui/Avatar";
+import { ProfileHover } from "@/components/profile/ProfileHover";
 import {
   MapPinIcon,
   BriefcaseIcon,
@@ -56,24 +57,44 @@ export function PostDetail({
         <div className="p-6">
           {/* Author row */}
           <div className="mb-4 flex items-center justify-between">
-            <Link
-              href={`/profile/${post.author?.id}`}
-              className="flex items-center gap-3"
-            >
-              <Avatar
-                name={post.author?.name}
-                image={post.author?.image}
-                size={44}
-              />
-              <div className="leading-tight">
-                <p className="text-sm font-semibold text-ink hover:text-accent">
-                  {post.author?.name || "Unknown"}
-                </p>
-                <p className="text-xs text-ink-faint">
-                  {timeAgo(post.createdAt)} · {formatDate(post.createdAt)}
-                </p>
+            {post.author?.id ? (
+              <ProfileHover userId={post.author.id}>
+                <Link
+                  href={`/profile/${post.author?.id}`}
+                  className="flex items-center gap-3"
+                >
+                  <Avatar
+                    name={post.author?.name}
+                    image={post.author?.image}
+                    size={44}
+                  />
+                  <div className="leading-tight">
+                    <p className="text-sm font-semibold text-ink hover:text-accent">
+                      {post.author?.name || "Unknown"}
+                    </p>
+                    <p className="text-xs text-ink-faint">
+                      {timeAgo(post.createdAt)} · {formatDate(post.createdAt)}
+                    </p>
+                  </div>
+                </Link>
+              </ProfileHover>
+            ) : (
+              <div className="flex items-center gap-3">
+                <Avatar
+                  name={post.author?.name}
+                  image={post.author?.image}
+                  size={44}
+                />
+                <div className="leading-tight">
+                  <p className="text-sm font-semibold text-ink">
+                    Unknown
+                  </p>
+                  <p className="text-xs text-ink-faint">
+                    {timeAgo(post.createdAt)} · {formatDate(post.createdAt)}
+                  </p>
+                </div>
               </div>
-            </Link>
+            )}
             <span
               className={`badge ${
                 post.category === "JOB_OFFER"

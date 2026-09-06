@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/auth";
 import { getUserBrief, getThread, markThreadReadSafe } from "@/lib/dm";
+import { getPresence } from "@/lib/presence";
 import { DmThread } from "@/components/dm/DmThread";
 
 export const dynamic = "force-dynamic";
@@ -49,6 +50,7 @@ export default async function DmThreadPage({
   const thread = await getThread(meId, id);
   // Opening the thread marks it read.
   await markThreadReadSafe(meId, id);
+  const online = !!getPresence([id])[id]?.online;
 
   const initial = thread.map((m) => ({
     id: m.id,
@@ -65,20 +67,32 @@ export default async function DmThreadPage({
 
   return (
     <main className="flex h-[100dvh] flex-col">
-      <div className="flex items-center gap-4 border-b border-line bg-bg/85 px-4 py-2.5 backdrop-blur-md">
+      <div className="flex items-center gap-3 border-b border-line bg-bg/85 px-4 py-2.5 backdrop-blur-md">
         <Link
           href="/dm"
-          className="grid h-8 w-8 place-items-center rounded-full text-lg hover:bg-surface-hover"
+          aria-label="Back to messages"
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-lg text-ink-muted transition hover:bg-surface-hover hover:text-ink"
         >
           ←
         </Link>
-        <Link href={`/profile/${other.id}`} className="flex items-center gap-2.5">
-          <AvatarSmall name={other.name} image={other.image} />
-          <span>
-            <span className="block text-[15px] font-bold leading-tight">
+        <Link href={`/profile/${other.id}`} className="flex min-w-0 flex-1 items-center gap-3">
+          <span className="relative shrink-0">
+            <AvatarSmall name={other.name} image={other.image} />
+            {online && (
+              <span
+                aria-label="Online now"
+                title="Online now"
+                className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-bg bg-emerald-400"
+              />
+            )}
+          </span>
+          <span className="min-w-0">
+            <span className="block truncate text-[15px] font-bold leading-tight">
               {other.name || "Someone"}
             </span>
-            <span className="block text-xs text-ink-secondary">View profile</span>
+            <span className={`block text-xs ${online ? "font-medium text-emerald-500" : "text-ink-secondary"}`}>
+              {online ? "Online now" : "View profile"}
+            </span>
           </span>
         </Link>
       </div>
@@ -88,6 +102,8 @@ export default async function DmThreadPage({
         key={other.id}
         otherId={other.id}
         meId={meId}
+        otherName={other.name}
+        otherImage={other.image}
         initial={initial}
         initialDraft={initialDraft}
         autoFocusComposer={sp.reply === "1"}

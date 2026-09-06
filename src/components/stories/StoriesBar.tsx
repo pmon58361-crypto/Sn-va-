@@ -291,6 +291,7 @@ function Ring({
 function StoryComposer({ onClose }: { onClose: () => void }) {
   const [mode, setMode] = useState<"text" | "image">("text");
   const [caption, setCaption] = useState("");
+  const [music, setMusic] = useState("");
   const [bg, setBg] = useState(BG_CHOICES[0]);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -305,6 +306,7 @@ function StoryComposer({ onClose }: { onClose: () => void }) {
     const form = new FormData();
     form.append("bg", bg);
     if (caption.trim()) form.append("caption", caption.trim());
+    if (music.trim()) form.append("musicUrl", music.trim());
     if (file) form.append("file", file);
     setPending(true);
     try {
@@ -415,6 +417,21 @@ function StoryComposer({ onClose }: { onClose: () => void }) {
         )}
 
         {error && <p className="mb-2 mt-2 text-sm text-warm">{error}</p>}
+
+        {/* Optional attached track — link-out only (no hosting), same allowlist as notes. */}
+        <div className="relative mt-2">
+          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm" aria-hidden>
+            🎵
+          </span>
+          <input
+            value={music}
+            onChange={(e) => setMusic(e.target.value)}
+            type="url"
+            placeholder="Add a Spotify / YouTube / Apple Music link (optional)"
+            className="input !pl-9 text-xs"
+            aria-label="Music link"
+          />
+        </div>
 
         <button
           onClick={submit}

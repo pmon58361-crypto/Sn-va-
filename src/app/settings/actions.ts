@@ -16,6 +16,8 @@ export type SettingsInput = {
   publicProfile: boolean;
   showEmail: boolean;
   isCreator: boolean;
+  notifyMessages: boolean;
+  weeklyDigest: boolean;
 };
 
 export async function saveSettings(input: SettingsInput) {
@@ -79,6 +81,8 @@ export async function saveSettings(input: SettingsInput) {
       publicProfile: input.publicProfile,
       showEmail: input.showEmail,
       isCreator: input.isCreator,
+      notifyMessages: input.notifyMessages,
+      weeklyDigest: input.weeklyDigest,
     },
     create: {
       userId: session.user.id,
@@ -88,6 +92,8 @@ export async function saveSettings(input: SettingsInput) {
       publicProfile: input.publicProfile,
       showEmail: input.showEmail,
       isCreator: input.isCreator,
+      notifyMessages: input.notifyMessages,
+      weeklyDigest: input.weeklyDigest,
     },
   });
 

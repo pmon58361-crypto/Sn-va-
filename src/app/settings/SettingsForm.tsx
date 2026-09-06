@@ -477,6 +477,22 @@ export function SettingsForm({
                 </a>
               </div>
             )}
+            <div className="border-t border-line">
+              <ToggleRow
+                label="DM notifications"
+                description="Show in-app notifications for new direct messages."
+                checked={form.notifyMessages}
+                onChange={(v) => set("notifyMessages", v)}
+              />
+            </div>
+            <div className="border-t border-line">
+              <ToggleRow
+                label="Weekly digest"
+                description="Get a weekly email recap when it launches."
+                checked={form.weeklyDigest}
+                onChange={(v) => set("weeklyDigest", v)}
+              />
+            </div>
             <div className="flex items-center justify-between gap-4 px-4 py-4">
               <div>
                 <p className="text-sm font-medium text-ink">Session</p>

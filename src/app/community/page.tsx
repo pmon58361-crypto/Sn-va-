@@ -65,14 +65,15 @@ export default async function CommunityPage({
   ]);
 
   // Sponsored feed card: only on substantial feeds, max one, after post #4.
-  const feedAd = posts.length >= 10 ? await getFeedAd() : null;
-
   // "From the archives" — one quality old post, only on unfiltered default
   // views with a real feed beneath it. Hides itself when the archive is empty.
-  const archivePost =
+  // Tail fetches run in parallel (were sequential — saves 1 Neon RT when both fire).
+  const [feedAd, archivePost] = await Promise.all([
+    posts.length >= 10 ? getFeedAd() : Promise.resolve(null),
     !q && !isFollowing && !validBefore && posts.length >= 6
-      ? await getArchivedCommunityPost(posts.map((p) => p.id))
-      : null;
+      ? getArchivedCommunityPost(posts.map((p) => p.id))
+      : Promise.resolve(null),
+  ]);
 
   // Once-per-user onboarding: interests === null means never asked.
   // Answering or skipping writes "" so it never resurfaces.

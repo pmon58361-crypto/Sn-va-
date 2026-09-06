@@ -72,12 +72,16 @@ function dividerLabel(ts: string) {
 export function DmThread({
   otherId,
   meId,
+  otherName,
+  otherImage,
   initial,
   initialDraft,
   autoFocusComposer,
 }: {
   otherId: string;
   meId: string;
+  otherName?: string | null;
+  otherImage?: string | null;
   initial: Msg[];
   /** Pre-filled text for the composer (e.g. story-reply deep links). */
   initialDraft?: string;
@@ -89,7 +93,7 @@ export function DmThread({
     initial.flatMap((m) => m.reactions ?? [])
   );
   const [draft, setDraft] = useState(initialDraft ?? "");
-  const composerRef = useRef<HTMLInputElement>(null);
+  const composerRef = useRef<HTMLTextAreaElement>(null);
   const [sending, setSending] = useState(false);
   // Newest known time the OTHER person read any of my messages ("Seen").
   const [seenAt, setSeenAt] = useState<string | null>(null);
@@ -426,6 +430,14 @@ export function DmThread({
               new Date(m.createdAt).getTime() -
                 new Date(prev.createdAt).getTime() <
                 GROUP_WINDOW_MS;
+            // Last bubble of a group shows the timestamp (+ Seen for mine).
+            const next = i + 1 < messages.length ? messages[i + 1] : null;
+            const groupLast =
+              !next ||
+              next.senderId !== m.senderId ||
+              new Date(next.createdAt).getTime() -
+                new Date(m.createdAt).getTime() >=
+                GROUP_WINDOW_MS;
 
             // Aggregate reactions for this message from the thread-wide map.
             const grouped = new Map<
@@ -447,15 +459,25 @@ export function DmThread({
                 className={`flex flex-col dm-in ${stacked ? "-mt-2.5" : ""}`}
               >
                 {isNewDay && (
-                  <p className="my-2 text-center text-[11px] font-medium text-ink-faint">
-                    {dividerLabel(m.createdAt)}
+                  <p className="my-3 flex justify-center">
+                    <span className="rounded-full border border-line bg-surface px-3 py-1 text-[11px] font-semibold text-ink-muted">
+                      {dividerLabel(m.createdAt)}
+                    </span>
                   </p>
                 )}
                 <div
-                  className={`group relative flex items-end gap-1.5 ${
+                  className={`group relative flex items-end gap-2 ${
                     mine ? "justify-end" : "justify-start"
                   }`}
                 >
+                  {/* Peer avatar at the start of each group; stacked messages
+                      keep a spacer so text stays aligned. */}
+                  {!mine &&
+                    (stacked ? (
+                      <span aria-hidden className="w-8 shrink-0" />
+                    ) : (
+                      <PeerAvatar name={otherName} image={otherImage} />
+                    ))}
                   {/* Discord-style hover / tap toolbar: monochrome icon pill
                       (react · copy · more). The emoji row lives in a small
                       popup opened by the smiley — never permanently visible.
@@ -569,14 +591,14 @@ export function DmThread({
                         setMenuMode("main");
                         setMenuFor(m.id);
                       }}
-                      className={`w-fit cursor-default px-4 py-2.5 text-[15px] leading-snug ${
+                      className={`w-fit max-w-[78%] px-4 py-2.5 text-[15px] leading-relaxed shadow-sm sm:max-w-[65%] ${
                         stacked
-                          ? "rounded-xl rounded-t-md" // seam side flattened
-                          : "rounded-3xl"
+                          ? "rounded-2xl rounded-t-lg" // glued to the bubble above
+                          : "rounded-2xl"
                       } ${
                         mine
-                          ? "rounded-br-md bg-accent text-white"
-                          : "rounded-bl-md bg-surface-hover"
+                          ? "rounded-br-lg bg-accent text-white"
+                          : "rounded-bl-lg border border-line bg-surface"
                       }`}
                       title={new Date(m.createdAt).toLocaleString()}
                     >
@@ -616,9 +638,16 @@ export function DmThread({
                       </div>
                     )}
 
-                    {showSeen && (
-                      <p className="mt-0.5 text-right text-[11px] font-medium text-accent">
-                        Seen
+                    {groupLast && (
+                      <p
+                        className={`mt-1 text-[11px] text-ink-faint ${mine ? "text-right" : "text-left"}`}
+                      >
+                        {fmtTime(new Date(m.createdAt))}
+                        {showSeen && (
+                          <span className="ml-1.5 font-semibold text-accent">
+                            · Seen
+                          </span>
+                        )}
                       </p>
                     )}
                   </div>
@@ -712,24 +741,71 @@ export function DmThread({
         onSubmit={submit}
         className="border-t border-line bg-bg/95 px-4 py-3 backdrop-blur-md"
       >
-        <div className="mx-auto flex max-w-3xl items-center gap-2">
-          <input
+        <div className="mx-auto flex max-w-3xl items-end gap-2">
+          <textarea
             ref={composerRef}
             value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            placeholder="Start a new message"
+            onChange={(e) => {
+              setDraft(e.target.value);
+              // Auto-grow up to ~6 lines, then scroll internally.
+              const el = e.target;
+              el.style.height = "auto";
+              el.style.height = Math.min(el.scrollHeight, 148) + "px";
+            }}
+            onKeyDown={(e) => {
+              // Enter sends, Shift+Enter adds a newline.
+              if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+                e.preventDefault();
+                submit(e);
+              }
+            }}
+            placeholder={`Message ${otherName || "them"}`}
             maxLength={2000}
-            className="input flex-1"
+            rows={1}
+            className="input max-h-[148px] flex-1 resize-none overflow-y-auto rounded-2xl py-2.5"
           />
           <button
             type="submit"
             disabled={sending || !draft.trim()}
-            className="btn-primary rounded-full px-5 py-2 text-sm"
+            aria-label="Send message"
+            className="btn-primary grid h-10 w-10 shrink-0 place-items-center !rounded-full !px-0"
           >
-            Send
+            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M5 12h13M13 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
           </button>
         </div>
+        <p className="mx-auto mt-1 max-w-3xl text-[11px] text-ink-faint">
+          Enter to send · Shift+Enter for a new line
+        </p>
       </form>
     </div>
+  );
+}
+
+function PeerAvatar({
+  name,
+  image,
+}: {
+  name?: string | null;
+  image?: string | null;
+}) {
+  if (image) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return (
+      <img
+        src={image}
+        alt=""
+        className="h-8 w-8 shrink-0 self-end rounded-full object-cover"
+      />
+    );
+  }
+  return (
+    <span
+      aria-hidden
+      className="grid h-8 w-8 shrink-0 self-end place-items-center rounded-full bg-surface-hover text-xs font-bold text-ink-muted"
+    >
+      {(name || "?").charAt(0).toUpperCase()}
+    </span>
   );
 }

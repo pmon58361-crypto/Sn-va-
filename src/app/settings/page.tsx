@@ -39,6 +39,8 @@ export default async function SettingsPage() {
     publicProfile: s?.publicProfile ?? true,
     showEmail: s?.showEmail ?? false,
     isCreator: s?.isCreator ?? false,
+    notifyMessages: s?.notifyMessages ?? true,
+    weeklyDigest: s?.weeklyDigest ?? false,
   };
 
   const provider = (session.user.provider as string) || user.provider;

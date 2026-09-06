@@ -1,12 +1,12 @@
 # PENDING — everything not shipped yet
 
-Last updated: 2026-08-25. Everything else is LIVE on prod (see README.md for the full feature list).
+Last updated: 2026-09-04. Everything else is LIVE on prod (see README.md for the full feature list).
 
 ## Building now
 
-- [ ] Discord-style DM hover toolbar (compact icon pill, emoji popup on smiley click) — worker E
+- [x] Discord-style DM hover toolbar — LIVE in DmThread.tsx (verified 2026-09-04)
 - [ ] Music chips UI on notes (musicUrl column is live in DB) — worker E
-- [ ] Polls UI on posts (Poll/PollVote tables are live in DB) — worker E
+- [x] Polls UI on posts — LIVE (Poll/PollVote tables + PollBox + composer, verified 2026-09-04)
 - [ ] Groups Discovery-style directory upgrade (rich cards, live online counts, categories — category column needs the next schema window) — worker F
 
 ## Needs one schema window (batched)

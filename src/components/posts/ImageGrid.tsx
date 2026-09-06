@@ -1,52 +1,55 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { cdnUrl } from "@/lib/cdn";
+import { PhotoTheater } from "@/components/posts/PhotoTheater";
 
 type GridImage = { id: string; url: string; order: number };
-type GridPost = { category: string; id: string; title: string };
+type GridPost = {
+  category: string;
+  id: string;
+  title: string;
+  content: string;
+  createdAt: string;
+  author: { id: string; name: string | null; image: string | null } | null;
+};
+
+export type GridActions = {
+  likes: number;
+  dislikes: number;
+  comments: number;
+  liked: boolean;
+  disliked: boolean;
+  bookmarked: boolean;
+  signedIn: boolean;
+  isOwner: boolean;
+};
 
 const GAP = "gap-[3px]";
 const TILE = "relative overflow-hidden bg-soft";
 
-function detailPath(category: string, id: string) {
-  return `/${category === "COMMUNITY" ? "community" : "jobs"}/${id}`;
-}
-
 /**
- * Facebook-style multi-image grid with an in-feed lightbox.
+ * Facebook-style multi-image grid. Click any tile → theater view
+ * (photo stage + post + live comments), which owns its own guards,
+ * zoom, and keyboard handling.
  * 1 → full width natural ratio (no crop), 2 → split,
  * 3 → top + two, 4+ → 2x2 with +N overlay.
- * Click any tile → full-screen viewer (Esc / backdrop closes).
  */
 export function ImageGrid({
   images,
   post,
+  actions,
 }: {
   images: GridImage[];
   post: GridPost;
+  actions: GridActions;
 }) {
   const [open, setOpen] = useState<number | null>(null);
   const count = images.length;
 
-  // Guards the backdrop against the same interaction that opened/stepped the
-  // viewer: while the full-size image is still loading it renders ~0x0, so a
-  // rapid second click (double-click tail, burst clicking) would otherwise hit
-  // the backdrop and instantly close what just opened — the open/close
-  // ping-pong users see as "it zooms in and out really fast".
-  const openedAt = useRef(0);
-  const touch = () => {
-    openedAt.current = Date.now();
-  };
-
   const close = useCallback(() => setOpen(null), []);
-  const guardedBackdropClose = useCallback(() => {
-    if (Date.now() - openedAt.current < 250) return;
-    close();
-  }, [close]);
   const step = useCallback(
     (d: number) => {
-      touch();
       setOpen((i) => (i === null ? null : (i + d + count) % count));
     },
     [count]
@@ -67,11 +70,8 @@ export function ImageGrid({
     <button
       key={images[i].id}
       type="button"
-      onClick={() => {
-        touch();
-        setOpen(i);
-      }}
-      className={`${TILE} block w-full cursor-zoom-in text-left`}
+      onClick={() => setOpen(i)}
+      className={`${TILE} block w-full cursor-zoom-in touch-manipulation text-left select-none`}
       aria-label={`Open image ${i + 1} of ${count}`}
     >
       <GridImg src={images[i].url} alt={post.title} />
@@ -87,12 +87,10 @@ export function ImageGrid({
         <img
           src={cdnUrl(images[0].url, 1080)}
           alt={post.title}
-          className="mx-auto max-h-[70vh] w-full cursor-zoom-in object-contain"
-          onClick={() => {
-            touch();
-            setOpen(0);
-          }}
+          className="mx-auto max-h-[70vh] w-full cursor-zoom-in touch-manipulation select-none object-contain"
+          onClick={() => setOpen(0)}
           loading="lazy"
+          draggable={false}
         />
       </div>
     );
@@ -141,64 +139,16 @@ export function ImageGrid({
   return (
     <>
       {layout}
-      {open !== null && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
-          onClick={guardedBackdropClose}
-          role="dialog"
-          aria-modal="true"
-          aria-label={post.title}
-        >
-          {/* Sized placeholder wrapper: keeps a clickable footprint over the
-              image area while the full-size variant loads, so clicks there
-              never reach the backdrop. */}
-          <div
-            className="flex max-h-[92vh] max-w-full items-center justify-center overflow-hidden rounded-lg bg-soft shadow-2xl"
-            style={{ minWidth: 320, minHeight: 240 }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={cdnUrl(images[open].url, 1400)}
-              alt={post.title}
-              className="max-h-[92vh] max-w-full object-contain"
-            />
-          </div>
-          {count > 1 && (
-            <>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  step(-1);
-                }}
-                className="absolute left-4 grid h-11 w-11 place-items-center rounded-full bg-white/10 text-2xl text-white transition hover:bg-white/25"
-                aria-label="Previous image"
-              >
-                ‹
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  step(1);
-                }}
-                className="absolute right-4 grid h-11 w-11 place-items-center rounded-full bg-white/10 text-2xl text-white transition hover:bg-white/25"
-                aria-label="Next image"
-              >
-                ›
-              </button>
-              <span className="absolute bottom-5 left-1/2 -translate-x-1/2 rounded-full bg-white/10 px-3 py-1 text-xs text-white">
-                {open + 1} / {count}
-              </span>
-            </>
-          )}
-          <a
-            href={detailPath(post.category, post.id)}
-            onClick={(e) => e.stopPropagation()}
-            className="absolute right-4 top-4 rounded-full bg-white/10 px-3.5 py-1.5 text-xs font-semibold text-white transition hover:bg-white/25"
-          >
-            View post
-          </a>
-        </div>
+      {open !== null && images[open] && (
+        <PhotoTheater
+          key={`${post.id}-${open}`}
+          images={images}
+          index={open}
+          post={post}
+          actions={actions}
+          onClose={close}
+          onStep={step}
+        />
       )}
     </>
   );
@@ -212,6 +162,7 @@ function GridImg({ src, alt }: { src: string; alt: string }) {
       alt={alt}
       className="h-full w-full object-cover"
       loading="lazy"
+      draggable={false}
     />
   );
 }

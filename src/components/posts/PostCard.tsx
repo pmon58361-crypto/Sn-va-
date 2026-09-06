@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Avatar } from "@/components/ui/Avatar";
+import { ProfileHover } from "@/components/profile/ProfileHover";
 import { MapPinIcon, MessageIcon, BriefcaseIcon } from "@/components/ui/Icons";
 import { PostActions } from "@/components/posts/PostActions";
 import { ImageGrid } from "@/components/posts/ImageGrid";
@@ -48,52 +49,67 @@ export async function PostCard({
   return (
     <article className="group bg-surface sm:card sm:card-hover overflow-hidden sm:rounded-2xl">
       <Link href={detailPath(post.category, post.id)} className="block">
-        {/* Row 1: Avatar → name + meta */}
-        <div className="flex items-center gap-2.5 px-4 pt-3 sm:px-5">
+      {/* Row 1: Avatar → name + meta. The whole card (including this row)
+          opens the post — historic behavior. Author hover cards still work:
+          the card itself renders in a body portal with its own profile
+          link + follow button, so no nested anchors. */}
+      <div className="flex items-center gap-2.5 px-4 pt-3 sm:px-5">
+        {post.author?.id ? (
+          <ProfileHover userId={post.author.id}>
+            <span className="shrink-0 rounded-full">
+              <Avatar name={post.author?.name} image={post.author?.image} size={34} />
+            </span>
+          </ProfileHover>
+        ) : (
           <Avatar name={post.author?.name} image={post.author?.image} size={34} />
-          <div className="min-w-0 flex-1 leading-tight">
-            <p className="truncate text-sm font-semibold text-ink">
-              {post.author?.name || "Unknown"}
-              {founding && (
-                <span
-                  className="ml-1.5 align-middle badge bg-accent-tint text-[10px] font-semibold uppercase tracking-wide text-accent"
-                  title="Founding Member — first 500 accounts"
-                >
-                  ★ Founding
-                </span>
-              )}
-            </p>
-            <div className="flex flex-wrap items-center gap-x-2 text-xs text-ink-faint">
-              <span>{timeAgo(post.createdAt)}</span>
-              {post.author?.location && (
-                <span className="inline-flex items-center gap-0.5">
-                  · <MapPinIcon className="h-3 w-3" /> {post.author.location}
-                </span>
-              )}
-              {/* Group context chip — informational only: the author block
-                  is server-rendered inside a parent <Link>, so nesting an
-                  anchor here would be invalid HTML. */}
-              {post.group && (
-                <span className="inline-flex items-center gap-0.5 font-medium text-accent">
-                  · <span aria-hidden>👥</span> {post.group.name}
-                </span>
-              )}
-            </div>
+        )}
+        <div className="min-w-0 flex-1 leading-tight">
+          <p className="truncate text-sm font-semibold text-ink">
+            {post.author?.id ? (
+              <ProfileHover userId={post.author.id}>
+                <span>{post.author?.name || "Unknown"}</span>
+              </ProfileHover>
+            ) : (
+              "Unknown"
+            )}
+            {founding && (
+              <span
+                className="ml-1.5 align-middle badge bg-accent-tint text-[10px] font-semibold uppercase tracking-wide text-accent"
+                title="Founding Member — first 500 accounts"
+              >
+                ★ Founding
+              </span>
+            )}
+          </p>
+          <div className="flex flex-wrap items-center gap-x-2 text-xs text-ink-faint">
+            <span>{timeAgo(post.createdAt)}</span>
+            {post.author?.location && (
+              <span className="inline-flex items-center gap-0.5">
+                · <MapPinIcon className="h-3 w-3" /> {post.author.location}
+              </span>
+            )}
+            {/* Group context chip — informational only, not a link. */}
+            {post.group && (
+              <span className="inline-flex items-center gap-0.5 font-medium text-accent">
+                · <span aria-hidden>👥</span> {post.group.name}
+              </span>
+            )}
           </div>
-          <span
-            className={`badge shrink-0 ${
-              post.category === "JOB_OFFER"
-                ? "bg-accent-tint text-accent"
-                : post.category === "JOB_REQUEST"
-                ? "bg-warm-tint text-warm"
-                : post.category === "JOB_LISTING"
-                ? "bg-soft text-deep"
-                : "bg-accent-tint text-accent"
-            }`}
-          >
-            {meta?.label || post.category}
-          </span>
         </div>
+        <span
+          className={`badge shrink-0 ${
+            post.category === "JOB_OFFER"
+              ? "bg-accent-tint text-accent"
+              : post.category === "JOB_REQUEST"
+              ? "bg-warm-tint text-warm"
+              : post.category === "JOB_LISTING"
+              ? "bg-soft text-deep"
+              : "bg-accent-tint text-accent"
+          }`}
+        >
+          {meta?.label || post.category}
+        </span>
+      </div>
 
         {/* Row 2: Caption/text — ALWAYS above images */}
         <div className="px-4 pt-2.5 sm:px-5">
@@ -103,9 +119,6 @@ export async function PostCard({
           <p className="mt-1 line-clamp-4 text-sm leading-relaxed text-ink-muted">
             {post.content}
           </p>
-
-          {/* Video link embed — first recognized YouTube/TikTok/Reels URL */}
-          <PostEmbeds content={post.content} />
 
           {/* Job metadata */}
           {(post.budget || post.location || post.type) && (
@@ -140,6 +153,11 @@ export async function PostCard({
         </div>
       </Link>
 
+      {/* Video link embed — interactive (iframes + third-party scripts), so
+          it lives OUTSIDE the card Link like the poll and image grid.
+          Nested anchors caused hydration errors and killed viewer state. */}
+      <PostEmbeds content={post.content} />
+
       {/* Attached poll — interactive, so it lives OUTSIDE the card Link
           (same reasoning as the image grid). Authors see totals directly. */}
       {(() => {
@@ -158,10 +176,40 @@ export async function PostCard({
       })()}
 
       {/* Row 3: Image grid — Facebook-style. Separate from the link so
-          individual tiles can navigate independently. */}
+          individual tiles can navigate independently. Theater gets the
+          same action state as the card row below (single source of truth). */}
       {images.length > 0 && (
         <div className="mt-2.5">
-          <ImageGrid images={images} post={post} />
+          <ImageGrid
+            images={images}
+            post={{
+              category: post.category,
+              id: post.id,
+              title: post.title,
+              content: post.content,
+              createdAt:
+                post.createdAt instanceof Date
+                  ? post.createdAt.toISOString()
+                  : String(post.createdAt),
+              author: post.author
+                ? {
+                    id: post.author.id,
+                    name: post.author.name,
+                    image: post.author.image,
+                  }
+                : null,
+            }}
+            actions={{
+              likes,
+              dislikes,
+              comments: post._count?.comments || 0,
+              liked: viewerReaction === "like",
+              disliked: viewerReaction === "dislike",
+              bookmarked,
+              signedIn: !!viewerId,
+              isOwner: !!viewerId && viewerId === post.authorId,
+            }}
+          />
         </div>
       )}
 

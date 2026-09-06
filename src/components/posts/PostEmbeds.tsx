@@ -1,26 +1,37 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { extractVideoEmbed } from "@/lib/embeds";
 
 /**
  * PostEmbeds — renders ONE embedded player for the first recognized video
  * link in post content (YouTube nocookie iframe, Instagram embed iframe,
- * or TikTok blockquote + their script).
+ * X Tweet iframe, or TikTok blockquote + their script).
  *
  * House rules honored: never auto-play (no autoplay params anywhere), the
  * TikTok embed script is injected ONLY when the embed scrolls near the
- * viewport, iframes use native lazy loading, and iframes are restricted to
- * allow-listed hosts constructed from validated IDs — never raw user URLs.
+ * viewport, iframes use native lazy loading, and every embedded URL is
+ * constructed from a validated ID — never raw user URLs. X renders through
+ * Tweet.html with dnt=1 (no widgets.js tracking script) in the app's theme.
+ * The TikTok/X fallback markup contains no anchors, so this component is
+ * safe to render anywhere — nested <a> tags cause hydration errors.
  */
 
 export function PostEmbeds({ content }: { content: string }) {
   const embed = extractVideoEmbed(content);
   const bqRef = useRef<HTMLQuoteElement | null>(null);
+  // X iframe theme follows the app theme (light class = light, else dark).
+  const [xTheme] = useState(() =>
+    typeof document !== "undefined" &&
+    document.documentElement.classList.contains("light")
+      ? "light"
+      : "dark"
+  );
 
   // TikTok needs their embed.js to turn the blockquote into an iframe.
   // Load it on demand: only once, only when this embed approaches the viewport.
   useEffect(() => {
+    if (embed?.platform !== "tiktok") return;
     const bq = bqRef.current;
     if (!bq) return;
     let cancelled = false;
@@ -96,6 +107,23 @@ export function PostEmbeds({ content }: { content: string }) {
           loading="lazy"
           className="h-full w-full"
           scrolling="no"
+          referrerPolicy="strict-origin-when-cross-origin"
+        />
+      </div>
+    );
+  }
+
+  if (embed.platform === "x") {
+    return (
+      <div
+        className="mx-auto mt-3 w-full overflow-hidden rounded-xl border border-line bg-surface"
+        style={{ maxWidth: 550 }}
+      >
+        <iframe
+          src={`https://platform.twitter.com/embed/Tweet.html?id=${embed.id}&dnt=true&theme=${xTheme}`}
+          title="X post"
+          loading="lazy"
+          className="h-[420px] w-full"
           referrerPolicy="strict-origin-when-cross-origin"
         />
       </div>

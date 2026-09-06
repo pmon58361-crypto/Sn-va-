@@ -11,16 +11,24 @@ export const dynamic = "force-dynamic";
 export default async function GroupsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; sort?: string }>;
 }) {
-  const { q } = await searchParams;
+  const { q, sort } = await searchParams;
   const session = await auth();
+  const popular = sort === "popular";
 
   const groups = await prisma.group.findMany({
     where: q
-      ? { name: { contains: q, mode: "insensitive" } }
+      ? {
+          OR: [
+            { name: { contains: q, mode: "insensitive" } },
+            { description: { contains: q, mode: "insensitive" } },
+          ],
+        }
       : undefined,
-    orderBy: { createdAt: "desc" },
+    orderBy: popular
+      ? { members: { _count: "desc" } }
+      : { createdAt: "desc" },
     take: 50,
     include: {
       _count: { select: { members: true, posts: true } },
@@ -54,6 +62,28 @@ export default async function GroupsPage({
           Search
         </button>
       </form>
+
+      <div className="mt-3 flex gap-2 text-sm">
+        <Link
+          href={`/groups${q ? `?q=${encodeURIComponent(q)}` : ""}`}
+          className={`rounded-full border px-3 py-1 ${
+            !popular ? "border-accent font-bold text-ink" : "border-line text-ink-muted"
+          }`}
+        >
+          New
+        </Link>
+        <Link
+          href={`/groups?${new URLSearchParams({
+            ...(q ? { q } : {}),
+            sort: "popular",
+          })}`}
+          className={`rounded-full border px-3 py-1 ${
+            popular ? "border-accent font-bold text-ink" : "border-line text-ink-muted"
+          }`}
+        >
+          Popular
+        </Link>
+      </div>
 
       {groups.length === 0 ? (
         <div className="card mt-8 p-14 text-center">

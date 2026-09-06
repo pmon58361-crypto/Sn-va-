@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getPresence } from "@/lib/presence";
 import { Avatar } from "@/components/ui/Avatar";
+import { ProfileHover } from "@/components/profile/ProfileHover";
 
 export const metadata = { title: "People",
   description: "Meet everyone building on Snívať — find collaborators and follow their work." };
@@ -93,11 +94,11 @@ export default async function PeoplePage({
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
           {users.map((u) => (
-            <Link
-              key={u.id}
-              href={`/profile/${u.id}`}
-              className="card card-hover flex items-start gap-3 p-4"
-            >
+            <ProfileHover key={u.id} userId={u.id}>
+              <Link
+                href={`/profile/${u.id}`}
+                className="card card-hover flex items-start gap-3 p-4"
+              >
               <span className="relative">
                 <Avatar name={u.name} image={u.image} size={44} />
                 {presence[u.id]?.online && (
@@ -128,7 +129,8 @@ export default async function PeoplePage({
                   </p>
                 )}
               </div>
-            </Link>
+              </Link>
+            </ProfileHover>
           ))}
         </div>
       )}

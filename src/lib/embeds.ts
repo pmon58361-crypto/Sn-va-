@@ -1,11 +1,11 @@
 /**
  * Video link embed detection — pure functions, zero deps, no storage.
- * A pasted YouTube / TikTok / Instagram URL inside post content is detected
+ * A pasted YouTube / TikTok / Instagram / X URL inside post content is detected
  * at render time; nothing is ever downloaded or hosted (that's the point).
  */
 
 export type VideoEmbed = {
-  platform: "youtube" | "tiktok" | "instagram";
+  platform: "youtube" | "tiktok" | "instagram" | "x";
   id: string;
   /** The matched URL, trailing punctuation stripped — used for cite/fallback. */
   srcUrl: string;
@@ -56,6 +56,13 @@ export function extractVideoEmbed(content: string): VideoEmbed | null {
     if (host === "instagram.com") {
       const m = url.pathname.match(/^\/(?:reels?|p)\/([A-Za-z0-9_-]{5,25})/);
       if (m) return { platform: "instagram", id: m[1], srcUrl };
+      continue;
+    }
+
+    // X (Twitter) — x.com/<user>/status/<id> or twitter.com/<user>/status/<id>
+    if (host === "x.com" || host === "twitter.com" || host === "mobile.twitter.com") {
+      const m = url.pathname.match(/^\/[^/]+\/status\/(\d{6,25})/);
+      if (m) return { platform: "x", id: m[1], srcUrl };
       continue;
     }
   }

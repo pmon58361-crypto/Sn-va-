@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Avatar } from "@/components/ui/Avatar";
 import { FollowButton } from "@/components/profile/FollowButton";
+import { ProfileHover } from "@/components/profile/ProfileHover";
 import { getSidebarAd } from "@/lib/ads";
 import { AdCard } from "@/components/ads/AdCard";
 import { getStreak } from "@/lib/streak";
@@ -138,26 +139,28 @@ export async function RightSidebar({ viewerId }: { viewerId?: string | null }) {
         ) : (
           <div className="space-y-3">
             {suggestions.map((u) => (
-              <div key={u.id} className="flex items-center gap-2.5">
-                <Link href={`/profile/${u.id}`} className="shrink-0">
-                  <Avatar name={u.name} image={u.image} size={38} />
-                </Link>
-                <Link href={`/profile/${u.id}`} className="min-w-0 flex-1 leading-tight">
-                  <p className="truncate text-sm font-semibold text-ink hover:underline">
-                    {u.name || "Someone"}
-                  </p>
-                  <p className="truncate text-xs text-ink-faint">
-                    {u._count.followers}{" "}
-                    {u._count.followers === 1 ? "follower" : "followers"}
-                    {u.bio ? ` · ${u.bio}` : ""}
-                  </p>
-                </Link>
-                <FollowButton
-                  targetUserId={u.id}
-                  following={false}
-                  className="!px-4 !py-1 !text-xs"
-                />
-              </div>
+              <ProfileHover key={u.id} userId={u.id}>
+                <div className="flex items-center gap-2.5">
+                  <Link href={`/profile/${u.id}`} className="shrink-0">
+                    <Avatar name={u.name} image={u.image} size={38} />
+                  </Link>
+                  <Link href={`/profile/${u.id}`} className="min-w-0 flex-1 leading-tight">
+                    <p className="truncate text-sm font-semibold text-ink hover:underline">
+                      {u.name || "Someone"}
+                    </p>
+                    <p className="truncate text-xs text-ink-faint">
+                      {u._count.followers}{" "}
+                      {u._count.followers === 1 ? "follower" : "followers"}
+                      {u.bio ? ` · ${u.bio}` : ""}
+                    </p>
+                  </Link>
+                  <FollowButton
+                    targetUserId={u.id}
+                    following={false}
+                    className="!px-4 !py-1 !text-xs"
+                  />
+                </div>
+              </ProfileHover>
             ))}
             <Link
               href="/people"
@@ -209,11 +212,11 @@ export async function RightSidebar({ viewerId }: { viewerId?: string | null }) {
         ) : (
           <div className="space-y-1">
             {topVoices.map((u, i) => (
-              <Link
-                key={u.id}
-                href={`/profile/${u.id}`}
-                className="flex items-center gap-2.5 rounded-lg p-2 transition hover:bg-line/40"
-              >
+              <ProfileHover key={u.id} userId={u.id}>
+                <Link
+                  href={`/profile/${u.id}`}
+                  className="flex items-center gap-2.5 rounded-lg p-2 transition hover:bg-line/40"
+                >
                 <span className="w-4 shrink-0 text-center text-xs font-bold text-ink-faint">
                   {i + 1}
                 </span>
@@ -228,7 +231,8 @@ export async function RightSidebar({ viewerId }: { viewerId?: string | null }) {
                     {u._count.posts} {u._count.posts === 1 ? "post" : "posts"}
                   </p>
                 </div>
-              </Link>
+                </Link>
+              </ProfileHover>
             ))}
           </div>
         )}
