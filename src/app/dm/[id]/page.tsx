@@ -56,6 +56,7 @@ export default async function DmThreadPage({
     id: m.id,
     senderId: m.senderId,
     content: m.content,
+    imageUrl: m.imageUrl ?? null,
     readAt: m.readAt ? m.readAt.toISOString() : null,
     createdAt: m.createdAt.toISOString(),
     reactions: m.reactions.map((r) => ({

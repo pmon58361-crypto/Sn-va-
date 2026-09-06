@@ -3,19 +3,28 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { createNotification } from "@/lib/notify";
+import { sendPushToUser } from "@/lib/push";
 import { requireActiveUser, requireUserId } from "@/lib/session";
 import { assertClean } from "@/lib/filter";
 import { newAccountOverLimit, newAccountLimitMessage } from "@/lib/limits";
 
 // Send a direct message. Creates the message and clears read state on the
 // recipient's side naturally (their unread count is computed per-thread).
-export async function sendMessage(recipientId: string, content: string) {
+export async function sendMessage(recipientId: string, content: string, imageUrl?: string) {
   const me = await requireActiveUser();
 
   if (me.id === recipientId) throw new Error("Cannot message yourself");
-  if (!content.trim()) throw new Error("Message required");
-  if (content.length > 2000) throw new Error("Message too long");
-  assertClean(content, "Message");
+  const text = content.trim();
+  const image = (imageUrl || "").trim();
+  if (!text && !image) throw new Error("Message required");
+  if (text.length > 2000) throw new Error("Message too long");
+  if (image.length > 2000) throw new Error("Image URL too long");
+  // Attachments must be real uploads (Cloudinary) or local dev files —
+  // never arbitrary remote URLs (no hotlink tracking pixels in DMs).
+  if (image && !image.startsWith("https://") && !image.startsWith("/uploads/")) {
+    throw new Error("Invalid image");
+  }
+  if (text) assertClean(text, "Message");
 
   const lim = await newAccountOverLimit(me.id, me.createdAt, "dm");
   if (lim.limited) throw new Error(newAccountLimitMessage("dm", lim.cap));
@@ -30,7 +39,8 @@ export async function sendMessage(recipientId: string, content: string) {
     data: {
       senderId: me.id,
       recipientId,
-      content: content.trim(),
+      content: text,
+      ...(image ? { imageUrl: image } : {}),
     },
   });
 
@@ -40,9 +50,25 @@ export async function sendMessage(recipientId: string, content: string) {
     type: "message",
   });
 
+  // Push is best-effort: never blocks the send, honors the recipient's
+  // notifyMessages switch inside sendPushToUser.
+  const sender = await prisma.user
+    .findUnique({ where: { id: me.id }, select: { name: true } })
+    .catch(() => null);
+  const preview = text
+    ? text.length > 80
+      ? text.slice(0, 80) + "…"
+      : text
+    : "sent you a photo";
+  sendPushToUser(recipientId, {
+    title: sender?.name || "New message",
+    body: preview,
+    url: `/dm/${me.id}`,
+  });
+
   revalidatePath("/dm");
   revalidatePath(`/dm/${recipientId}`);
-  return { id: msg.id, createdAt: msg.createdAt.toISOString() };
+  return { id: msg.id, createdAt: msg.createdAt.toISOString(), imageUrl: msg.imageUrl ?? null };
 }
 
 // Mark every unread message in a thread (from `otherUserId` to me) as read.

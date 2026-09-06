@@ -4,7 +4,9 @@ import { getActiveChallenge } from "@/lib/challenges";
 /** Live-challenge banner for the community feed. Renders nothing when no
  *  challenge is running — the slot collapses entirely. */
 export async function ChallengeBanner() {
-  const challenge = await getActiveChallenge();
+  // Resilient by design: until the Challenge table exists in every database
+  // branch, a missing table degrades to "no banner" instead of a 500.
+  const challenge = await getActiveChallenge().catch(() => null);
   if (!challenge) return null;
 
   return (

@@ -1,4 +1,4 @@
-const VERSION = "snivat-v5";
+const VERSION = "snivat-v6";
 const CORE = [
   "/offline.html",
   "/manifest.webmanifest",
@@ -63,4 +63,35 @@ self.addEventListener("fetch", (event) => {
       })
     );
   }
+});
+
+// Web-push: show the notification, tap opens/focuses the linked page.
+self.addEventListener("push", (event) => {
+  let data = { title: "Snivat", body: "Something new happened.", url: "/" };
+  try {
+    if (event.data) data = { ...data, ...event.data.json() };
+  } catch {}
+  event.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: "/icon-192.png",
+      badge: "/icon-192.png",
+      data: { url: data.url || "/" },
+    })
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || "/";
+  event.waitUntil(
+    self.clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then((windows) => {
+        for (const w of windows) {
+          if (new URL(w.url).pathname === url) return w.focus();
+        }
+        return self.clients.openWindow(url);
+      })
+  );
 });

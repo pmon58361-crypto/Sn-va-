@@ -6,6 +6,7 @@ import { auth } from "@/auth";
 import { prisma, withIdempotentWriteRetry } from "@/lib/prisma";
 import { newAccountOverLimit, newAccountLimitMessage } from "@/lib/limits";
 import { createNotification } from "@/lib/notify";
+import { sendPushToUser } from "@/lib/push";
 import { requireActiveUser } from "@/lib/session";
 import { destroyAssets } from "@/lib/storage";
 import { assertClean } from "@/lib/filter";
@@ -251,10 +252,10 @@ export async function addComment(postId: string, content: string) {
     data: { postId, authorId: me.id, content: content.trim() },
   });
 
-  // Notify the post author (skipped when you comment on your own post).
+  // Notify the post author (self-suppression lives in createNotification).
   const post = await prisma.post.findUnique({
     where: { id: postId },
-    select: { authorId: true },
+    select: { authorId: true, title: true },
   });
   if (post) {
     await createNotification({
@@ -263,6 +264,18 @@ export async function addComment(postId: string, content: string) {
       type: "comment",
       postId,
     });
+    // Push only for other people's posts — never for your own.
+    if (post.authorId !== me.id) {
+      const commenter = await prisma.user
+        .findUnique({ where: { id: me.id }, select: { name: true } })
+        .catch(() => null);
+      const text = content.trim();
+      sendPushToUser(post.authorId, {
+        title: `${commenter?.name || "Someone"} replied`,
+        body: text.length > 80 ? text.slice(0, 80) + "…" : text,
+        url: `/community/${postId}`,
+      });
+    }
   }
 
   revalidatePath(`/community/${postId}`);

@@ -16,6 +16,7 @@ type Msg = {
   id: string;
   senderId: string;
   content: string;
+  imageUrl?: string | null;
   readAt: string | null;
   createdAt: string;
   reactions?: Reaction[];
@@ -95,6 +96,43 @@ export function DmThread({
   const [draft, setDraft] = useState(initialDraft ?? "");
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const [sending, setSending] = useState(false);
+  // Attached photo (uploaded via /api/upload, sent with the next message).
+  const [attached, setAttached] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [attachError, setAttachError] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  async function attachFile(fileList: FileList | null) {
+    const file = fileList?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setAttachError("Only images can be attached");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setAttachError("Image exceeds 5MB");
+      return;
+    }
+    setAttachError(null);
+    setUploading(true);
+    try {
+      const form = new FormData();
+      form.append("files", file);
+      const res = await fetch("/api/upload", { method: "POST", body: form });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error((data as { error?: string }).error || "Upload failed");
+      }
+      const data = (await res.json()) as { urls: string[] };
+      if (!data.urls?.[0]) throw new Error("Upload failed");
+      setAttached(data.urls[0]);
+    } catch (err) {
+      setAttachError(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
   // Newest known time the OTHER person read any of my messages ("Seen").
   const [seenAt, setSeenAt] = useState<string | null>(null);
   // One open popover at a time: which message, and which layer of it.
@@ -267,12 +305,15 @@ export function DmThread({
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     const content = draft.trim();
-    if (!content || sending) return;
+    if ((!content && !attached) || sending || uploading) return;
     setDraft("");
+    const imageUrl = attached;
+    setAttached(null);
     const optimistic: Msg = {
       id: `tmp-${Date.now()}`,
       senderId: meId,
       content,
+      imageUrl,
       readAt: null,
       createdAt: new Date().toISOString(),
     };
@@ -280,17 +321,18 @@ export function DmThread({
     setMessages((prev) => [...prev, optimistic]);
     setSending(true);
     try {
-      const saved = await sendMessage(otherId, content);
+      const saved = await sendMessage(otherId, content, imageUrl ?? undefined);
       setMessages((prev) =>
         prev.map((m) =>
           m.id === optimistic.id
-            ? { ...m, id: saved.id, createdAt: saved.createdAt, reactions: [] }
+            ? { ...m, id: saved.id, createdAt: saved.createdAt, imageUrl: saved.imageUrl ?? m.imageUrl ?? null, reactions: [] }
             : m
         )
       );
     } catch {
       setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
       setDraft(content);
+      if (imageUrl) setAttached(imageUrl);
     } finally {
       setSending(false);
     }
@@ -602,9 +644,28 @@ export function DmThread({
                       }`}
                       title={new Date(m.createdAt).toLocaleString()}
                     >
-                      <span className="block whitespace-pre-wrap break-words">
-                        {m.content}
-                      </span>
+                      {m.imageUrl && (
+                        <a
+                          href={m.imageUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="mb-1.5 block overflow-hidden rounded-xl"
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={m.imageUrl}
+                            alt=""
+                            loading="lazy"
+                            className="max-h-64 w-full object-cover"
+                          />
+                        </a>
+                      )}
+                      {m.content && (
+                        <span className="block whitespace-pre-wrap break-words">
+                          {m.content}
+                        </span>
+                      )}
                     </div>
 
                     {/* Reaction pills — real counts only */}
@@ -742,6 +803,23 @@ export function DmThread({
         className="border-t border-line bg-bg/95 px-4 py-3 backdrop-blur-md"
       >
         <div className="mx-auto flex max-w-3xl items-end gap-2">
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => attachFile(e.target.files)}
+          />
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            disabled={sending || uploading || !!attached}
+            aria-label="Attach a photo"
+            title="Attach a photo"
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-lg text-ink-muted transition hover:bg-surface-hover hover:text-ink disabled:opacity-40"
+          >
+            {uploading ? "…" : "+"}
+          </button>
           <textarea
             ref={composerRef}
             value={draft}
@@ -766,7 +844,7 @@ export function DmThread({
           />
           <button
             type="submit"
-            disabled={sending || !draft.trim()}
+            disabled={sending || uploading || (!draft.trim() && !attached)}
             aria-label="Send message"
             className="btn-primary grid h-10 w-10 shrink-0 place-items-center !rounded-full !px-0"
           >
@@ -775,6 +853,31 @@ export function DmThread({
             </svg>
           </button>
         </div>
+        {(attached || attachError) && (
+          <div className="mx-auto mb-2 flex max-w-3xl items-center gap-2">
+            {attached && (
+              <span className="relative inline-block">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={attached}
+                  alt=""
+                  className="h-16 w-16 rounded-xl object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => setAttached(null)}
+                  aria-label="Remove attachment"
+                  className="absolute -right-2 -top-2 grid h-5 w-5 place-items-center rounded-full bg-warm text-xs text-white"
+                >
+                  ×
+                </button>
+              </span>
+            )}
+            {attachError && (
+              <span className="text-xs text-warm">{attachError}</span>
+            )}
+          </div>
+        )}
         <p className="mx-auto mt-1 max-w-3xl text-[11px] text-ink-faint">
           Enter to send · Shift+Enter for a new line
         </p>

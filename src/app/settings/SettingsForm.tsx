@@ -6,6 +6,7 @@ import { saveSettings, deactivateAccount, type SettingsInput } from "./actions";
 import { applyAccent, applyBackground } from "@/components/ThemeProvider";
 import { InterestsEditor } from "@/components/onboarding/InterestsEditor";
 import { PresenceToggle } from "@/components/presence/PresenceToggle";
+import { PushToggle } from "@/components/settings/PushToggle";
 import {
   SunIcon,
   MoonIcon,
@@ -484,6 +485,9 @@ export function SettingsForm({
                 checked={form.notifyMessages}
                 onChange={(v) => set("notifyMessages", v)}
               />
+            </div>
+            <div className="border-t border-line">
+              <PushToggle />
             </div>
             <div className="border-t border-line">
               <ToggleRow

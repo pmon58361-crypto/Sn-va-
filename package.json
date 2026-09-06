@@ -25,7 +25,8 @@
     "ogl": "^1.0.11",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "resend": "^6.22.1"
+    "resend": "^6.22.1",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",
@@ -33,6 +34,7 @@
     "@types/node": "^22.9.0",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
+    "@types/web-push": "^3.6.4",
     "autoprefixer": "^10.4.20",
     "eslint": "^8.57.1",
     "eslint-config-next": "15.0.3",

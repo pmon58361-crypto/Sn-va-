@@ -74,6 +74,7 @@ export async function getThread(meId: string, otherId: string) {
       id: true,
       senderId: true,
       content: true,
+      imageUrl: true,
       readAt: true,
       createdAt: true,
       reactions: { select: { userId: true, emoji: true } },
