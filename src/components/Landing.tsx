@@ -34,6 +34,10 @@ function catVerb(category: string) {
 }
 
 function catHref(category: string, id: string) {
+  // JOB_LISTING lives under /applications (jobs/[id] only serves
+  // OFFER/REQUEST) — linking it to /jobs 404s. COMMUNITY goes to the
+  // community detail; everything else job-ish goes to /jobs.
+  if (category === "JOB_LISTING") return `/applications/${id}`;
   return category === "COMMUNITY" ? `/community/${id}` : `/jobs/${id}`;
 }
 
@@ -52,8 +56,10 @@ export async function Landing() {
   try {
     posts = await getPosts({ limit: 8, sort: "new" as never });
     const counts = await Promise.all([
-      prisma.user.count(),
-      prisma.post.count(),
+      // Honest counters: deactivated users and hidden posts are excluded —
+      // the landing page must never advertise bigger numbers than the app.
+      prisma.user.count({ where: { deactivatedAt: null } }),
+      prisma.post.count({ where: { hidden: false } }),
       prisma.user.findMany({
         orderBy: { createdAt: "desc" },
         take: 4,
@@ -82,10 +88,7 @@ export async function Landing() {
       .map((p) => ({
         image: p.images[0].url,
         title: p.title,
-        href:
-          p.category === "COMMUNITY"
-            ? `/community/${p.id}`
-            : `/jobs/${p.id}`,
+        href: catHref(p.category, p.id),
       }));
   } catch {
     /* render with defaults */
@@ -317,7 +320,7 @@ export async function Landing() {
               {proof.map((p, i) => (
                 <Link
                   key={p.id}
-                  href={`/community/${p.id}`}
+                  href={catHref(p.category, p.id)}
                   className="group flex h-full flex-col rounded-xl border border-white/[0.08] bg-white/[0.03] p-6 transition-all duration-300 hover:-translate-y-1 hover:border-amber-300/40 hover:bg-white/[0.05]"
                 >
                   <p className="mb-4 flex items-center gap-2 font-mono text-xs text-white/40">

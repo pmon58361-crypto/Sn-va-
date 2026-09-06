@@ -273,11 +273,18 @@ export function DmThread({
               new Date(m.createdAt).getTime() < start
           );
         }
-        return next.map((m) =>
-          data.messages?.some((f) => f.id === m.id && f.reactions)
-            ? { ...m, reactions: data.messages.find((f) => f.id === m.id)!.reactions }
-            : m
-        );
+        return next.map((m) => {
+          const f = data.messages?.find((x) => x.id === m.id);
+          if (!f) return m;
+          // Reconcile server truth onto local rows: reactions always, plus
+          // imageUrl for rows created before the photo column existed
+          // client-side (old cached threads, cross-device views).
+          return {
+            ...m,
+            imageUrl: (f as Msg).imageUrl ?? m.imageUrl ?? null,
+            ...(f.reactions ? { reactions: f.reactions } : {}),
+          };
+        });
       });
     } catch {
       // offline — retry next tick
@@ -557,25 +564,31 @@ export function DmThread({
                         </svg>
                       </button>
                       <span className="h-4 w-px bg-line" />
-                      <button
-                        type="button"
-                        aria-label="Copy message"
-                        onClick={() => quickCopy(m)}
-                        className={`grid h-6 w-6 place-items-center rounded-md transition hover:bg-soft hover:text-ink ${
-                          quickCopiedId === m.id ? "text-accent" : "text-ink-faint"
-                        }`}
-                      >
-                        {quickCopiedId === m.id ? (
-                          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
-                          </svg>
-                        ) : (
-                          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
-                            <rect x="9" y="9" width="11" height="11" rx="2" />
-                            <path d="M5 15V5a2 2 0 0 1 2-2h10" strokeLinecap="round" />
-                          </svg>
-                        )}
-                      </button>
+                      {/* Copy only exists when there is text — image-only
+                          messages have nothing to copy. */}
+                      {m.content.trim() && (
+                        <>
+                          <button
+                            type="button"
+                            aria-label="Copy message"
+                            onClick={() => quickCopy(m)}
+                            className={`grid h-6 w-6 place-items-center rounded-md transition hover:bg-soft hover:text-ink ${
+                              quickCopiedId === m.id ? "text-accent" : "text-ink-faint"
+                            }`}
+                          >
+                            {quickCopiedId === m.id ? (
+                              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+                              </svg>
+                            ) : (
+                              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
+                                <rect x="9" y="9" width="11" height="11" rx="2" />
+                                <path d="M5 15V5a2 2 0 0 1 2-2h10" strokeLinecap="round" />
+                              </svg>
+                            )}
+                          </button>
+                        </>
+                      )}
                       <span className="h-4 w-px bg-line" />
                       <button
                         type="button"
@@ -732,17 +745,19 @@ export function DmThread({
                     </p>
                     {menuMode === "main" ? (
                       <>
-                        <button
-                          type="button"
-                          role="menuitem"
-                          onClick={() => copyMessage(m)}
-                          className="w-full rounded-lg px-3 py-2 text-left text-sm text-ink-soft transition-colors hover:bg-soft hover:text-ink"
-                        >
-                          Copy
-                          {copied && (
-                            <span className="ml-2 text-[11px] text-accent">Copied</span>
-                          )}
-                        </button>
+                        {m.content.trim() && (
+                          <button
+                            type="button"
+                            role="menuitem"
+                            onClick={() => copyMessage(m)}
+                            className="w-full rounded-lg px-3 py-2 text-left text-sm text-ink-soft transition-colors hover:bg-soft hover:text-ink"
+                          >
+                            Copy
+                            {copied && (
+                              <span className="ml-2 text-[11px] text-accent">Copied</span>
+                            )}
+                          </button>
+                        )}
                         {mine && !m.id.startsWith("tmp-") && (
                           <button
                             type="button"

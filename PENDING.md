@@ -16,7 +16,7 @@ Last updated: 2026-09-04. Everything else is LIVE on prod (see README.md for the
 - [ ] PushSubscription model (endpoint/p256dh/auth per user — Wave 2 push)
 - [ ] Groups category column (for directory filter chips)
 - [ ] musicTitle column (real song titles on note chips instead of URL-derived)
-- [ ] Notification preferences UI (columns already live: notifyMessages, weeklyDigest)
+- [x] Notification preferences UI (toggles live in SettingsForm; push toggle added Wave 2)
 
 ## Blocked on owner ($10/yr domain — unlocks full email delivery)
 
