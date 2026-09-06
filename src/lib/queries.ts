@@ -116,6 +116,7 @@ export async function getPosts({
   location,
   hasBudget,
   groupId,
+  challengeId,
 }: {
   category?: PostCategory;
   categories?: PostCategory[];
@@ -139,6 +140,8 @@ export async function getPosts({
   hasBudget?: boolean;
   /** Group feed opt-in — when absent, private-group posts stay out. */
   groupId?: string;
+  /** Challenge entries opt-in — private-group entries stay out (no leaks). */
+  challengeId?: string;
 } = {}) {
   const where: Record<string, unknown> = {};
 
@@ -159,6 +162,8 @@ export async function getPosts({
   // (they carry a group badge via postInclude).
   if (groupId) where.groupId = groupId;
   else where.NOT = [{ group: { visibility: "private" } }];
+
+  if (challengeId) where.challengeId = challengeId;
 
   // Moderation: hidden posts stay out of every feed unless explicitly asked.
   if (!includeHidden) where.hidden = false;

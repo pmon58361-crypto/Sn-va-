@@ -37,12 +37,17 @@ export function PostComposer({
   postId,
   lockedCategory,
   groupId,
+  challengeId,
+  challengeTitle,
 }: {
   initial?: Partial<PostInput>;
   postId?: string;
   lockedCategory?: PostCategory;
   /** Post into this group (from /new?group=<id> on a group page). */
   groupId?: string;
+  /** Enter this challenge (from /new?challenge=<id> on a challenge page). */
+  challengeId?: string;
+  challengeTitle?: string;
 }) {
   const router = useRouter();
   const [category, setCategory] = useState<PostCategory>(
@@ -67,6 +72,7 @@ export function PostComposer({
   const [pollQuestion, setPollQuestion] = useState("");
   const [pollOptions, setPollOptions] = useState(["", ""]);
   const isGroupPost = !!groupId && !postId;
+  const isChallengeEntry = !!challengeId && !postId;
 
   function pollPayload() {
     if (postId || !pollOn) return undefined;
@@ -93,6 +99,8 @@ export function PostComposer({
         imageUrls: images.map((i) => i.url),
         // Create-time only — edits keep the original group.
         groupId: postId ? undefined : groupId,
+        // Create-time only — edits stay in (or out of) the challenge.
+        challengeId: postId ? undefined : challengeId,
         poll: postId ? undefined : pollPayload(),
       });
       // savePost redirects on success; Next handles the navigation.
@@ -125,6 +133,13 @@ export function PostComposer({
         <div className="rounded-xl border border-line bg-surface px-4 py-3 text-xs font-medium text-ink-muted">
           Posting into this group — it appears on the group page and, if the
           group is public, in main feeds with a group chip.
+        </div>
+      )}
+
+      {isChallengeEntry && (
+        <div className="rounded-xl border border-accent bg-accent-tint px-4 py-3 text-xs font-medium text-accent">
+          Entering “{challengeTitle || "this challenge"}” — your post will show
+          on the challenge leaderboard.
         </div>
       )}
 

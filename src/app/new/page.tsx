@@ -14,12 +14,12 @@ export const dynamic = "force-dynamic";
 export default async function NewPostPage({
   searchParams,
 }: {
-  searchParams: Promise<{ category?: string; edit?: string; group?: string }>;
+  searchParams: Promise<{ category?: string; edit?: string; group?: string; challenge?: string }>;
 }) {
   const session = await auth();
   if (!session?.user?.id) redirect("/auth/signin?callbackUrl=/new");
 
-  const { category, edit, group } = await searchParams;
+  const { category, edit, group, challenge } = await searchParams;
 
   // Group posting: verify membership up-front so the composer can promise it.
   let groupName: string | undefined;
@@ -32,6 +32,21 @@ export default async function NewPostPage({
     if (g && g.members.length > 0) {
       groupId = g.id;
       groupName = g.name;
+    }
+  }
+
+  // Challenge entry: verify the challenge is still live up-front so the
+  // composer can promise the entry.
+  let challengeTitle: string | undefined;
+  let challengeId: string | undefined;
+  if (challenge && !edit) {
+    const c = await prisma.challenge.findUnique({
+      where: { id: challenge },
+      select: { id: true, title: true, endsAt: true },
+    });
+    if (c && (!c.endsAt || c.endsAt.getTime() > Date.now())) {
+      challengeId = c.id;
+      challengeTitle = c.title;
     }
   }
 
@@ -90,6 +105,8 @@ export default async function NewPostPage({
         postId={postId}
         lockedCategory={postId ? (initial!.category as PostCategory) : undefined}
         groupId={groupId}
+        challengeId={challengeId}
+        challengeTitle={challengeTitle}
       />
     </div>
   );

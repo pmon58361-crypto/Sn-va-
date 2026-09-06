@@ -377,3 +377,53 @@ export async function deleteAd(id: string): Promise<{ ok: boolean }> {
   revalidatePath("/community");
   return { ok: true };
 }
+
+// --- Weekly challenges (community contests) ---
+
+export async function createChallenge(
+  form: FormData
+): Promise<{ ok: boolean; error?: string }> {
+  const admin = await requireAdmin();
+  try {
+    const title = String(form.get("title") || "").trim();
+    const prompt = String(form.get("prompt") || "").trim() || null;
+    const endsAtRaw = String(form.get("endsAt") || "").trim();
+    if (!title) throw new Error("Title is required");
+    assertClean(title, "Title");
+    if (prompt) assertClean(prompt, "Prompt");
+    const endsAt = endsAtRaw ? new Date(endsAtRaw) : null;
+    if (endsAt && Number.isNaN(endsAt.getTime())) throw new Error("Bad end date");
+    if (endsAt && endsAt.getTime() <= Date.now()) {
+      throw new Error("End date must be in the future");
+    }
+    await prisma.challenge.create({
+      data: { title, prompt, endsAt, createdById: admin.id },
+    });
+    revalidatePath("/admin/challenges");
+    revalidatePath("/community");
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Create failed" };
+  }
+}
+
+export async function endChallenge(id: string): Promise<{ ok: boolean }> {
+  await requireAdmin();
+  await prisma.challenge.update({
+    where: { id },
+    data: { endsAt: new Date() },
+  });
+  revalidatePath("/admin/challenges");
+  revalidatePath("/community");
+  revalidatePath(`/challenges/${id}`);
+  return { ok: true };
+}
+
+export async function deleteChallenge(id: string): Promise<{ ok: boolean }> {
+  await requireAdmin();
+  // Entries survive as ordinary posts (SetNull) — nothing is destroyed.
+  await prisma.challenge.delete({ where: { id } });
+  revalidatePath("/admin/challenges");
+  revalidatePath("/community");
+  return { ok: true };
+}

@@ -89,6 +89,8 @@ export type PostInput = {
   imageUrls: string[];
   /** Post into a group (members only; create-time only, never moved). */
   groupId?: string;
+  /** Enter a weekly challenge (must be live; create-time only, never moved). */
+  challengeId?: string;
   /** Optional poll attachment (create-time only). */
   poll?: { question: string; options: string[] };
 };
@@ -178,11 +180,27 @@ export async function savePost(input: PostInput) {
       groupId = input.groupId;
     }
 
+    // Challenge entry — the challenge must still be live, and entries are
+    // never moved between challenges after creation.
+    let challengeId: string | null = null;
+    if (input.challengeId) {
+      const ch = await prisma.challenge.findUnique({
+        where: { id: input.challengeId },
+        select: { endsAt: true },
+      });
+      if (!ch) throw new Error("Challenge not found");
+      if (ch.endsAt && ch.endsAt.getTime() <= Date.now()) {
+        throw new Error("That challenge has ended");
+      }
+      challengeId = input.challengeId;
+    }
+
     const post = await prisma.post.create({
       data: {
         ...data,
         authorId: me.id,
         groupId,
+        challengeId,
         ...(input.poll ? { polls: { create: buildPollCreate(input.poll) } } : {}),
       },
     });

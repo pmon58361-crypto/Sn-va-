@@ -70,6 +70,9 @@ model User {
   // adopted verbatim so the groups-ui code matches the generated client.
   groupsCreated     Group[]       @relation("GroupCreator")
   groupMemberships  GroupMember[] @relation("GroupMemberships")
+
+  // Weekly challenges (community contests — Quests infrastructure later).
+  challengesCreated Challenge[] @relation("ChallengeCreator")
 }
 
 // Discord-style groups v1: a page with its own post feed. Owner-managed;
@@ -102,6 +105,24 @@ model GroupMember {
 
   @@id([groupId, userId])
   @@index([userId])
+}
+
+// Weekly community challenge (contests — Quests infrastructure later).
+// Entries are ordinary posts carrying challengeId; deleting a challenge
+// SETS NULL so entries survive as regular feed posts. Winner is computed
+// live from real like counts — never stored, never faked.
+model Challenge {
+  id          String    @id @default(cuid())
+  title       String
+  prompt      String?
+  startsAt    DateTime  @default(now())
+  endsAt      DateTime?
+  createdById String
+  createdBy   User      @relation("ChallengeCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  posts       Post[]
+  createdAt   DateTime  @default(now())
+
+  @@index([endsAt])
 }
 
 model Account {
@@ -178,11 +199,16 @@ model Post {
   // Group delete SETS NULL: posts unscope to the community feed, never destroyed.
   groupId       String?
   group         Group?       @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  // Optional challenge entry — set when posted into a weekly challenge.
+  // Challenge delete SETS NULL: entries survive as ordinary posts.
+  challengeId   String?
+  challenge     Challenge?   @relation(fields: [challengeId], references: [id], onDelete: SetNull)
 
   @@index([category])
   @@index([authorId])
   @@index([createdAt])
   @@index([groupId])
+  @@index([challengeId])
 }
 
 // A like or dislike on a post. One reaction per user per post (unique).

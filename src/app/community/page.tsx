@@ -2,6 +2,7 @@ import { Fragment } from "react";
 import { getPosts, getTopTags, getArchivedCommunityPost } from "@/lib/queries";
 import { PostCard, EmptyState } from "@/components/posts/PostCard";
 import { QuickComposer } from "@/components/posts/QuickComposer";
+import { ChallengeBanner } from "@/components/challenges/ChallengeBanner";
 import { RightSidebar } from "@/components/layout/RightSidebar";
 import { StoriesBar } from "@/components/stories/StoriesBar";
 import { InterestPickerModal } from "@/components/onboarding/InterestPickerModal";
@@ -107,6 +108,8 @@ export default async function CommunityPage({
 
         {/* Composer */}
         <QuickComposer />
+
+        <ChallengeBanner />
 
         {/* Feed tabs */}
         <div className="mt-4 grid grid-cols-2 border-b border-line">
