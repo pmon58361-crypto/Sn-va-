@@ -45,9 +45,17 @@ Last updated: 2026-09-04. Everything else is LIVE on prod (see README.md for the
 - [ ] VS Code / external-app presence extension — store review + permission friction; manual custom status covers it
 - [ ] Brand-sponsored Quests (Discord Orbs model) — needs real reach before brands pay; builds on the weekly challenge system
 
-## Known infrastructure note (documented, not migrating)
+## Known infrastructure note (corrected 2026-09-07 — the old two-branch
+assumption below is STALE)
 
-- [ ] Vercel production and the local dev environment point at DIFFERENT Neon database branches (Vercel uses a Neon-integration branch; local .env uses the manual `ep-square-smoke-at3rpw20` branch). The platform works as deployed; owner may consolidate to ONE branch someday so local dev and prod share data. Until then: schema changes must be pushed to BOTH branches (local branch for development, prod branch via Vercel dashboard env or Neon console).
+- [x] Wave-2 schema window FULLY LIVE on prod (verified live 2026-09-07):
+  Challenge + Post.challengeId, Message.imageUrl, PushSubscription,
+  Group.category, Story.musicTitle — all serving real traffic. A `db push`
+  from the local .env covers prod too (shared Neon branch), so no separate
+  prod push is needed. If Vercel env ever points elsewhere, fall back to
+  the Neon-console SQL files in C:\dev\snivat-prod-schema-window.sql.
+- [ ] Owner may still consolidate env docs so the next agent doesn't
+  re-learn this the hard way.
 
 ## Known minor issues
 
