@@ -4,7 +4,6 @@ import type { Metadata } from "next";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getPresence } from "@/lib/presence";
-import { hueGradient } from "@/lib/hue";
 import { isFoundingMember } from "@/lib/founding";
 import { isFollowing } from "@/lib/social";
 import { absoluteUrl } from "@/lib/og";
@@ -14,7 +13,7 @@ import {
   MapPinIcon,
   MailIcon,
   CalendarIcon,
-  PlusIcon,
+  CameraIcon,
   BookIcon,
   HeartIcon,
   MessageIcon,
@@ -213,26 +212,17 @@ export default async function ProfilePage({
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-8">
-      {/* ───────────── Profile header card (IG-style) ─────────────
-          Grid, not flex-grow: minmax(0,1fr) tracks guarantee the identity
-          column keeps real width at every breakpoint (a flex-1/min-w-0
-          combination previously collapsed it to 0 on desktop).
-          MOBILE (<sm): avatar 80px left, handle+stats right; name/badges/
-          bio/meta below, left-aligned. DESKTOP (sm+): classic two-column. */}
-      <section className="card overflow-hidden px-4 pb-5 pt-0 sm:px-7 sm:pb-6">
-        {/* Identity banner — deterministic hue from the display name. */}
-        <div
-          aria-hidden
-          className="-mx-4 mb-5 h-20 w-[calc(100%+2rem)] sm:-mx-7 sm:h-24 sm:w-[calc(100%+3.5rem)]"
-          style={{ background: hueGradient(user.name) }}
-        />
+      {/* ───────────── Profile header (IG anatomy) ─────────────
+          One flow, all breakpoints: avatar left, identity right, bio/meta
+          full-width below. No banner, no mobile/desktop content forks. */}
+      <section className="px-1 py-2 sm:px-2">
         {/* Tracks sized to the RINGED avatar (img + padding + border):
             96px mobile / 160px desktop. The !important img overrides beat
             Avatar's inline width/height style — plain classes lose to
             inline styles, which is what blew the avatar up at 630px. */}
-        <div className="grid grid-cols-[96px_minmax(0,1fr)] items-center gap-x-4 gap-y-3 sm:grid-cols-[160px_minmax(0,1fr)] sm:items-start sm:gap-x-7 sm:gap-y-0">
+        <div className="flex items-start gap-5 sm:gap-8">
           {/* Avatar — 80px phones / 144px desktop; ring kept */}
-          <div className="[&_img]:!h-20 [&_img]:!w-20 sm:[&_img]:!h-36 sm:[&_img]:!w-36">
+          <div className="shrink-0 [&_img]:!h-20 [&_img]:!w-20 sm:[&_img]:!h-36 sm:[&_img]:!w-36">
             {hasActiveStory ? (
               <span className="inline-block rounded-full bg-gradient-to-tr from-accent to-like p-[3px] sm:p-[4px]">
                 <span className="inline-block rounded-full border-2 border-[var(--bg-elevated)] shadow-lg sm:border-[3px]">
@@ -246,73 +236,27 @@ export default async function ProfilePage({
             )}
           </div>
 
-          {/* MOBILE right cell — handle (+presence) on top, inline stats */}
-          <div className="min-w-0 sm:hidden">
-            <p className="flex flex-wrap items-center gap-x-2 text-sm text-ink-faint">
+          {/* Identity column — ONE copy for every breakpoint: name,
+              handle, presence, chips, stats. */}
+          <div className="min-w-0 flex-1">
+            <h1 className="break-words text-xl font-bold leading-tight text-ink sm:text-2xl">
+              {user.name || "Anonymous"}
+            </h1>
+            <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm text-ink-faint">
               <span className="truncate">{handle}</span>
               {mePresence?.online && (
                 <>
                   <span
                     aria-label="Online now"
                     title="Online now"
-                    className="h-2 w-2 rounded-full bg-emerald-400"
+                    className="h-2 w-2 shrink-0 rounded-full bg-emerald-400"
                   />
                   <span className="text-emerald-600 dark:text-emerald-400">
-                    Online
+                    Online{mePresence.page ? ` · ${mePresence.page}` : ""}
                   </span>
                 </>
               )}
             </p>
-            <p className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink-muted">
-              <span className="whitespace-nowrap">
-                <b className="font-semibold text-ink">{visiblePosts.length}</b>{" "}
-                {visiblePosts.length === 1 ? "post" : "posts"}
-              </span>
-              <span aria-hidden>·</span>
-              <span className="whitespace-nowrap">
-                <b className="font-semibold text-ink">
-                  {user._count.followers}
-                </b>{" "}
-                {user._count.followers === 1 ? "follower" : "followers"}
-              </span>
-              <span aria-hidden>·</span>
-              <span className="whitespace-nowrap">
-                <b className="font-semibold text-ink">
-                  {user._count.following}
-                </b>{" "}
-                following
-              </span>
-            </p>
-          </div>
-
-          {/* DESKTOP identity column (keep in sync with the mobile block
-              below when editing copy) */}
-          <div className="hidden min-w-0 sm:block">
-            {/* Name + handle on one line */}
-            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-              <h1 className="break-words text-2xl font-bold leading-tight text-ink">
-                {user.name || "Anonymous"}
-              </h1>
-              <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm text-ink-faint">
-                <span>{handle}</span>
-                {mePresence?.online && (
-                  <>
-                    <span
-                      aria-label="Online now"
-                      title="Online now"
-                      className="h-2 w-2 rounded-full bg-emerald-400"
-                    />
-                    <span className="text-emerald-600 dark:text-emerald-400">
-                      Online{mePresence.page ? ` · ${mePresence.page}` : ""}
-                    </span>
-                  </>
-                )}
-              </p>
-            </div>
-
-            {/* Compact identity chips — founding/streak stay small + inline,
-                never stacked pills (they lived inside the h1 before and blew
-                up at mid widths) */}
             {(founding || streak.current > 0) && (
               <div className="mt-2 flex flex-wrap items-center gap-1.5">
                 {founding && (
@@ -333,6 +277,31 @@ export default async function ProfilePage({
                 )}
               </div>
             )}
+            <p className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[15px] text-ink-muted">
+              <span className="whitespace-nowrap">
+                <b className="font-bold text-ink">{visiblePosts.length}</b>{" "}
+                {visiblePosts.length === 1 ? "post" : "posts"}
+              </span>
+              <span className="whitespace-nowrap">
+                <b className="font-bold text-ink">
+                  {user._count.followers}
+                </b>{" "}
+                {user._count.followers === 1 ? "follower" : "followers"}
+              </span>
+              <span className="whitespace-nowrap">
+                <b className="font-bold text-ink">
+                  {user._count.following}
+                </b>{" "}
+                following
+              </span>
+            </p>
+          </div>
+        </div>
+
+        {/* Bio / badges / meta / completion — full-width below the
+            avatar row on every breakpoint (IG puts bio under the name;
+            full-width is cleaner on phones and identical on desktop). */}
+        <div className="mt-4 min-w-0">
 
             {/* Goal-gradient onboarding: gifted first stamp ("Joined") plus
                 five real checks. Owner-only, collapses forever at 6/6. */}
@@ -393,29 +362,6 @@ export default async function ProfilePage({
                 );
               })()}
 
-            {/* Inline stats — posts · followers · following. Units are
-                nowrap so numbers never separate from their labels. */}
-            <p className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink-muted">
-              <span className="whitespace-nowrap">
-                <b className="font-semibold text-ink">{visiblePosts.length}</b>{" "}
-                {visiblePosts.length === 1 ? "post" : "posts"}
-              </span>
-              <span aria-hidden>·</span>
-              <span className="whitespace-nowrap">
-                <b className="font-semibold text-ink">
-                  {user._count.followers}
-                </b>{" "}
-                {user._count.followers === 1 ? "follower" : "followers"}
-              </span>
-              <span aria-hidden>·</span>
-              <span className="whitespace-nowrap">
-                <b className="font-semibold text-ink">
-                  {user._count.following}
-                </b>{" "}
-                following
-              </span>
-            </p>
-
             {/* Earned badges — activity-derived, not fake */}
             {badges.length > 0 && (
               <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -467,78 +413,6 @@ export default async function ProfilePage({
               </span>
             </div>
           </div>
-
-          {/* MOBILE below-row — name/badges/bio/meta full-width, left-aligned
-              (keep in sync with the desktop column above) */}
-          <div className="min-w-0 sm:hidden">
-            <h1 className="break-words text-lg font-bold leading-tight text-ink">
-              {user.name || "Anonymous"}
-              {founding && (
-                <span
-                  title="Founding Member — first 500 accounts"
-                  className="ml-2 inline-block align-middle badge bg-accent-tint text-[10px] font-semibold uppercase tracking-wide text-accent"
-                >
-                  ★ Founding Member
-                </span>
-              )}
-            </h1>
-
-            {(streak.current > 0 || badges.length > 0) && (
-              <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                {streak.current > 0 && (
-                  <span
-                    title={`${streak.current}-day activity streak`}
-                    className="badge bg-accent-tint px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-accent"
-                  >
-                    🔥 {streak.current}d
-                  </span>
-                )}
-                {badges.map((b) => (
-                  <span
-                    key={b}
-                    className="badge bg-accent-tint px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-accent"
-                  >
-                    {b}
-                  </span>
-                ))}
-              </div>
-            )}
-            {user.bio ? (
-              <p className="mt-2 whitespace-pre-wrap break-words text-[15px] leading-relaxed text-ink-soft">
-                {user.bio}
-              </p>
-            ) : isOwner ? (
-              <p className="mt-2 text-sm text-ink-faint">
-                No bio yet.{" "}
-                <Link href="/settings" className="text-accent hover:underline">
-                  Add one
-                </Link>
-                .
-              </p>
-            ) : null}
-
-            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[13px] text-ink-muted">
-              {user.location && (
-                <span className="inline-flex items-center gap-1.5">
-                  <MapPinIcon className="h-3.5 w-3.5" />
-                  {user.location}
-                </span>
-              )}
-              {/* Email is owner-only — never rendered on public profiles,
-                  regardless of the retired showEmail preference. */}
-              {isOwner && user.email && (
-                <span className="inline-flex items-center gap-1.5">
-                  <MailIcon className="h-3.5 w-3.5" />
-                  {user.email}
-                </span>
-              )}
-              <span className="inline-flex items-center gap-1.5">
-                <CalendarIcon className="h-3.5 w-3.5" />
-                Joined {joinDate}
-              </span>
-            </div>
-          </div>
-        </div>
 
         {/* Action row — full-width buttons, IG style; sits right under the
             bio/meta on mobile */}
@@ -594,20 +468,26 @@ export default async function ProfilePage({
 
       {/* ───────────── Content ───────────── */}
       {visiblePosts.length === 0 ? (
-        <div className="mt-6 rounded-2xl border border-dashed border-line-strong px-6 py-14 text-center">
-          <span className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-full bg-accent/10 text-accent">
-            <PlusIcon className="h-6 w-6" />
+        <div className="mt-6 px-6 py-14 text-center">
+          <span className="mx-auto mb-5 grid h-20 w-20 place-items-center rounded-full border-2 border-ink-faint text-ink-faint">
+            <CameraIcon className="h-8 w-8" />
           </span>
-          <p className="text-sm text-ink-muted">
+          <p className="text-2xl font-black tracking-tight text-ink">
+            {isOwner ? "Share photos" : "No posts yet"}
+          </p>
+          <p className="mx-auto mt-2 max-w-xs text-sm text-ink-muted">
             {isOwner
-              ? "Nothing here yet — your first post starts your story."
-              : `No posts yet. Follow so you don't miss ${
+              ? "When you share posts, they will appear on your profile."
+              : `Follow so you don't miss ${
                   user.name ? `${user.name}'s` : "their"
                 } first.`}
           </p>
           {isOwner && (
-            <Link href="/new" className="btn-primary mt-5">
-              Create a post
+            <Link
+              href="/new"
+              className="mt-3 inline-block text-sm font-semibold text-accent hover:underline"
+            >
+              Share your first post
             </Link>
           )}
         </div>
