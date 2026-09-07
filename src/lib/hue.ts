@@ -14,10 +14,13 @@ export function hueGradient(
   s?: string | null,
   opts?: { from?: number; to?: number; sat?: number; light?: number }
 ): string {
-  const h = nameHue(s);
-  const sat = opts?.sat ?? 65;
-  const light = opts?.light ?? 42;
-  const from = opts?.from ?? -24;
-  const to = opts?.to ?? 24;
-  return `linear-gradient(135deg, hsl(${h + from} ${sat}% ${light}%), hsl(${h + to} ${sat}% ${light + 12}%))`;
+  // Brand-locked: the raw hash spans the whole wheel (which produced a
+  // loud purple on some names), so fold it into the red→amber family the
+  // app actually wears. Same name still yields the same gradient.
+  const base = 350 + (nameHue(s) % 40);
+  const sat = opts?.sat ?? 60;
+  const light = opts?.light ?? 38;
+  const from = opts?.from ?? -14;
+  const to = opts?.to ?? 14;
+  return `linear-gradient(135deg, hsl(${base + from} ${sat}% ${light}%), hsl(${base + to} ${sat}% ${light + 12}%))`;
 }
