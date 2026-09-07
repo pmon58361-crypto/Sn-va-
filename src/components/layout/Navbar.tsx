@@ -13,10 +13,12 @@ import {
   CompassIcon,
   MessageIcon,
   BellIcon,
+  SearchIcon,
 } from "@/components/ui/Icons";
 
 const NAV = [
   { href: "/community", label: "Community", icon: UsersIcon },
+  { href: "/explore", label: "Explore", icon: SearchIcon },
   { href: "/people", label: "People", icon: CompassIcon },
   { href: "/jobs", label: "Jobs", icon: BriefcaseIcon },
   { href: "/applications", label: "Applications", icon: ClipboardIcon },
@@ -88,6 +90,9 @@ export function Navbar() {
           {status === "authenticated" ? (
             <>
               {/* DMs + notifications — reachable on every screen size */}
+              <IconLink href="/explore" label="Explore">
+                <SearchIcon className="h-5 w-5" />
+              </IconLink>
               <IconLink href="/dm" label="Messages">
                 <MessageIcon className="h-5 w-5" />
               </IconLink>

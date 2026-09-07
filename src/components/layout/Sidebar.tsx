@@ -25,6 +25,7 @@ import { NotificationsBadge } from "./NotificationsBadge";
 
 const NAV = [
   { href: "/community", label: "Community", icon: UsersIcon },
+  { href: "/explore", label: "Explore", icon: SearchIcon },
   { href: "/people", label: "People", icon: CompassIcon },
   { href: "/jobs", label: "Jobs", icon: BriefcaseIcon },
   { href: "/applications", label: "Applications", icon: ClipboardIcon },
