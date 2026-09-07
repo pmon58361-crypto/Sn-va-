@@ -29,6 +29,7 @@ export async function getActiveStories(meId?: string | null) {
       caption: string | null;
       bg: string | null;
       musicUrl: string | null;
+      musicTitle: string | null;
       createdAt: Date;
       seen: boolean;
       isMine: boolean;
@@ -53,6 +54,7 @@ export async function getActiveStories(meId?: string | null) {
       caption: s.caption,
       bg: s.bg,
       musicUrl: s.musicUrl,
+      musicTitle: s.musicTitle,
       createdAt: s.createdAt,
       seen,
       isMine: s.authorId === meId,

@@ -88,6 +88,8 @@ model Group {
   coverUrl    String?
   // "public" (listed + feed-visible) | "private" (members only)
   visibility  String   @default("public")
+  // Discovery tab (owner-picked at create from a fixed list; null = uncategorized)
+  category    String?
   // "open" (join instantly) | "approval" (contact owner — DM deep-link v1)
   joinMode    String   @default("open")
   creatorId   String
@@ -95,6 +97,8 @@ model Group {
   members     GroupMember[]
   posts       Post[]
   createdAt   DateTime @default(now())
+
+  @@index([category])
 }
 
 model GroupMember {
@@ -386,7 +390,8 @@ model Story {
   imageUrl  String?
   caption   String?
   bg        String? // hex background for text-only stories
-  musicUrl  String? // attached track (E's music notes; pending schema window)
+  musicUrl  String? // attached track (link-out only, no hosting)
+  musicTitle String? // real song title, owner-typed; shown on the chip
   createdAt DateTime @default(now())
   expiresAt DateTime
 

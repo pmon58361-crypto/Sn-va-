@@ -2,6 +2,7 @@ import Link from "next/link";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getPresence } from "@/lib/presence";
+import { normalizeCategory } from "@/lib/groups";
 import { CreateGroupButton } from "@/components/groups/CreateGroupModal";
 import { GroupCard } from "@/components/groups/GroupCard";
 
@@ -13,21 +14,25 @@ export const dynamic = "force-dynamic";
 export default async function GroupsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; sort?: string }>;
+  searchParams: Promise<{ q?: string; sort?: string; category?: string }>;
 }) {
-  const { q, sort } = await searchParams;
+  const { q, sort, category: categoryParam } = await searchParams;
   const session = await auth();
   const popular = sort === "popular";
+  const category = normalizeCategory(categoryParam);
 
   const groups = await prisma.group.findMany({
-    where: q
-      ? {
-          OR: [
-            { name: { contains: q, mode: "insensitive" } },
-            { description: { contains: q, mode: "insensitive" } },
-          ],
-        }
-      : undefined,
+    where: {
+      ...(q
+        ? {
+            OR: [
+              { name: { contains: q, mode: "insensitive" } },
+              { description: { contains: q, mode: "insensitive" } },
+            ],
+          }
+        : {}),
+      ...(category ? { category } : {}),
+    },
     orderBy: popular
       ? { members: { _count: "desc" } }
       : { createdAt: "desc" },
@@ -50,6 +55,35 @@ export default async function GroupsPage({
   const presence = getPresence(groups.flatMap((g) => g.members.map((m) => m.userId)));
   const onlineCount = (members: { userId: string }[]) =>
     members.filter((m) => presence[m.userId]?.online).length;
+
+  // Category tabs: only categories that actually exist (real rooms only —
+  // never an empty tab). Small table, one extra read.
+  const categoryRows = await prisma.group.findMany({
+    select: { category: true },
+    take: 200,
+  });
+  const liveCategories = Array.from(
+    new Set(
+      categoryRows
+        .map((r) => r.category)
+        .filter((c): c is string => !!c)
+    )
+  ).sort();
+  const chipHref = (c: string | null) => {
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    if (popular) params.set("sort", "popular");
+    if (c) params.set("category", c);
+    const s = params.toString();
+    return `/groups${s ? `?${s}` : ""}`;
+  };
+  const newHref = (() => {
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    if (category) params.set("category", category);
+    const s = params.toString();
+    return `/groups${s ? `?${s}` : ""}`;
+  })();
 
   // Featured hero: most-posted group (ties → most members). Always shown
   // when any group exists; excluded from the grid below — no duplicates.
@@ -111,7 +145,7 @@ export default async function GroupsPage({
 
       <div className="mt-3 flex gap-2 text-sm">
         <Link
-          href={`/groups${q ? `?q=${encodeURIComponent(q)}` : ""}`}
+          href={newHref}
           className={`rounded-full border px-3 py-1 ${
             !popular ? "border-accent font-bold text-ink" : "border-line text-ink-muted"
           }`}
@@ -121,6 +155,7 @@ export default async function GroupsPage({
         <Link
           href={`/groups?${new URLSearchParams({
             ...(q ? { q } : {}),
+            ...(category ? { category } : {}),
             sort: "popular",
           })}`}
           className={`rounded-full border px-3 py-1 ${
@@ -130,6 +165,37 @@ export default async function GroupsPage({
           Popular
         </Link>
       </div>
+
+      {/* Category tabs — Discord Home/Gaming/Music language, but only tabs
+          for categories that really exist. */}
+      {liveCategories.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-2 text-sm">
+          <Link
+            href={chipHref(null)}
+            className={`rounded-full border px-3 py-1 capitalize ${
+              !category
+                ? "border-accent font-bold text-ink"
+                : "border-line text-ink-muted"
+            }`}
+          >
+            All
+          </Link>
+          {liveCategories.map((c) => (
+            <Link
+              key={c}
+              href={chipHref(c)}
+              aria-current={category === c ? "page" : undefined}
+              className={`rounded-full border px-3 py-1 capitalize ${
+                category === c
+                  ? "border-accent font-bold text-ink"
+                  : "border-line text-ink-muted"
+              }`}
+            >
+              {c}
+            </Link>
+          ))}
+        </div>
+      )}
 
       {groups.length === 0 ? (
         <div className="card mt-8 p-14 text-center">

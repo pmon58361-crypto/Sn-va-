@@ -21,6 +21,28 @@ export async function uniqueSlug(base: string): Promise<string> {
   return slug;
 }
 
+// Discovery tabs (Discord Home/Gaming/Music… language). Fixed list keeps
+// chips clean; groups without one stay uncategorized and still list.
+export const GROUP_CATEGORIES = [
+  "craft",
+  "city",
+  "music",
+  "gaming",
+  "tech",
+  "books",
+  "fitness",
+  "food",
+  "film",
+  "study",
+] as const;
+
+export type GroupCategory = (typeof GROUP_CATEGORIES)[number];
+
+export function normalizeCategory(raw: unknown): string | null {
+  const v = String(raw || "").trim().toLowerCase();
+  return (GROUP_CATEGORIES as readonly string[]).includes(v) ? v : null;
+}
+
 export async function getMembership(groupId: string, userId?: string | null) {
   if (!userId) return null;
   return prisma.groupMember.findUnique({

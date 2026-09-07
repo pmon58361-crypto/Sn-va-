@@ -2,7 +2,8 @@
 
 // Compact out-link chip for a note's attached track. No playback hosting —
 // the chip deep-links to Spotify / YouTube / Apple Music. Display name is
-// derived from the URL only (no network fetches on the feed path).
+// the owner-typed song title when present, else derived from the URL
+// (no network fetches on the feed path).
 
 function musicLabel(url: string): string {
   try {
@@ -16,7 +17,16 @@ function musicLabel(url: string): string {
   }
 }
 
-export function MusicChip({ url, compact }: { url: string; compact?: boolean }) {
+export function MusicChip({
+  url,
+  title,
+  compact,
+}: {
+  url: string;
+  title?: string | null;
+  compact?: boolean;
+}) {
+  const label = title?.trim() || musicLabel(url);
   return (
     <a
       href={url}
@@ -26,12 +36,12 @@ export function MusicChip({ url, compact }: { url: string; compact?: boolean }) 
       className={`inline-flex items-center gap-1 rounded-full bg-white/20 px-2 font-medium text-white transition hover:bg-white/30 ${
         compact ? "py-0 text-[9px]" : "mt-1.5 py-0.5 text-[11px]"
       }`}
-      aria-label={`Listen on ${musicLabel(url)}`}
+      aria-label={`Listen to ${label} on ${musicLabel(url)}`}
     >
       <svg viewBox="0 0 24 24" className={compact ? "h-2.5 w-2.5" : "h-3 w-3"} fill="currentColor" aria-hidden>
         <path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z" />
       </svg>
-      {musicLabel(url)}
+      {label}
     </a>
   );
 }

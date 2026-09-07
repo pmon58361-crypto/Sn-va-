@@ -18,6 +18,7 @@ export type StoryGroup = {
     caption: string | null;
     bg: string | null;
     musicUrl: string | null;
+    musicTitle: string | null;
     createdAt: Date | string;
     seen: boolean;
     isMine: boolean;
@@ -132,7 +133,7 @@ export function StoriesBar({
                         >
                           <span className="block truncate">{latest!.caption}</span>
                           {latest!.musicUrl && (
-                            <MusicChip url={latest!.musicUrl} compact />
+                            <MusicChip url={latest!.musicUrl} title={latest!.musicTitle} compact />
                           )}
                         </span>
                         <span
@@ -183,7 +184,7 @@ export function StoriesBar({
                   style={{ background: st.css, color: st.fg }}
                 >
                   {latest?.caption}
-                  {latest?.musicUrl && <MusicChip url={latest.musicUrl} />}
+                  {latest?.musicUrl && <MusicChip url={latest.musicUrl} title={latest.musicTitle} />}
                 </p>
                 {mine ? (
                   <DeleteNoteButton
@@ -292,6 +293,7 @@ function StoryComposer({ onClose }: { onClose: () => void }) {
   const [mode, setMode] = useState<"text" | "image">("text");
   const [caption, setCaption] = useState("");
   const [music, setMusic] = useState("");
+  const [musicTitle, setMusicTitle] = useState("");
   const [bg, setBg] = useState(BG_CHOICES[0]);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -307,6 +309,9 @@ function StoryComposer({ onClose }: { onClose: () => void }) {
     form.append("bg", bg);
     if (caption.trim()) form.append("caption", caption.trim());
     if (music.trim()) form.append("musicUrl", music.trim());
+    if (music.trim() && musicTitle.trim()) {
+      form.append("musicTitle", musicTitle.trim());
+    }
     if (file) form.append("file", file);
     setPending(true);
     try {
@@ -432,6 +437,21 @@ function StoryComposer({ onClose }: { onClose: () => void }) {
             aria-label="Music link"
           />
         </div>
+        {music.trim() && (
+          <div className="relative mt-2">
+            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm" aria-hidden>
+              🎵
+            </span>
+            <input
+              value={musicTitle}
+              onChange={(e) => setMusicTitle(e.target.value)}
+              maxLength={120}
+              placeholder="Song title (optional — shows on the chip)"
+              className="input !pl-9 text-xs"
+              aria-label="Song title"
+            />
+          </div>
+        )}
 
         <button
           onClick={submit}

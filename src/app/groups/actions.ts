@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requireActiveUser } from "@/lib/session";
 import { assertClean } from "@/lib/filter";
 import { destroyAssets } from "@/lib/storage";
-import { slugifyName, uniqueSlug } from "@/lib/groups";
+import { slugifyName, uniqueSlug, normalizeCategory } from "@/lib/groups";
 
 const VISIBILITIES = ["public", "private"];
 const JOIN_MODES = ["open", "approval"];
@@ -17,6 +17,7 @@ export async function createGroup(input: {
   coverUrl?: string;
   visibility?: string;
   joinMode?: string;
+  category?: string;
 }): Promise<{ ok: boolean; slug?: string; error?: string }> {
   const me = (await requireActiveUser()).id;
 
@@ -39,6 +40,7 @@ export async function createGroup(input: {
     : "open";
   const coverUrl = input.coverUrl?.trim() || null;
   const description = input.description?.trim()?.slice(0, 500) || null;
+  const category = normalizeCategory(input.category);
 
   const slug = await uniqueSlug(slugifyName(name));
 
@@ -48,6 +50,7 @@ export async function createGroup(input: {
       slug,
       description,
       coverUrl,
+      category,
       visibility,
       joinMode,
       creatorId: me,

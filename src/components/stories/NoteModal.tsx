@@ -25,6 +25,7 @@ export function NoteModal({
 
   const [note, setNote] = useState("");
   const [music, setMusic] = useState("");
+  const [musicTitle, setMusicTitle] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -48,6 +49,9 @@ export function NoteModal({
       form.append("caption", note.trim());
       form.append("bg", accent);
       if (music.trim()) form.append("musicUrl", music.trim());
+      if (music.trim() && musicTitle.trim()) {
+        form.append("musicTitle", musicTitle.trim());
+      }
       const res = await createStory(form);
       if (!res.ok) {
         setError(res.error || "Failed to share");
@@ -141,6 +145,21 @@ export function NoteModal({
             aria-label="Music link"
           />
         </div>
+        {music.trim() && (
+          <div className="relative mt-2">
+            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm" aria-hidden>
+              🎵
+            </span>
+            <input
+              value={musicTitle}
+              onChange={(e) => setMusicTitle(e.target.value)}
+              maxLength={120}
+              placeholder="Song title (optional — shows on the chip)"
+              className="input !pl-9 text-xs"
+              aria-label="Song title"
+            />
+          </div>
+        )}
 
         {error && (
           <p className="mb-3 mt-3 rounded-xl border border-warm bg-warm-tint px-4 py-2.5 text-sm text-warm">

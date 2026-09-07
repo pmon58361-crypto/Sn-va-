@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createGroup } from "@/app/groups/actions";
+import { GROUP_CATEGORIES } from "@/lib/groups";
 
 /**
  * Create-group modal: name (slug auto-derived, editable), description,
@@ -52,6 +53,7 @@ function CreateModal({ onClose }: { onClose: () => void }) {
   const [description, setDescription] = useState("");
   const [visibility, setVisibility] = useState<"public" | "private">("public");
   const [joinMode, setJoinMode] = useState<"open" | "approval">("open");
+  const [category, setCategory] = useState("");
   const [coverUrl, setCoverUrl] = useState<string>("");
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -90,6 +92,7 @@ function CreateModal({ onClose }: { onClose: () => void }) {
         coverUrl,
         visibility,
         joinMode,
+        category: category || undefined,
         // slug is derived server-side from the name; the editable field is a hint
         ...(slug ? { name } : {}),
       } as Parameters<typeof createGroup>[0]);
@@ -177,6 +180,24 @@ function CreateModal({ onClose }: { onClose: () => void }) {
               <option value="approval">Approval</option>
             </select>
           </div>
+        </div>
+
+        <div className="mb-3">
+          <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-ink-faint">
+            Category (optional — picks its discovery tab)
+          </label>
+          <select
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            className="input"
+          >
+            <option value="">No category</option>
+            {GROUP_CATEGORIES.map((c) => (
+              <option key={c} value={c}>
+                {c.charAt(0).toUpperCase() + c.slice(1)}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="mb-4">

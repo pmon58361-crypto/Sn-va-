@@ -106,12 +106,25 @@ export async function createStory(
     musicUrl = rawMusic;
   }
 
+  // Optional real song title — typed by the owner, shown on the chip
+  // instead of the URL-derived provider name.
+  const musicTitle =
+    (form.get("musicTitle") as string | null)?.trim().slice(0, 120) || null;
+  if (musicTitle) {
+    try {
+      assertClean(musicTitle, "Song title");
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : "Blocked" };
+    }
+  }
+
   await prisma.story.create({
     data: {
       authorId: me,
       imageUrl,
       caption,
       musicUrl,
+      musicTitle: musicUrl ? musicTitle : null,
       bg: bg && /^#[0-9a-fA-F]{6}$/.test(bg) ? bg : "#1d9bf0",
       expiresAt: new Date(Date.now() + STORY_TTL_HOURS * 3600 * 1000),
     },

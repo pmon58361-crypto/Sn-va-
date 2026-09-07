@@ -11,6 +11,7 @@ export type CardGroup = {
   name: string;
   description: string | null;
   visibility: string;
+  category: string | null;
   coverUrl: string | null;
   _count: { members: number; posts: number };
   members: { user: { id: string; name: string | null; image: string | null } }[];
@@ -104,6 +105,11 @@ export function GroupCard({
         <h2 className={`truncate font-bold text-ink ${featured ? "text-lg" : "text-[15px]"}`}>
           {group.name}
         </h2>
+        {group.category && (
+          <p className="mt-0.5 font-mono text-[10px] uppercase tracking-widest text-accent">
+            {group.category}
+          </p>
+        )}
         {group.description ? (
           <p className="mt-0.5 line-clamp-2 text-[13px] leading-snug text-ink-muted">
             {group.description}
