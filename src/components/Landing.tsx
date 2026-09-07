@@ -3,15 +3,16 @@ import { Logo } from "@/components/ui/Logo";
 import { getPosts } from "@/lib/queries";
 import { prisma } from "@/lib/prisma";
 import { timeAgo } from "@/lib/utils";
-import { DriftWall } from "@/components/landing/DriftWall";
 import { SpecularButton } from "@/components/landing/SpecularButton";
-import { SplitFlapText } from "@/components/landing/SplitFlapText";
 import { LiveTicker, type TickerItem } from "@/components/landing/LiveTicker";
 
 // ─────────────────────────────────────────────────────────────────────────
 // THE FRONT — builder terminal.
 // Hairline grid · monospace metadata · live activity log from the real DB.
 // Brass/gold identity. The product is the decoration. Zero client JS.
+// (Stripped 2026-09: the 3D image wall, wave SVGs and split-flap ticker
+//  are gone — they cost a DB round trip and real beauty is restraint.
+//  One glow, one grid, one live terminal.)
 // ─────────────────────────────────────────────────────────────────────────
 
 const NAV = [
@@ -51,7 +52,6 @@ export async function Landing() {
   let posts: Awaited<ReturnType<typeof getPosts>> = [];
   let users = 0;
   let postCount = 0;
-  let wallItems: { image: string; title: string; href: string }[] = [];
   let joins: { id: string; name: string | null; createdAt: Date }[] = [];
   try {
     posts = await getPosts({ limit: 8, sort: "new" as never });
@@ -61,6 +61,7 @@ export async function Landing() {
       prisma.user.count({ where: { deactivatedAt: null } }),
       prisma.post.count({ where: { hidden: false } }),
       prisma.user.findMany({
+        where: { deactivatedAt: null },
         orderBy: { createdAt: "desc" },
         take: 4,
         select: { id: true, name: true, createdAt: true },
@@ -69,27 +70,6 @@ export async function Landing() {
     users = counts[0];
     postCount = counts[1];
     joins = counts[2];
-
-    // Real community imagery for the DriftWall hero background.
-    const withImages = await prisma.post.findMany({
-      where: { hidden: false, images: { some: {} } },
-      select: {
-        id: true,
-        title: true,
-        category: true,
-        createdAt: true,
-        images: { select: { url: true }, orderBy: { order: "asc" }, take: 1 },
-      },
-      orderBy: { createdAt: "desc" },
-      take: 14,
-    });
-    wallItems = withImages
-      .filter((p) => p.images[0]?.url)
-      .map((p) => ({
-        image: p.images[0].url,
-        title: p.title,
-        href: catHref(p.category, p.id),
-      }));
   } catch {
     /* render with defaults */
   }
@@ -163,30 +143,13 @@ export async function Landing() {
 
       {/* ── HERO ─────────────────────────────────────────────────────── */}
       <section className="relative overflow-hidden pt-16">
-        {/* Drifting 3D wall of real community imagery — the launch shot */}
-        <DriftWall
-          items={wallItems}
-          columns={8}
-          tileWidth={200}
-          tileHeight={140}
-          gap={16}
-          tilt={6}
-          turn={10}
-          perspective={1300}
-          depth={700}
-          speed={26}
-          direction="up"
-          variance={0.4}
-          parallax={0.7}
-          lift={26}
-          fade={0.6}
-          dim={0.5}
-          overlayColor="rgba(10,10,11,0.74)"
-          radius={14}
-          roll={2.5}
-          pauseOnHover
+        {/* Single static glow + hairline grid. The 3D wall, waves and
+            split-flap are gone — restraint is the aesthetic. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 abs-bleed"
+          style={{ background: "radial-gradient(ellipse 60% 45% at 50% 30%, rgba(245,158,11,0.09), transparent 70%)" }}
         />
-
         {/* hairline grid backdrop */}
         <div aria-hidden className="term-grid pointer-events-none absolute inset-0 abs-bleed" />
         <div
@@ -194,22 +157,6 @@ export async function Landing() {
           className="pointer-events-none absolute inset-0 abs-bleed"
           style={{ background: "radial-gradient(ellipse 70% 55% at 30% 40%, transparent 30%, #0a0a0b 78%)" }}
         />
-
-        {/* animated signal waves — four layered drifts */}
-        <div aria-hidden className="wave-band abs-bleed z-0">
-          <svg className="wave-2" viewBox="0 0 2880 200" preserveAspectRatio="none">
-            <path d="M0,120 C240,60 480,170 720,105 C960,45 1200,175 1440,115 C1680,55 1920,170 2160,105 C2400,45 2640,175 2880,115 L2880,200 L0,200 Z" fill="rgba(201,162,75,0.15)" />
-          </svg>
-          <svg className="wave-3" viewBox="0 0 2880 200" preserveAspectRatio="none">
-            <path d="M0,70 C240,130 480,25 720,85 C960,140 1200,30 1440,90 C1680,145 1920,35 2160,95 C2400,150 2640,30 2880,80 L2880,200 L0,200 Z" fill="rgba(245,158,11,0.13)" />
-          </svg>
-          <svg className="wave-1" viewBox="0 0 2880 200" preserveAspectRatio="none">
-            <path d="M0,96 C240,160 480,32 720,96 C960,160 1200,32 1440,96 C1680,160 1920,32 2160,96 C2400,160 2640,32 2880,96 L2880,200 L0,200 Z" fill="rgba(251,191,36,0.12)" />
-          </svg>
-          <svg className="wave-4" viewBox="0 0 2880 200" preserveAspectRatio="none">
-            <path d="M0,140 C240,100 480,155 720,125 C960,90 1200,150 1440,135 C1680,95 1920,155 2160,130 C2400,95 2640,150 2880,140 L2880,200 L0,200 Z" fill="rgba(252,211,77,0.10)" />
-          </svg>
-        </div>
 
         <div className="relative z-10 mx-auto grid max-w-6xl min-w-0 w-full items-center gap-14 px-5 pb-14 pt-12 sm:pb-20 sm:pt-16 lg:min-h-[calc(100svh-4rem)] lg:grid-cols-[1.05fr_460px] lg:py-0">
           {/* copy */}
@@ -240,16 +187,7 @@ export async function Landing() {
               résumé theater.
             </p>
 
-            <div className="mt-9">
-              <SplitFlapText
-                words={["SNÍVAŤ", "LAUNCH READY", "YOUR FEED"]}
-                padTo={12}
-                loop
-                tileColor="#241b03"
-                textColor="#fcd34d"
-              />
-            </div>
-            <div className="mt-6 flex flex-col items-start gap-3 sm:flex-row">
+            <div className="mt-9 flex flex-col items-start gap-3 sm:flex-row">
               <SpecularButton href={AUTH_ENTRY} className="w-full sm:w-auto">
                 Start growing — it&apos;s free
                 <span aria-hidden className="transition-transform duration-300 group-hover:translate-x-1">→</span>
@@ -391,8 +329,7 @@ export async function Landing() {
           </Link>
           {users > 0 && (
             <p className="mt-6 font-mono text-xs text-white/35">
-              builders: <span className="text-white/80">{users}</span> · posts of proof:{" "}
-              <span className="text-white/80">{postCount}</span> · your turn is next
+              your turn is next
             </p>
           )}
           <p className="mt-6 font-mono text-xs uppercase tracking-[0.3em] text-white/30">
