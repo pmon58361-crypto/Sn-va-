@@ -2,9 +2,8 @@ import Link from "next/link";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getPresence } from "@/lib/presence";
-import { Avatar } from "@/components/ui/Avatar";
 import { CreateGroupButton } from "@/components/groups/CreateGroupModal";
-import { GroupCover } from "@/components/groups/GroupCover";
+import { GroupCard } from "@/components/groups/GroupCard";
 
 export const metadata = { title: "Groups" };
 export const dynamic = "force-dynamic";
@@ -67,30 +66,34 @@ export default async function GroupsPage({
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-8">
-      {/* ── Discovery hero: oversized display type, live totals, red glow ── */}
-      <div className="relative overflow-hidden rounded-2xl border border-line bg-surface px-6 py-8 sm:px-8">
+      {/* ── Discovery hero: Discord-scale display type on brand gradient ── */}
+      <div className="relative overflow-hidden rounded-2xl px-6 py-10 sm:px-10 sm:py-12"
+        style={{ background: "linear-gradient(120deg, #7f1d1d 0%, #450a0a 45%, #0a0a0b 100%)" }}
+      >
         <div
           aria-hidden
-          className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full bg-accent/25 blur-[90px]"
+          className="pointer-events-none absolute -right-16 -top-20 h-72 w-72 rounded-full bg-red-600/30 blur-[100px]"
         />
-        <div className="relative flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="font-mono text-[11px] uppercase tracking-[0.3em] text-accent">
-              Groups
-            </p>
-            <h1 className="mt-2 text-4xl font-black tracking-tight text-ink sm:text-5xl">
-              Find your people
-            </h1>
-            <p className="mt-2 max-w-md text-sm leading-relaxed text-ink-muted">
-              Small rooms around crafts, cities and side-quests.
-            </p>
-            <p className="mt-3 font-mono text-xs text-ink-faint">
+        <div className="relative">
+          <p className="font-mono text-[11px] uppercase tracking-[0.3em] text-red-300">
+            Groups
+          </p>
+          <h1 className="mt-3 text-5xl font-black uppercase leading-[0.95] tracking-tight text-white sm:text-6xl">
+            Find your
+            <br />
+            people
+          </h1>
+          <p className="mt-3 max-w-md text-sm leading-relaxed text-white/60">
+            Small rooms around crafts, cities and side-quests.
+          </p>
+          <div className="mt-5 flex flex-wrap items-center gap-3">
+            <CreateGroupButton signedIn={!!session?.user?.id} />
+            <p className="font-mono text-xs text-white/50">
               {groups.length} {groups.length === 1 ? "room" : "rooms"} ·{" "}
               {groups.reduce((n, g) => n + g._count.members, 0)} members ·{" "}
               {groups.reduce((n, g) => n + g._count.posts, 0)} posts
             </p>
           </div>
-          <CreateGroupButton signedIn={!!session?.user?.id} />
         </div>
       </div>
 
@@ -142,128 +145,27 @@ export default async function GroupsPage({
       ) : (
         <>
           {featured && (
-            <Link
-              href={`/groups/${featured.slug}`}
-              className="card card-hover mt-6 block overflow-hidden transition-all"
-            >
-              <div className="relative">
-                <div className="h-36 w-full overflow-hidden sm:h-44">
-                  <div className="h-full w-full [&>div]:h-full [&>img]:h-full">
-                    <GroupCover name={featured.name} coverUrl={featured.coverUrl} />
-                  </div>
-                </div>
-                <span className="absolute left-4 top-3 rounded-full bg-black/60 px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-widest text-amber-300">
-                  Featured
-                </span>
-              </div>
-              <div className="p-4">
-                <div className="flex items-center gap-2">
-                  <MemberStack members={featured.members} />
-                  <div className="min-w-0">
-                    <h2 className="truncate text-lg font-bold text-ink">
-                      {featured.name}
-                    </h2>
-                    <p className="font-mono text-xs text-ink-faint">
-                      {featured._count.members}{" "}
-                      {featured._count.members === 1 ? "member" : "members"} ·{" "}
-                      {featured._count.posts}{" "}
-                      {featured._count.posts === 1 ? "post" : "posts"}
-                      {onlineCount(featured.members) > 0 && (
-                        <>
-                          {" "}·{" "}
-                          <span className="text-emerald-500">
-                            {onlineCount(featured.members)} online now
-                          </span>
-                        </>
-                      )}
-                    </p>
-                  </div>
-                </div>
-                {featured.description && (
-                  <p className="mt-2 line-clamp-2 text-sm leading-snug text-ink-muted">
-                    {featured.description}
-                  </p>
-                )}
-              </div>
-            </Link>
+            <div className="mt-6">
+              <GroupCard
+                group={featured}
+                online={onlineCount(featured.members)}
+                featured
+              />
+            </div>
           )}
           {rest.length > 0 && (
-          <div className="mt-6 grid gap-3 sm:grid-cols-2">
+          <div className="mt-6 grid gap-4 sm:grid-cols-2">
             {rest.map((g) => (
-              <Link
+              <GroupCard
                 key={g.id}
-                href={`/groups/${g.slug}`}
-                className="card card-hover overflow-hidden transition-all"
-              >
-                <GroupCover name={g.name} coverUrl={g.coverUrl} />
-                <div className="p-4">
-                  <div className="flex items-center gap-2">
-                    <h2 className="truncate text-base font-bold text-ink">
-                      {g.name}
-                    </h2>
-                    {g.visibility === "private" && (
-                      <span className="badge shrink-0 bg-[var(--bg-soft)] text-xs text-ink-muted">
-                        private
-                      </span>
-                    )}
-                  </div>
-                  {g.description && (
-                    <p className="mt-1 line-clamp-2 text-sm leading-snug text-ink-muted">
-                      {g.description}
-                    </p>
-                  )}
-                  <div className="mt-2 flex items-center gap-2">
-                    <MemberStack members={g.members} small />
-                    <p className="truncate font-mono text-xs text-ink-faint">
-                      {g._count.members}{" "}
-                      {g._count.members === 1 ? "member" : "members"} ·{" "}
-                      {g._count.posts} {g._count.posts === 1 ? "post" : "posts"}
-                      {onlineCount(g.members) > 0 && (
-                        <>
-                          {" "}·{" "}
-                          <span className="text-emerald-500">
-                            {onlineCount(g.members)} online
-                          </span>
-                        </>
-                      )}
-                    </p>
-                  </div>
-                </div>
-              </Link>
+                group={g}
+                online={onlineCount(g.members)}
+              />
             ))}
           </div>
           )}
         </>
       )}
     </div>
-  );
-}
-
-// Overlapping member avatar stack (Discord-server-card language).
-function MemberStack({
-  members,
-  small,
-}: {
-  members: { user: { id: string; name: string | null; image: string | null } }[];
-  small?: boolean;
-}) {
-  const shown = members.slice(0, 5);
-  if (shown.length === 0) return null;
-  const size = small ? 22 : 26;
-  return (
-    <span className="flex shrink-0 -space-x-1.5">
-      {shown.map((m) => (
-        <span
-          key={m.user.id}
-          className="rounded-full ring-2 ring-[var(--bg-surface,#1a1a1c)]"
-        >
-          <Avatar
-            name={m.user.name}
-            image={m.user.image}
-            size={size}
-          />
-        </span>
-      ))}
-    </span>
   );
 }
