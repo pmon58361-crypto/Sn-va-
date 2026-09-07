@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getPresence } from "@/lib/presence";
+import { hueGradient } from "@/lib/hue";
 import { isFoundingMember } from "@/lib/founding";
 import { isFollowing } from "@/lib/social";
 import { absoluteUrl } from "@/lib/og";
@@ -218,7 +219,13 @@ export default async function ProfilePage({
           combination previously collapsed it to 0 on desktop).
           MOBILE (<sm): avatar 80px left, handle+stats right; name/badges/
           bio/meta below, left-aligned. DESKTOP (sm+): classic two-column. */}
-      <section className="card px-4 py-5 sm:px-7 sm:py-6">
+      <section className="card overflow-hidden px-4 pb-5 pt-0 sm:px-7 sm:pb-6">
+        {/* Identity banner — deterministic hue from the display name. */}
+        <div
+          aria-hidden
+          className="-mx-4 mb-5 h-20 w-[calc(100%+2rem)] sm:-mx-7 sm:h-24 sm:w-[calc(100%+3.5rem)]"
+          style={{ background: hueGradient(user.name) }}
+        />
         {/* Tracks sized to the RINGED avatar (img + padding + border):
             96px mobile / 160px desktop. The !important img overrides beat
             Avatar's inline width/height style — plain classes lose to

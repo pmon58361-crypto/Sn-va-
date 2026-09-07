@@ -11,7 +11,7 @@ export function GroupCover({ name, coverUrl }: { name: string; coverUrl: string 
   const [dead, setDead] = useState(false);
   if (!coverUrl || dead) {
     return (
-      <div className="grid h-24 w-full place-items-center bg-gradient-to-tr from-accent/25 to-like/20 text-2xl font-black text-ink">
+      <div className="grid h-32 w-full place-items-center bg-gradient-to-tr from-accent/25 to-like/20 text-3xl font-black text-ink">
         {(name || "?").trim().charAt(0).toUpperCase()}
       </div>
     );
@@ -23,7 +23,7 @@ export function GroupCover({ name, coverUrl }: { name: string; coverUrl: string 
       alt=""
       loading="lazy"
       onError={() => setDead(true)}
-      className="h-24 w-full object-cover"
+      className="h-32 w-full object-cover"
     />
   );
 }

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getPresence } from "@/lib/presence";
+import { hueGradient } from "@/lib/hue";
 import { Avatar } from "@/components/ui/Avatar";
 import { FollowButton } from "@/components/profile/FollowButton";
 import { ProfileHover } from "@/components/profile/ProfileHover";
@@ -59,6 +60,11 @@ export default async function PeoplePage({
   });
 
   const presence = getPresence(users.map((u) => u.id));
+  const onlineNow = users.filter((u) => presence[u.id]?.online).length;
+  const weekAgo = Date.now() - 7 * 86_400_000;
+  const newThisWeek = users.filter(
+    (u) => new Date(u.createdAt).getTime() >= weekAgo
+  ).length;
 
   // Viewer follow state in ONE query — drives inline follow buttons.
   const followedIds = new Set(
@@ -74,9 +80,18 @@ export default async function PeoplePage({
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
-      <h1 className="text-2xl font-extrabold">People</h1>
-      <p className="mb-6 mt-1 text-sm text-ink-muted">
+      <h1 className="text-3xl font-black tracking-tight sm:text-4xl">People</h1>
+      <p className="mb-2 mt-1 text-sm text-ink-muted">
         Everyone building here. Follow someone whose work you want to see.
+      </p>
+      <p className="mb-6 font-mono text-xs text-ink-faint">
+        {users.length} {users.length === 1 ? "member" : "members"}
+        {onlineNow > 0 && (
+          <>
+            {" "}· <span className="text-emerald-500">{onlineNow} online now</span>
+          </>
+        )}
+        {newThisWeek > 0 && <> · {newThisWeek} joined this week</>}
       </p>
 
       {/* Search — same GET-form pattern as the jobs page; .input is 16px so
@@ -110,13 +125,19 @@ export default async function PeoplePage({
             <ProfileHover key={u.id} userId={u.id}>
               {/* Card is a plain div (not a link): the follow button inside
                   must stay a real button, so only the identity row links. */}
-              <div className="card card-hover p-4">
+              <div className="card card-hover overflow-hidden">
+                <div
+                  aria-hidden
+                  className="h-14 w-full"
+                  style={{ background: hueGradient(u.name) }}
+                />
+                <div className="p-4 pt-0">
                 <Link
                   href={`/profile/${u.id}`}
-                  className="flex items-start gap-3"
+                  className="-mt-7 flex items-start gap-3"
                 >
-                  <span className="relative shrink-0">
-                    <Avatar name={u.name} image={u.image} size={44} />
+                  <span className="relative shrink-0 rounded-full ring-4 ring-[var(--bg-surface,#1a1a1c)]">
+                    <Avatar name={u.name} image={u.image} size={52} />
                     {presence[u.id]?.online && (
                       <span
                         aria-label="Online now"
@@ -153,6 +174,7 @@ export default async function PeoplePage({
                     className="mt-3 w-full !px-4 !py-1.5 !text-sm"
                   />
                 )}
+                </div>
               </div>
             </ProfileHover>
           ))}

@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { joinGroup, leaveGroup, deleteGroup, kickMember } from "@/app/groups/actions";
+import { joinGroup, leaveGroup, deleteGroup, kickMember, updateGroupCover } from "@/app/groups/actions";
 
 type Props = {
   groupId: string;
@@ -26,6 +26,36 @@ export function GroupActions({
   const [pending, setPending] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const coverRef = useRef<HTMLInputElement>(null);
+
+  async function changeCover(fileList: FileList | null) {
+    const file = fileList?.[0];
+    if (!file || pending) return;
+    if (!file.type.startsWith("image/") || file.size > 5 * 1024 * 1024) {
+      setError("Pick an image under 5MB");
+      return;
+    }
+    setPending("cover");
+    setError(null);
+    try {
+      const form = new FormData();
+      form.append("files", file);
+      const res = await fetch("/api/upload", { method: "POST", body: form });
+      const data = (await res.json().catch(() => ({}))) as {
+        urls?: string[];
+        error?: string;
+      };
+      if (!res.ok || !data.urls?.[0]) throw new Error(data.error || "Upload failed");
+      const out = await updateGroupCover(groupId, data.urls[0]);
+      if (!out.ok) setError(out.error || "Failed");
+      else router.refresh();
+    } catch {
+      setError("Something went wrong");
+    } finally {
+      setPending(null);
+      if (coverRef.current) coverRef.current.value = "";
+    }
+  }
 
   async function run(key: string, fn: () => Promise<{ ok: boolean; error?: string }>) {
     setPending(key);
@@ -48,6 +78,32 @@ export function GroupActions({
   if (isOwner) {
     return (
       <div className="flex flex-col gap-2">
+        <input
+          ref={coverRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => changeCover(e.target.files)}
+        />
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            disabled={pending === "cover"}
+            onClick={() => coverRef.current?.click()}
+            className="btn-outline flex-1 py-2 text-sm disabled:opacity-50"
+          >
+            {pending === "cover" ? "Uploading…" : "Change cover"}
+          </button>
+          <button
+            type="button"
+            disabled={pending === "cover"}
+            title="Back to the gradient tile"
+            onClick={() => run("cover", () => updateGroupCover(groupId, null))}
+            className="btn-ghost shrink-0 px-3 py-2 text-xs disabled:opacity-50"
+          >
+            Remove
+          </button>
+        </div>
         <div className="flex items-center gap-2">
           {confirmingDelete ? (
             <>

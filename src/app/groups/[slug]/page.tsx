@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getMembership, canViewGroup } from "@/lib/groups";
 import { getPosts } from "@/lib/queries";
 import { PostCard } from "@/components/posts/PostCard";
+import { GroupCover } from "@/components/groups/GroupCover";
 import {
   GroupActions,
   KickButton,
@@ -72,14 +73,9 @@ export default async function GroupPage({
     <div className="mx-auto max-w-3xl px-5 py-6">
       {/* ── Group header ── */}
       <section className="card overflow-hidden">
-        {group.coverUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={group.coverUrl} alt="" className="h-36 w-full object-cover" />
-        ) : (
-          <div className="grid h-24 w-full place-items-center bg-gradient-to-tr from-accent/25 to-like/20 text-4xl font-black text-ink">
-            {(group.name || "?").trim().charAt(0).toUpperCase()}
-          </div>
-        )}
+        <div className="h-36 w-full overflow-hidden sm:h-44 [&>div]:h-full [&>img]:h-full">
+          <GroupCover name={group.name} coverUrl={group.coverUrl} />
+        </div>
 
         <div className="p-5">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -124,7 +120,15 @@ export default async function GroupPage({
                 Sign in to join
               </Link>
             ) : (
-              <div className="min-w-[200px] flex-1">
+              // Owners get compact controls (a full-width delete bar looked
+              // like a second CTA); everyone else gets the full-width join.
+              <div
+                className={
+                  membership?.role === "owner"
+                    ? "shrink-0"
+                    : "min-w-[200px] flex-1"
+                }
+              >
                 <GroupActions
                   groupId={group.id}
                   ownerId={group.creatorId}

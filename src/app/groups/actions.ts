@@ -174,3 +174,37 @@ export async function deleteGroup(
   revalidatePath("/groups");
   return { ok: true };
 }
+
+// Owner cover change/remove. Accepts a fresh /api/upload URL or null
+// (null = back to the gradient-letter tile). Old asset destroyed when
+// nothing else references it.
+export async function updateGroupCover(
+  groupId: string,
+  coverUrl: string | null
+): Promise<{ ok: boolean; error?: string }> {
+  const me = (await requireActiveUser()).id;
+
+  const group = await prisma.group.findUnique({
+    where: { id: groupId },
+    select: { creatorId: true, coverUrl: true },
+  });
+  if (!group) return { ok: false, error: "Group not found" };
+  if (group.creatorId !== me) {
+    return { ok: false, error: "Only the owner can change the cover" };
+  }
+
+  const next = coverUrl?.trim() || null;
+  if (next && !next.startsWith("https://") && !next.startsWith("/uploads/")) {
+    return { ok: false, error: "Invalid image" };
+  }
+
+  await prisma.group.update({ where: { id: groupId }, data: { coverUrl: next } });
+  if (group.coverUrl && group.coverUrl !== next) {
+    const shared = await prisma.group.count({
+      where: { coverUrl: group.coverUrl, id: { not: groupId } },
+    });
+    if (shared === 0) destroyAssets([group.coverUrl]).catch(() => {});
+  }
+  revalidatePath("/groups");
+  return { ok: true };
+}

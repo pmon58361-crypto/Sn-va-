@@ -52,10 +52,11 @@ export default async function GroupsPage({
   const onlineCount = (members: { userId: string }[]) =>
     members.filter((m) => presence[m.userId]?.online).length;
 
-  // Featured hero: most-posted group (ties → most members). Rendered big
-  // above the grid and excluded from it — no duplicates.
+  // Featured hero: most-posted group (ties → most members). Always shown
+  // when any group exists; excluded from the grid below — no duplicates.
+  // A single group still gets the full stage instead of a lonely card.
   const featured =
-    groups.length > 1
+    groups.length > 0
       ? [...groups].sort(
           (a, b) =>
             b._count.posts - a._count.posts ||
@@ -66,17 +67,31 @@ export default async function GroupsPage({
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-8">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="eyebrow mb-1.5">Groups</p>
-          <h1 className="text-xl font-bold tracking-tight text-ink sm:text-2xl">
-            Find your people
-          </h1>
-          <p className="mt-1 text-sm text-ink-muted">
-            Small rooms around crafts, cities and side-quests.
-          </p>
+      {/* ── Discovery hero: oversized display type, live totals, red glow ── */}
+      <div className="relative overflow-hidden rounded-2xl border border-line bg-surface px-6 py-8 sm:px-8">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full bg-accent/25 blur-[90px]"
+        />
+        <div className="relative flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="font-mono text-[11px] uppercase tracking-[0.3em] text-accent">
+              Groups
+            </p>
+            <h1 className="mt-2 text-4xl font-black tracking-tight text-ink sm:text-5xl">
+              Find your people
+            </h1>
+            <p className="mt-2 max-w-md text-sm leading-relaxed text-ink-muted">
+              Small rooms around crafts, cities and side-quests.
+            </p>
+            <p className="mt-3 font-mono text-xs text-ink-faint">
+              {groups.length} {groups.length === 1 ? "room" : "rooms"} ·{" "}
+              {groups.reduce((n, g) => n + g._count.members, 0)} members ·{" "}
+              {groups.reduce((n, g) => n + g._count.posts, 0)} posts
+            </p>
+          </div>
+          <CreateGroupButton signedIn={!!session?.user?.id} />
         </div>
-        <CreateGroupButton signedIn={!!session?.user?.id} />
       </div>
 
       <form action="/groups" method="GET" className="mt-5 flex gap-2">
@@ -172,6 +187,7 @@ export default async function GroupsPage({
               </div>
             </Link>
           )}
+          {rest.length > 0 && (
           <div className="mt-6 grid gap-3 sm:grid-cols-2">
             {rest.map((g) => (
               <Link
@@ -216,6 +232,7 @@ export default async function GroupsPage({
               </Link>
             ))}
           </div>
+          )}
         </>
       )}
     </div>
