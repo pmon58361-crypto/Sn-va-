@@ -509,6 +509,15 @@ html.light .gm-logo-img { filter: none; }
 @keyframes log-line { from { opacity: 0; transform: translateX(-10px); } }
 .log-line { animation: log-line 0.5s cubic-bezier(0.16, 1, 0.3, 1) backwards; }
 
+/* ── Photo river: infinite CSS drift, pause on hover, still if the user
+   prefers no motion. The track renders the list twice for a seamless loop. */
+@keyframes river-drift { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.marquee { animation: river-drift 60s linear infinite; }
+.marquee:hover { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) {
+  .marquee { animation: none; }
+}
+
 /* ── Animated wave backdrop ──────────────────────────────────────────── */
 @keyframes wave-drift { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 .wave-band {

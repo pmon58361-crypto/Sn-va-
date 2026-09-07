@@ -52,6 +52,7 @@ export async function Landing() {
   let posts: Awaited<ReturnType<typeof getPosts>> = [];
   let users = 0;
   let postCount = 0;
+  let wallItems: { image: string; title: string; href: string }[] = [];
   let joins: { id: string; name: string | null; createdAt: Date }[] = [];
   try {
     posts = await getPosts({ limit: 8, sort: "new" as never });
@@ -70,6 +71,31 @@ export async function Landing() {
     users = counts[0];
     postCount = counts[1];
     joins = counts[2];
+
+    // Real community photos for the marquee river (pure CSS scroll —
+    // the 3D wall is gone, the photography stays).
+    const withImages = await prisma.post.findMany({
+      where: {
+        hidden: false,
+        images: { some: {} },
+        author: { is: { deactivatedAt: null } },
+      },
+      select: {
+        id: true,
+        title: true,
+        category: true,
+        images: { select: { url: true }, orderBy: { order: "asc" }, take: 1 },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 12,
+    });
+    wallItems = withImages
+      .filter((p) => p.images[0]?.url)
+      .map((p) => ({
+        image: p.images[0].url,
+        title: p.title,
+        href: catHref(p.category, p.id),
+      }));
   } catch {
     /* render with defaults */
   }
@@ -231,6 +257,41 @@ export async function Landing() {
           </div>
         </div>
       </section>
+
+      {/* ── PHOTO RIVER — real community work, infinite CSS drift ──── */}
+      {wallItems.length >= 3 && (
+        <section aria-label="Community photos" className="relative overflow-hidden border-t border-white/[0.07] py-10">
+          <div className="marquee flex w-max gap-3 px-3">
+            {[...wallItems, ...wallItems].map((w, i) => (
+              <Link
+                key={`${w.image}-${i}`}
+                href={w.href}
+                className="group relative h-44 w-72 shrink-0 overflow-hidden rounded-xl border border-white/10"
+                title={w.title}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={w.image}
+                  alt=""
+                  loading="lazy"
+                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+                <span className="absolute inset-x-0 bottom-0 truncate bg-gradient-to-t from-black/80 to-transparent px-3 pb-2 pt-6 text-xs font-semibold text-white/90">
+                  {w.title}
+                </span>
+              </Link>
+            ))}
+          </div>
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-[#0a0a0b] to-transparent"
+          />
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-[#0a0a0b] to-transparent"
+          />
+        </section>
+      )}
 
       {/* ── LIVING PROOF ─────────────────────────────────────────────── */}
       <section className="relative border-t border-white/[0.07] px-5 py-24">
