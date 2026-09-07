@@ -52,6 +52,7 @@ export async function Landing() {
   let posts: Awaited<ReturnType<typeof getPosts>> = [];
   let users = 0;
   let postCount = 0;
+  let groupCount = 0;
   let wallItems: { image: string; title: string; href: string }[] = [];
   let joins: { id: string; name: string | null; createdAt: Date }[] = [];
   try {
@@ -61,6 +62,7 @@ export async function Landing() {
       // the landing page must never advertise bigger numbers than the app.
       prisma.user.count({ where: { deactivatedAt: null } }),
       prisma.post.count({ where: { hidden: false } }),
+      prisma.group.count(),
       prisma.user.findMany({
         where: { deactivatedAt: null },
         orderBy: { createdAt: "desc" },
@@ -70,7 +72,8 @@ export async function Landing() {
     ]);
     users = counts[0];
     postCount = counts[1];
-    joins = counts[2];
+    groupCount = counts[2];
+    joins = counts[3];
 
     // Real community photos for the marquee river (pure CSS scroll —
     // the 3D wall is gone, the photography stays).
@@ -169,13 +172,18 @@ export async function Landing() {
 
       {/* ── HERO ─────────────────────────────────────────────────────── */}
       <section className="relative overflow-hidden pt-16">
-        {/* Single static glow + hairline grid. The 3D wall, waves and
-            split-flap are gone — restraint is the aesthetic. */}
+        {/* Dual glow: gold top-left, ember bottom-right. Watermark giant. */}
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0 abs-bleed"
-          style={{ background: "radial-gradient(ellipse 60% 45% at 50% 30%, rgba(245,158,11,0.09), transparent 70%)" }}
+          style={{ background: "radial-gradient(ellipse 55% 40% at 20% 25%, rgba(245,158,11,0.13), transparent 70%), radial-gradient(ellipse 50% 40% at 85% 80%, rgba(220,38,38,0.10), transparent 70%)" }}
         />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-10 select-none overflow-hidden text-center font-black uppercase leading-none tracking-tighter text-white/[0.04] text-[22vw]"
+        >
+          Snívať
+        </div>
         {/* hairline grid backdrop */}
         <div aria-hidden className="term-grid pointer-events-none absolute inset-0 abs-bleed" />
         <div
@@ -194,7 +202,7 @@ export async function Landing() {
               community: online · stories: live · jobs: open
             </p>
 
-            <h1 className="mt-8 select-none text-5xl font-black leading-[1.02] tracking-[-0.03em] sm:text-6xl lg:text-7xl">
+            <h1 className="mt-8 select-none text-6xl font-black leading-[0.98] tracking-[-0.03em] sm:text-7xl lg:text-8xl">
               Build in public.
               <br />
               <span className="font-mono text-[0.62em] font-bold tracking-tight text-amber-300">
@@ -292,6 +300,26 @@ export async function Landing() {
           />
         </section>
       )}
+
+      {/* ── STATS BAND — big honest numerals ─────────────────────────── */}
+      <section className="border-t border-white/[0.07] px-5 py-14">
+        <div className="mx-auto grid max-w-6xl grid-cols-3 gap-4 text-center">
+          {[
+            { n: users, label: "builders" },
+            { n: postCount, label: "posts of proof" },
+            { n: groupCount, label: "rooms" },
+          ].map((s) => (
+            <div key={s.label}>
+              <p className="font-mono text-4xl font-black tabular-nums text-white sm:text-5xl">
+                {s.n}
+              </p>
+              <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.25em] text-white/40">
+                {s.label}
+              </p>
+            </div>
+          ))}
+        </div>
+      </section>
 
       {/* ── LIVING PROOF ─────────────────────────────────────────────── */}
       <section className="relative border-t border-white/[0.07] px-5 py-24">
@@ -398,6 +426,26 @@ export async function Landing() {
           </p>
         </div>
       </section>
+
+      {/* ── FOOTER ───────────────────────────────────────────────────── */}
+      <footer className="border-t border-white/[0.07] px-5 py-10">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-5 sm:flex-row">
+          <div className="flex items-center gap-2.5">
+            <Logo />
+          </div>
+          <nav className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 font-mono text-xs text-white/45">
+            <Link href="/community" className="transition hover:text-white">community</Link>
+            <Link href="/jobs" className="transition hover:text-white">jobs</Link>
+            <Link href="/people" className="transition hover:text-white">people</Link>
+            <Link href="/explore" className="transition hover:text-white">explore</Link>
+            <Link href="/privacy" className="transition hover:text-white">privacy</Link>
+            <Link href="/terms" className="transition hover:text-white">terms</Link>
+          </nav>
+          <p className="font-mono text-[11px] text-white/30">
+            Dream. Grow. Connect.
+          </p>
+        </div>
+      </footer>
     </>
   );
 }
