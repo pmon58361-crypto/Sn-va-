@@ -34,6 +34,7 @@ export async function getArchivedCommunityPost(excludeIds: string[]) {
     category: "COMMUNITY" as const,
     status: "open",
     hidden: false,
+    groupId: null,
     createdAt: { lt: new Date(Date.now() - 30 * 86_400_000) },
     reactions: { some: {} },
     ...(excludeIds.length > 0 ? { id: { notIn: excludeIds } } : {}),
@@ -117,6 +118,7 @@ export async function getPosts({
   hasBudget,
   groupId,
   challengeId,
+  excludeGroupPosts,
 }: {
   category?: PostCategory;
   categories?: PostCategory[];
@@ -140,6 +142,8 @@ export async function getPosts({
   hasBudget?: boolean;
   /** Group feed opt-in — when absent, private-group posts stay out. */
   groupId?: string;
+  /** For-You feeds: group posts live in groups, never in the main feed. */
+  excludeGroupPosts?: boolean;
   /** Challenge entries opt-in — private-group entries stay out (no leaks). */
   challengeId?: string;
 } = {}) {
@@ -162,6 +166,10 @@ export async function getPosts({
   // (they carry a group badge via postInclude).
   if (groupId) where.groupId = groupId;
   else where.NOT = [{ group: { visibility: "private" } }];
+
+  // Group posts live in groups: For-You/Following never show them (they
+  // have their own page, chips, and notifications). Search still finds them.
+  if (excludeGroupPosts) where.groupId = null;
 
   if (challengeId) where.challengeId = challengeId;
 

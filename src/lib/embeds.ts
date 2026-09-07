@@ -68,3 +68,24 @@ export function extractVideoEmbed(content: string): VideoEmbed | null {
   }
   return null;
 }
+
+/**
+ * Strip the embedded video URL from displayed text. The player below
+ * already represents the link — showing the raw URL line above it is
+ * visual noise (FB/IG never render the bare link). Only the FIRST matched
+ * embed URL is removed; any other links (sources, references) stay.
+ */
+export function stripEmbedUrl(content: string): string {
+  if (!content) return content;
+  const embed = extractVideoEmbed(content);
+  if (!embed) return content;
+  const idx = content.indexOf(embed.srcUrl);
+  if (idx === -1) return content;
+  const stripped = (content.slice(0, idx) + content.slice(idx + embed.srcUrl.length))
+    .replace(/[ \t]+/g, " ")
+    .split("\n")
+    .map((l) => l.trimEnd())
+    .join("\n")
+    .trim();
+  return stripped;
+}

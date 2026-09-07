@@ -54,6 +54,9 @@ export default async function CommunityPage({
       before: validBefore,
       limit: PAGE_SIZE,
       sort: isFollowing || validBefore ? "new" : "best",
+      // Group posts live on group pages — the main feed never leaks them
+      // (search still finds them; the card carries a group chip there).
+      excludeGroupPosts: !q,
     }),
     getActiveStories(meId),
     getTopTags(24),

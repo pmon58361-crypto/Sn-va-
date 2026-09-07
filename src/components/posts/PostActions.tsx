@@ -49,6 +49,13 @@ export function PostActions({
   // which disabled every button after the first click until a reload.
   const [pending, setPending] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
+  // ⋯ menu state (share / save / report live here, not on the row).
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  function closeMenu() {
+    setMenuOpen(false);
+    setReportOpen(false);
+  }
   const [reported, setReported] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -134,7 +141,7 @@ export function PostActions({
     try {
       await reportPost(postId, reason);
       setReported(true);
-      setReportOpen(false);
+      closeMenu();
       setTimeout(() => setReported(false), 2500);
     } catch {
     } finally {
@@ -185,69 +192,109 @@ export function PostActions({
       {/* Reply count lives on the right-side "N replies" link — no duplicate
           bubble here. */}
 
-      {/* Share */}
-      <button type="button" onClick={share} className={`${btn} hover:bg-soft hover:text-accent`} title="Copy link">
-        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          {copied ? <path d="M20 6L9 17l-5-5" /> : <><path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7" /><polyline points="16 6 12 2 8 6" /><line x1="12" y1="2" x2="12" y2="15" /></>}
-        </svg>
-      </button>
-
-      {/* Bookmark */}
-      <button
-        type="button"
-        disabled={pending}
-        onClick={mark}
-        className={`${btn} ${state.bookmarked ? "!text-accent" : "hover:bg-soft hover:text-accent"}`}
-        aria-label="Bookmark"
-        aria-pressed={state.bookmarked}
-      >
-        <BookmarkIcon className={icon} filled={state.bookmarked} />
-      </button>
-
-      {/* Report */}
+      {/* ⋯ — share / save / report live in here, keeping the row to
+          hearts + owner edit. */}
       <div className="relative">
         <button
           type="button"
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            if (!signedIn) {
-              window.location.href = "/auth/signin";
-              return;
-            }
-            setReportOpen((o) => !o);
+            setMenuOpen((o) => !o);
           }}
-          className={`${btn} ${reported ? "!text-warm" : "hover:bg-soft hover:text-warm"}`}
-          aria-label="Report post"
-          title={reported ? "Reported — moderators will review" : "Report"}
+          className={`${btn} hover:bg-soft hover:text-ink-soft`}
+          aria-label="More actions"
+          aria-haspopup="menu"
+          aria-expanded={menuOpen}
+          title="More actions"
         >
-          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1zM4 22v-7" />
+          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden>
+            <circle cx="5" cy="12" r="1.8" />
+            <circle cx="12" cy="12" r="1.8" />
+            <circle cx="19" cy="12" r="1.8" />
           </svg>
         </button>
 
-        {reportOpen && (
-          <div
-            className="card absolute bottom-full right-0 z-30 mb-2 w-52 bg-surface p-2 shadow-lg"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <p className="px-2 pb-1.5 pt-1 text-xs font-semibold text-ink-secondary">
-              Why are you reporting this?
-            </p>
-            {["Spam or scam", "Harassment", "Inappropriate content", "Misinformation"].map(
-              (r) => (
-                <button
-                  key={r}
-                  type="button"
-                  disabled={pending}
-                  onClick={() => submitReport(r)}
-                  className="block w-full rounded-lg px-2 py-1.5 text-left text-sm text-ink-soft transition-colors hover:bg-soft hover:text-ink"
-                >
-                  {r}
-                </button>
-              )
-            )}
-          </div>
+        {menuOpen && (
+          <>
+            <span
+              className="fixed inset-0 z-20 cursor-default"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                closeMenu();
+              }}
+            />
+            <div
+              role="menu"
+              className="card absolute bottom-full right-0 z-30 mb-2 w-52 bg-surface p-2 shadow-lg"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {!reportOpen ? (
+                <>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={share}
+                    className="block w-full rounded-lg px-2 py-1.5 text-left text-sm text-ink-soft transition-colors hover:bg-soft hover:text-ink"
+                  >
+                    {copied ? "✓ Link copied" : "Copy link"}
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    disabled={pending}
+                    onClick={mark}
+                    className="block w-full rounded-lg px-2 py-1.5 text-left text-sm text-ink-soft transition-colors hover:bg-soft hover:text-ink disabled:opacity-50"
+                  >
+                    {state.bookmarked ? "★ Saved — tap to unsave" : "☆ Save post"}
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (!signedIn) {
+                        window.location.href = "/auth/signin";
+                        return;
+                      }
+                      setReportOpen(true);
+                    }}
+                    className="block w-full rounded-lg px-2 py-1.5 text-left text-sm font-medium text-warm transition-colors hover:bg-soft"
+                  >
+                    {reported ? "✓ Reported" : "Report"}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p className="px-2 pb-1.5 pt-1 text-xs font-semibold text-ink-secondary">
+                    Why are you reporting this?
+                  </p>
+                  {["Spam or scam", "Harassment", "Inappropriate content", "Misinformation"].map(
+                    (r) => (
+                      <button
+                        key={r}
+                        type="button"
+                        disabled={pending}
+                        onClick={() => submitReport(r)}
+                        className="block w-full rounded-lg px-2 py-1.5 text-left text-sm text-ink-soft transition-colors hover:bg-soft hover:text-ink"
+                      >
+                        {r}
+                      </button>
+                    )
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setReportOpen(false)}
+                    className="block w-full rounded-lg px-2 py-1.5 text-left text-xs text-ink-faint transition-colors hover:bg-soft"
+                  >
+                    Back
+                  </button>
+                </>
+              )}
+            </div>
+          </>
         )}
       </div>
 
@@ -306,22 +353,6 @@ function BrokenHeartIcon({ className, filled }: { className: string; filled: boo
         strokeWidth={filled ? 1.6 : 2}
         fill="none"
       />
-    </svg>
-  );
-}
-
-function BookmarkIcon({ className, filled }: { className: string; filled: boolean }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      className={className}
-      fill={filled ? "currentColor" : "none"}
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
     </svg>
   );
 }

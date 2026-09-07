@@ -278,6 +278,17 @@ export function rankFeed<T extends PostWithRelations>(
         (r) => r.userId === signals.viewerId
       );
       if (reacted) s *= 0.55;
+      // SAVED DEMOTION — bookmarked posts live in Bookmarks; the feed
+      // shouldn't re-pitch what you already shelved (×0.7).
+      const saved = (
+        (p as unknown as { bookmarks?: { userId: string }[] }).bookmarks ?? []
+      ).some((b) => b.userId === signals.viewerId);
+      if (saved) s *= 0.7;
+      // OWN-POST DEMOTION — your own posts rank for everyone else, not for
+      // you (×0.7). Your profile is where you admire your own work.
+      const mine =
+        (p as unknown as { authorId?: string }).authorId === signals.viewerId;
+      if (mine) s *= 0.7;
     }
 
     // DISLIKE DAMPING — soft quality control
@@ -365,13 +376,23 @@ export function rotateFeed<T extends PostWithRelations>(
 
   const mixed: T[] = [];
   let cursor = 0;
-  for (let i = 0; mixed.length < jittered.length + slots.filter((s) => s.post).length; i++) {
+  // Explored posts are REMOVED from the main sequence when spliced in —
+  // otherwise they render twice (once at the slot, once at their slot-less
+  // position). This duplication shipped unnoticed because it only shows on
+  // feeds with 7+ day old posts ranked outside the top 10.
+  const used = new Set<string>(slots.filter((s) => s.post).map((s) => s.post!.id));
+  let i = 0;
+  while (true) {
     const slot = slots.find((s) => s.at === i && s.post);
     if (slot?.post) {
       mixed.push(slot.post);
+      i++;
       continue;
     }
-    if (cursor < jittered.length) mixed.push(jittered[cursor++]);
+    while (cursor < jittered.length && used.has(jittered[cursor].id)) cursor++;
+    if (cursor >= jittered.length) break;
+    mixed.push(jittered[cursor++]);
+    i++;
   }
 
   // 3) author spread — never the same author 3 times in a row

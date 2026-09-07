@@ -131,8 +131,8 @@ export function PostComposer({
 
       {isGroupPost && (
         <div className="rounded-xl border border-line bg-surface px-4 py-3 text-xs font-medium text-ink-muted">
-          Posting into this group — it appears on the group page and, if the
-          group is public, in main feeds with a group chip.
+          Posting into this group — it lives on the group page and on your
+          profile, never in the main For you feed.
         </div>
       )}
 

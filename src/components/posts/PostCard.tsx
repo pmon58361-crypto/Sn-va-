@@ -5,6 +5,7 @@ import { MapPinIcon, MessageIcon, BriefcaseIcon } from "@/components/ui/Icons";
 import { PostActions } from "@/components/posts/PostActions";
 import { ImageGrid } from "@/components/posts/ImageGrid";
 import { PostEmbeds } from "@/components/posts/PostEmbeds";
+import { stripEmbedUrl } from "@/lib/embeds";
 import { PollBox, type PollData } from "@/components/posts/PollBox";
 import { InterestPrompt } from "@/components/posts/InterestPrompt";
 import { timeAgo, parseTags } from "@/lib/utils";
@@ -116,9 +117,11 @@ export async function PostCard({
           <h3 className="text-base font-bold leading-snug text-ink transition-colors group-hover:text-accent">
             {post.title}
           </h3>
-          <p className="mt-1 line-clamp-4 text-sm leading-relaxed text-ink-muted">
-            {post.content}
-          </p>
+          {stripEmbedUrl(post.content) && (
+            <p className="mt-1 line-clamp-4 text-sm leading-relaxed text-ink-muted">
+              {stripEmbedUrl(post.content)}
+            </p>
+          )}
 
           {/* Job metadata */}
           {(post.budget || post.location || post.type) && (

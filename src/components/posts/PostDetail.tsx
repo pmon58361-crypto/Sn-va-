@@ -9,6 +9,7 @@ import {
 import { PostActions } from "@/components/posts/PostActions";
 import { OwnerControls } from "@/components/posts/OwnerControls";
 import { PostEmbeds } from "@/components/posts/PostEmbeds";
+import { stripEmbedUrl } from "@/lib/embeds";
 import { PollBox, type PollData } from "@/components/posts/PollBox";
 import { ReportMenu } from "@/components/moderation/ReportMenu";
 import { timeAgo, formatDate, parseTags } from "@/lib/utils";
@@ -151,9 +152,11 @@ export function PostDetail({
             </div>
           )}
 
-          <div className="max-w-none whitespace-pre-wrap leading-relaxed text-ink-soft">
-            {post.content}
-          </div>
+          {stripEmbedUrl(post.content) && (
+            <div className="max-w-none whitespace-pre-wrap leading-relaxed text-ink-soft">
+              {stripEmbedUrl(post.content)}
+            </div>
+          )}
 
           {/* Video link embed — first recognized YouTube/TikTok/Reels URL */}
           <PostEmbeds content={post.content} />
