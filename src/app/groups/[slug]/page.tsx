@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getMembership, canViewGroup } from "@/lib/groups";
 import { getPosts } from "@/lib/queries";
+import { getPresence } from "@/lib/presence";
 import { PostCard } from "@/components/posts/PostCard";
 import { GroupCover } from "@/components/groups/GroupCover";
 import {
@@ -28,10 +29,13 @@ export async function generateMetadata({
 
 export default async function GroupPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ view?: string }>;
 }) {
   const { slug } = await params;
+  const { view } = await searchParams;
   const session = await auth();
   const meId = session?.user?.id;
   const isAdmin = session?.user?.role === "admin";
@@ -64,6 +68,33 @@ export default async function GroupPage({
   const feed = canView
     ? await getPosts({ groupId: group.id, viewerId: meId, sort: "new", limit: 50 })
     : [];
+
+  // Discord-server anatomy: real slices of the feed as channels (no new
+  // schema — these are honest filters over what already exists).
+  const activeView = view === "media" || view === "polls" ? view : "all";
+  const mediaPosts = feed.filter((p) => p.images.length > 0);
+  const pollPosts = feed.filter(
+    (p) => (p as { polls?: unknown[] }).polls?.length
+  );
+  const visibleFeed =
+    activeView === "media" ? mediaPosts : activeView === "polls" ? pollPosts : feed;
+  const viewHref = (v: string) =>
+    v === "all" ? `/groups/${slug}` : `/groups/${slug}?view=${v}`;
+
+  // Roster presence (in-memory, one call) + Discord role ordering: owner,
+  // then online, then everyone else.
+  const presence = getPresence(group.members.map((m) => m.userId));
+  const roster = [...group.members].sort((a, b) => {
+    if (a.role === "owner" && b.role !== "owner") return -1;
+    if (b.role === "owner" && a.role !== "owner") return 1;
+    const ao = presence[a.userId]?.online ? 0 : 1;
+    const bo = presence[b.userId]?.online ? 0 : 1;
+    if (ao !== bo) return ao - bo;
+    return (a.user.name || "").localeCompare(b.user.name || "");
+  });
+  const onlineCount = group.members.filter(
+    (m) => presence[m.userId]?.online
+  ).length;
 
   const ownerName =
     group.members.find((m) => m.role === "owner")?.user.name ||
@@ -143,78 +174,131 @@ export default async function GroupPage({
         </div>
       </section>
 
-      {/* ── Members strip (owner sees kick controls) ── */}
-      <section className="card mt-5 p-4">
-        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-ink-faint">
-          Members ({group._count.members})
-        </h2>
-        <ul className="flex flex-wrap gap-2">
-          {group.members.map((m) => (
-            <li
-              key={m.userId}
-              className="inline-flex items-center gap-2 rounded-full border border-line py-1 pl-1 pr-2"
+      {/* ── Server body: channels rail · feed · roster (stacks on mobile) ── */}
+      <div className="mt-5 grid items-start gap-5 lg:grid-cols-[190px_minmax(0,1fr)_230px]">
+        {/* Channels — real slices of this group's feed */}
+        <nav aria-label="Group channels" className="card flex gap-1 overflow-x-auto p-2 lg:sticky lg:top-20 lg:flex-col">
+          {(
+            [
+              { v: "all", label: "# feed", count: feed.length },
+              { v: "media", label: "# media", count: mediaPosts.length },
+              { v: "polls", label: "# polls", count: pollPosts.length },
+            ] as const
+          ).map((c) => (
+            <Link
+              key={c.v}
+              href={viewHref(c.v)}
+              aria-current={activeView === c.v ? "page" : undefined}
+              className={`flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition ${
+                activeView === c.v
+                  ? "bg-surface-hover text-ink"
+                  : "text-ink-muted hover:bg-surface-hover/60 hover:text-ink"
+              }`}
             >
-              <Link href={`/profile/${m.user.id}`} className="flex items-center gap-2">
-                {m.user.image ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={m.user.image}
-                    alt=""
-                    className="h-6 w-6 rounded-full object-cover"
-                  />
-                ) : (
-                  <span className="grid h-6 w-6 place-items-center rounded-full bg-accent text-[10px] font-bold text-white">
-                    {(m.user.name || "?").trim().charAt(0).toUpperCase()}
-                  </span>
-                )}
-                <span className="max-w-[140px] truncate text-xs font-medium text-ink">
-                  {m.user.name || "Someone"}
-                  {m.role === "owner" && (
-                    <span className="ml-1 text-[10px] uppercase text-accent">
-                      owner
-                    </span>
-                  )}
-                </span>
-              </Link>
-              {(isOwner || isAdmin) &&
-                m.role !== "owner" &&
-                m.userId !== meId && (
-                  <KickButton groupId={group.id} userId={m.userId} />
-                )}
-            </li>
+              <span className="text-ink-faint">#</span>
+              <span className="truncate">{c.label.slice(2)}</span>
+              <span className="ml-auto font-mono text-[11px] text-ink-faint">
+                {c.count}
+              </span>
+            </Link>
           ))}
-        </ul>
-        {group._count.members > group.members.length && (
-          <p className="mt-2 font-mono text-xs text-ink-faint">
-            +{group._count.members - group.members.length} more
-          </p>
-        )}
-      </section>
+        </nav>
 
-      {/* ── Feed ── */}
-      {!canView ? (
-        <div className="card mt-5 p-14 text-center">
+        {/* Center feed */}
+        <div className="min-w-0">
+        {/* ── Feed (filtered by channel) ── */}
+        {!canView ? (
+        <div className="card p-14 text-center">
           <p className="text-lg font-semibold">This group is private</p>
           <p className="mt-1 text-sm text-ink-muted">
             Join the group to see its posts.
           </p>
         </div>
-      ) : feed.length === 0 ? (
-        <div className="card mt-5 p-14 text-center">
-          <p className="text-lg font-semibold">No posts yet</p>
+      ) : visibleFeed.length === 0 ? (
+        <div className="card p-14 text-center">
+          <p className="text-lg font-semibold">
+            {activeView === "all" ? "No posts yet" : `Nothing in #${activeView} yet`}
+          </p>
           <p className="mt-1 text-sm text-ink-muted">
-            {isMember
-              ? "Be the first — post from the New Post page."
-              : "Members haven't posted yet."}
+            {activeView === "all"
+              ? isMember
+                ? "Be the first — post from the New Post page."
+                : "Members haven't posted yet."
+              : "Post in this group and it shows up here when it matches."}
           </p>
         </div>
       ) : (
-        <div className="mt-5 space-y-4">
-          {feed.map((p) => (
+        <div className="space-y-4">
+          {visibleFeed.map((p) => (
             <PostCard key={p.id} post={p} viewerId={meId} />
           ))}
         </div>
       )}
+        </div>
+
+        {/* Roster — owner crown, online first, kick for mods */}
+        <aside className="card p-4 lg:sticky lg:top-20">
+          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-ink-faint">
+            Members ({group._count.members})
+            {onlineCount > 0 && (
+              <span className="ml-2 normal-case text-emerald-500">
+                {onlineCount} online
+              </span>
+            )}
+          </h2>
+          <ul className="space-y-1">
+            {roster.map((m) => (
+              <li
+                key={m.userId}
+                className="flex items-center gap-2 rounded-lg px-2 py-1.5 transition hover:bg-surface-hover/60"
+              >
+                <span className="relative shrink-0">
+                  {m.user.image ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={m.user.image}
+                      alt=""
+                      className="h-8 w-8 rounded-full object-cover"
+                    />
+                  ) : (
+                    <span className="grid h-8 w-8 place-items-center rounded-full bg-accent text-xs font-bold text-white">
+                      {(m.user.name || "?").trim().charAt(0).toUpperCase()}
+                    </span>
+                  )}
+                  {presence[m.userId]?.online && (
+                    <span
+                      aria-label="Online now"
+                      title="Online now"
+                      className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-[var(--bg-surface,#1a1a1c)] bg-emerald-400"
+                    />
+                  )}
+                </span>
+                <Link
+                  href={`/profile/${m.user.id}`}
+                  className="min-w-0 flex-1 truncate text-sm font-medium text-ink hover:underline"
+                >
+                  {m.user.name || "Someone"}
+                  {m.role === "owner" && (
+                    <span className="ml-1.5 text-[10px] uppercase tracking-wide text-accent">
+                      ♛ owner
+                    </span>
+                  )}
+                </Link>
+                {(isOwner || isAdmin) &&
+                  m.role !== "owner" &&
+                  m.userId !== meId && (
+                    <KickButton groupId={group.id} userId={m.userId} />
+                  )}
+              </li>
+            ))}
+          </ul>
+          {group._count.members > group.members.length && (
+            <p className="mt-2 font-mono text-xs text-ink-faint">
+              +{group._count.members - group.members.length} more
+            </p>
+          )}
+        </aside>
+      </div>
     </div>
   );
 }
