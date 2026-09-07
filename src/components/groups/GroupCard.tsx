@@ -40,7 +40,7 @@ export function GroupCard({
       className="card card-hover group block overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-xl"
     >
       {/* Banner */}
-      <div className={`relative w-full overflow-hidden ${featured ? "h-44 sm:h-52" : "h-36"}`}>
+      <div className={`relative w-full overflow-hidden ${featured ? "h-40 sm:h-44" : "h-28"}`}>
         {showCover ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -75,10 +75,11 @@ export function GroupCard({
         )}
       </div>
 
-      {/* Overlapping icon tile */}
+      {/* Overlapping icon tile — relative + z-10: the banner above is
+          positioned, so a static tile would paint UNDER it (the glitch). */}
       <div className="px-4">
-        <div className="-mt-7 mb-2 flex items-end gap-3">
-          <span className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-2xl text-2xl font-black text-white ring-4 ring-[var(--bg-surface,#1a1a1c)]"
+        <div className="relative z-10 -mt-6 mb-1.5 flex items-end gap-3">
+          <span className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-2xl text-xl font-black text-white ring-4 ring-[var(--bg-surface,#1a1a1c)]"
             style={
               showCover
                 ? undefined
@@ -100,20 +101,20 @@ export function GroupCard({
           </span>
         </div>
 
-        <h2 className={`truncate font-bold text-ink ${featured ? "text-xl" : "text-base"}`}>
+        <h2 className={`truncate font-bold text-ink ${featured ? "text-lg" : "text-[15px]"}`}>
           {group.name}
         </h2>
         {group.description ? (
-          <p className="mt-1 line-clamp-2 text-sm leading-snug text-ink-muted">
+          <p className="mt-0.5 line-clamp-2 text-[13px] leading-snug text-ink-muted">
             {group.description}
           </p>
         ) : (
-          <p className="mt-1 text-sm italic text-ink-faint">
+          <p className="mt-0.5 text-[13px] italic text-ink-faint">
             No description yet.
           </p>
         )}
 
-        <div className="mt-3 flex items-center gap-3 border-t border-line pt-3">
+        <div className="mt-2 flex items-center gap-2 border-t border-line pt-2">
           <MemberStack members={group.members} />
           <p className="truncate font-mono text-xs text-ink-faint">
             {online > 0 && (

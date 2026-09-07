@@ -65,7 +65,7 @@ export default async function GroupsPage({
   const rest = featured ? groups.filter((g) => g.id !== featured.id) : groups;
 
   return (
-    <div className="mx-auto max-w-3xl px-5 py-8">
+    <div className="mx-auto max-w-5xl px-5 py-8">
       {/* ── Discovery hero: Discord-scale display type on brand gradient ── */}
       <div className="relative overflow-hidden rounded-2xl px-6 py-10 sm:px-10 sm:py-12"
         style={{ background: "linear-gradient(120deg, #7f1d1d 0%, #450a0a 45%, #0a0a0b 100%)" }}
@@ -154,7 +154,7 @@ export default async function GroupsPage({
             </div>
           )}
           {rest.length > 0 && (
-          <div className="mt-6 grid gap-4 sm:grid-cols-2">
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {rest.map((g) => (
               <GroupCard
                 key={g.id}
