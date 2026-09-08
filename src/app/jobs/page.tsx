@@ -45,17 +45,43 @@ export default async function JobsPage({
         hasBudget: budget === "1" || undefined,
         includeClosed: status === "all",
       }),
-      // Badges mirror the visible list (open, not hidden) so they never
-      // advertise more inventory than the feed actually shows.
-      prisma.post.count({ where: { category: "JOB_OFFER", hidden: false, status: "open" } }),
-      prisma.post.count({ where: { category: "JOB_REQUEST", hidden: false, status: "open" } }),
+      // Badges mirror the visible list (open, not hidden, live authors) so
+      // they never advertise more inventory than the feed actually shows.
+      // Deactivated authors' posts are excluded from the feed — counting
+      // them here would repeat the exact overcount fixed for hidden posts.
+      prisma.post.count({
+        where: {
+          category: "JOB_OFFER",
+          hidden: false,
+          status: "open",
+          author: { is: { deactivatedAt: null } },
+        },
+      }),
+      prisma.post.count({
+        where: {
+          category: "JOB_REQUEST",
+          hidden: false,
+          status: "open",
+          author: { is: { deactivatedAt: null } },
+        },
+      }),
       prisma.post.findMany({
-        where: { category, type: { not: null } },
+        where: {
+          category,
+          type: { not: null },
+          hidden: false,
+          author: { is: { deactivatedAt: null } },
+        },
         select: { type: true },
         distinct: ["type"],
       }),
       prisma.post.findMany({
-        where: { category, location: { not: null } },
+        where: {
+          category,
+          location: { not: null },
+          hidden: false,
+          author: { is: { deactivatedAt: null } },
+        },
         select: { location: true },
         distinct: ["location"],
       }),
@@ -68,6 +94,20 @@ export default async function JobsPage({
     loc,
     budget,
     status,
+  };
+
+  // Perspective toggle + search preserve every other param — switching
+  // tabs or refining text must never silently drop active filters.
+  const toggleHref = (requests: boolean) => {
+    const params = new URLSearchParams();
+    if (requests) params.set("tab", "requests");
+    if (q) params.set("q", q);
+    if (type) params.set("type", type);
+    if (loc) params.set("loc", loc);
+    if (budget) params.set("budget", budget);
+    if (status) params.set("status", status);
+    const s = params.toString();
+    return `/jobs${s ? `?${s}` : ""}`;
   };
 
   const filterGroups: FilterGroup[] = [
@@ -137,7 +177,7 @@ export default async function JobsPage({
       {/* Perspective toggle — segmented control, SVG icons, no emoji */}
       <div className="mb-6 grid grid-cols-2 gap-2 rounded-2xl border border-line bg-soft p-1.5">
         <Link
-          href="/jobs"
+          href={toggleHref(false)}
           className={`flex items-center justify-center gap-2.5 rounded-xl px-4 py-3 text-sm font-medium transition-all ${
             !isRequest
               ? "bg-surface text-accent shadow-sm"
@@ -151,7 +191,7 @@ export default async function JobsPage({
           </span>
         </Link>
         <Link
-          href="/jobs?tab=requests"
+          href={toggleHref(true)}
           className={`flex items-center justify-center gap-2.5 rounded-xl px-4 py-3 text-sm font-medium transition-all ${
             isRequest
               ? "bg-surface text-accent shadow-sm"
@@ -168,6 +208,10 @@ export default async function JobsPage({
 
       <form className="mb-4 flex gap-2" action="/jobs" method="GET">
         <input type="hidden" name="tab" value={isRequest ? "requests" : ""} />
+        {type && <input type="hidden" name="type" value={type} />}
+        {loc && <input type="hidden" name="loc" value={loc} />}
+        {budget && <input type="hidden" name="budget" value={budget} />}
+        {status && <input type="hidden" name="status" value={status} />}
         <input name="q" defaultValue={q || ""} placeholder="Search by skill, tag, or keyword…" className="input" />
         <button type="submit" className="btn-outline shrink-0">
           Search
