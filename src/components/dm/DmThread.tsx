@@ -633,7 +633,12 @@ export function DmThread({
                     </div>
                   )}
 
-                  <div className="min-w-0">
+                  {/* min-w-0 flex-1: the %-based bubble cap below MUST
+                      resolve against full row width. A shrink-wrapped
+                      wrapper makes max-w-[78%] circular (78% of fit
+                      content ≈ min-content) and stacks one letter per
+                      line — the classic collapse. */}
+                  <div className={`flex min-w-0 flex-1 flex-col ${mine ? "items-end" : "items-start"}`}>
                     <div
                       onClick={(e) => {
                         // Mobile affordance: tap bubble to reveal the bar.

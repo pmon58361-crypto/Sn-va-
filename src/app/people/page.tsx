@@ -128,44 +128,46 @@ export default async function PeoplePage({
               <div className="card card-hover overflow-hidden">
                 <div
                   aria-hidden
-                  className="h-14 w-full"
+                  className="h-12 w-full"
                   style={{ background: hueGradient(u.name) }}
                 />
-                <div className="p-4 pt-0">
-                <Link
-                  href={`/profile/${u.id}`}
-                  className="-mt-7 flex items-start gap-3"
-                >
-                  <span className="relative shrink-0 rounded-full ring-4 ring-[var(--bg-surface,#1a1a1c)]">
+                <div className="relative p-4 pt-0">
+                {/* Avatar overlaps the banner; the identity block below
+                    starts on clean background — no text ever sits on art. */}
+                <div className="relative z-10 -mt-6 mb-2 w-fit">
+                  <span className="relative block shrink-0 rounded-full ring-4 ring-[var(--bg-surface,#1a1a1c)]">
                     <Avatar name={u.name} image={u.image} size={52} />
                     {presence[u.id]?.online && (
                       <span
                         aria-label="Online now"
                         title="Online now"
-                        className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-bg bg-emerald-400"
+                        className="absolute -right-0.5 -top-0.5 h-3.5 w-3.5 rounded-full border-2 border-bg bg-emerald-400"
                       />
                     )}
                   </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="flex items-center gap-2 truncate text-sm font-bold">
-                      {u.name || "Someone"}
-                      {presence[u.id]?.online && (
-                        <span className="text-[10px] font-medium uppercase tracking-wide text-emerald-500">
-                          online{presence[u.id].page ? ` · ${presence[u.id].page}` : ""}
-                        </span>
-                      )}
-                    </span>
-                    <span className="block truncate text-xs text-ink-faint">
-                      {u._count.followers}{" "}
-                      {u._count.followers === 1 ? "follower" : "followers"} ·{" "}
-                      {u._count.posts} {u._count.posts === 1 ? "post" : "posts"}
-                    </span>
-                    {u.bio && (
-                      <span className="mt-1 line-clamp-2 block text-xs leading-relaxed text-ink-muted">
-                        {u.bio}
+                </div>
+                <Link
+                  href={`/profile/${u.id}`}
+                  className="block min-w-0"
+                >
+                  <span className="flex items-center gap-2 truncate text-sm font-bold hover:underline">
+                    {u.name || "Someone"}
+                    {presence[u.id]?.online && (
+                      <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-emerald-500">
+                        online{presence[u.id].page ? ` · ${presence[u.id].page}` : ""}
                       </span>
                     )}
                   </span>
+                  <span className="mt-0.5 block truncate text-xs text-ink-faint">
+                    {u._count.followers}{" "}
+                    {u._count.followers === 1 ? "follower" : "followers"} ·{" "}
+                    {u._count.posts} {u._count.posts === 1 ? "post" : "posts"}
+                  </span>
+                  {u.bio && (
+                    <span className="mt-1 line-clamp-2 block text-xs leading-relaxed text-ink-muted">
+                      {u.bio}
+                    </span>
+                  )}
                 </Link>
                 {meId && (
                   <FollowButton

@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
+import { createPortal } from "react-dom";
 import {
   toggleReaction,
   toggleBookmark,
@@ -51,6 +52,24 @@ export function PostActions({
   const [reportOpen, setReportOpen] = useState(false);
   // ⋯ menu state (share / save / report live here, not on the row).
   const [menuOpen, setMenuOpen] = useState(false);
+  // Portal anchor: the menu renders in document.body (fixed, from the
+  // button rect) so no overflow-hidden card ancestor can clip it.
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const [menuPos, setMenuPos] = useState<{ bottom: number; left: number } | null>(null);
+
+  function openMenu() {
+    const r = btnRef.current?.getBoundingClientRect();
+    if (r) {
+      setMenuPos({
+        // Anchored above the button (bottom-anchored so any menu height
+        // grows upward); clamped into the viewport (208px menu width).
+        bottom: window.innerHeight - r.top + 8,
+        left: Math.max(8, Math.min(r.right - 208, window.innerWidth - 216)),
+      });
+    }
+    setReportOpen(false);
+    setMenuOpen(true);
+  }
 
   function closeMenu() {
     setMenuOpen(false);
@@ -194,13 +213,15 @@ export function PostActions({
 
       {/* ⋯ — share / save / report live in here, keeping the row to
           hearts + owner edit. */}
-      <div className="relative">
+      <div>
         <button
+          ref={btnRef}
           type="button"
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            setMenuOpen((o) => !o);
+            if (menuOpen) closeMenu();
+            else openMenu();
           }}
           className={`${btn} hover:bg-soft hover:text-ink-soft`}
           aria-label="More actions"
@@ -215,21 +236,25 @@ export function PostActions({
           </svg>
         </button>
 
-        {menuOpen && (
-          <>
-            <span
-              className="fixed inset-0 z-20 cursor-default"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                closeMenu();
-              }}
-            />
-            <div
-              role="menu"
-              className="card absolute bottom-full right-0 z-30 mb-2 w-52 bg-surface p-2 shadow-lg"
-              onClick={(e) => e.stopPropagation()}
-            >
+        {menuOpen &&
+          menuPos &&
+          typeof document !== "undefined" &&
+          createPortal(
+            <>
+              <span
+                className="fixed inset-0 z-40 cursor-default"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  closeMenu();
+                }}
+              />
+              <div
+                role="menu"
+                className="card fixed z-50 w-52 bg-surface p-2 shadow-lg"
+                style={{ bottom: menuPos.bottom, left: menuPos.left }}
+                onClick={(e) => e.stopPropagation()}
+              >
               {!reportOpen ? (
                 <>
                   <button
@@ -293,9 +318,10 @@ export function PostActions({
                   </button>
                 </>
               )}
-            </div>
-          </>
-        )}
+              </div>
+            </>,
+            document.body
+          )}
       </div>
 
       {/* Owner edit — feed cards only; deletion lives on the detail
