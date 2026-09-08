@@ -39,6 +39,11 @@ const MARKS: Record<string, React.ReactNode> = {
       <rect x="13" y="13" width="9" height="9" fill="#FFB900" />
     </svg>
   ),
+  yahoo: (
+    <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[#6001D2] text-[10px] font-black text-white">
+      Y!
+    </span>
+  ),
 };
 
 const NAMES: Record<string, string> = {
@@ -75,10 +80,35 @@ export function SignInForm({
   const [suPass, setSuPass] = useState("");
   const [suConfirm, setSuConfirm] = useState("");
   const [suInterests, setSuInterests] = useState<string[]>([]);
+  // Shared show/hide for every password field on the card.
+  const [showPw, setShowPw] = useState(false);
+
+  function PwToggle() {
+    return (
+      <button
+        type="button"
+        tabIndex={-1}
+        onClick={() => setShowPw((v) => !v)}
+        aria-label={showPw ? "Hide passwords" : "Show passwords"}
+        title={showPw ? "Hide passwords" : "Show passwords"}
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-white/35 transition hover:text-white/70"
+      >
+        {showPw ? (
+          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" /><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" /><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24" /><line x1="1" y1="1" x2="23" y2="23" />
+          </svg>
+        ) : (
+          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" />
+          </svg>
+        )}
+      </button>
+    );
+  }
 
   // Failed credentials attempts land back here with ?error=... after the
   // full-page redirect — surface a real message instead of a bare URL.
-  const urlError = useSearchParams().get("error");
+  const urlError = searchParams.get("error");
   const inheritedError =
     urlError === "CredentialsSignin"
       ? "Invalid access code. Check it and try again."
@@ -169,7 +199,12 @@ export function SignInForm({
     setLoading("finish");
     try {
       await saveInterests(suInterests);
-      await signIn("credentials", { email: suEmail, password: suPass, callbackUrl: "/community", redirect: true });
+      const email = suEmail;
+      const password = suPass;
+      // Drop secrets from memory before navigating away.
+      setSuPass("");
+      setSuConfirm("");
+      await signIn("credentials", { email, password, callbackUrl: "/community", redirect: true });
     } catch {
       setError("Almost there — sign in manually to finish.");
       setLoading(null);
@@ -305,14 +340,17 @@ export function SignInForm({
                     autoComplete="email"
                     className={FIELD}
                   />
-                  <input
-                    name="password"
-                    type="password"
-                    required
-                    placeholder="password"
-                    autoComplete="current-password"
-                    className={FIELD}
-                  />
+                  <div className="relative">
+                    <input
+                      name="password"
+                      type={showPw ? "text" : "password"}
+                      required
+                      placeholder="password"
+                      autoComplete="current-password"
+                      className={`${FIELD} pr-11`}
+                    />
+                    <PwToggle />
+                  </div>
                   <button
                     type="submit"
                     disabled={loading === "email"}
@@ -392,26 +430,32 @@ export function SignInForm({
                       autoFocus
                       className={FIELD}
                     />
-                    <input
-                      value={suPass}
-                      onChange={(e) => setSuPass(e.target.value)}
-                      type="password"
-                      required
-                      minLength={8}
-                      maxLength={200}
-                      placeholder="password (min 8 characters)"
-                      autoComplete="new-password"
-                      className={FIELD}
-                    />
-                    <input
-                      value={suConfirm}
-                      onChange={(e) => setSuConfirm(e.target.value)}
-                      type="password"
-                      required
-                      placeholder="confirm password"
-                      autoComplete="new-password"
-                      className={FIELD}
-                    />
+                    <div className="relative">
+                      <input
+                        value={suPass}
+                        onChange={(e) => setSuPass(e.target.value)}
+                        type={showPw ? "text" : "password"}
+                        required
+                        minLength={8}
+                        maxLength={200}
+                        placeholder="password (min 8 characters)"
+                        autoComplete="new-password"
+                        className={`${FIELD} pr-11`}
+                      />
+                      <PwToggle />
+                    </div>
+                    <div className="relative">
+                      <input
+                        value={suConfirm}
+                        onChange={(e) => setSuConfirm(e.target.value)}
+                        type={showPw ? "text" : "password"}
+                        required
+                        placeholder="confirm password"
+                        autoComplete="new-password"
+                        className={`${FIELD} pr-11`}
+                      />
+                      <PwToggle />
+                    </div>
                     <button
                       type="submit"
                       disabled={loading === "create"}
@@ -510,8 +554,8 @@ export function SignInForm({
 
         <p className="mt-6 text-center font-mono text-xs leading-relaxed text-white/35">
           By continuing you agree to our terms.{" "}
-          <Link href="/" className="text-amber-300/90 hover:text-amber-200 hover:underline">
-            cd ~/home
+          <Link href="/terms" className="text-amber-300/90 hover:text-amber-200 hover:underline">
+            read them
           </Link>
         </p>
       </div>
