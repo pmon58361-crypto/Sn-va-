@@ -108,63 +108,75 @@ export async function RightSidebar({ viewerId }: { viewerId?: string | null }) {
     <aside className="sticky top-0 hidden h-screen w-72 shrink-0 flex-col gap-6 overflow-y-auto border-l border-line px-5 py-6 xl:flex">
       {sidebarAd && <AdCard ad={sidebarAd} variant="sidebar" />}
 
-      {/* Your streak — derived from real activity, shown only when it exists */}
-      {streak && streak.current > 0 && (
-        <div className="rounded-xl border border-accent/30 bg-accent/5 p-4">
-          <h3 className="mb-1 text-xs font-semibold uppercase tracking-wider text-ink-faint">
-            Your streak
-          </h3>
-          <p className="text-2xl font-black text-ink">
-            <span aria-hidden>🔥</span> {streak.current}
-            <span className="ml-1 text-sm font-semibold text-ink-muted">
-              day{streak.current === 1 ? "" : "s"}
-            </span>
-          </p>
-          {(() => {
-            const next = nextMilestone(streak.current);
-            if (!next) {
-              return (
-                <p className="mt-1 text-xs text-ink-muted">
-                  Max milestone reached — legend status.
-                </p>
+      {/* Your streak — derived from real activity. Always visible when
+          signed in: a live streak shows the milestone rail, day zero shows
+          the first step (a hidden card reads as a removed feature). */}
+      {streak &&
+        (streak.current > 0 ? (
+          <div className="rounded-xl border border-accent/30 bg-accent/5 p-4">
+            <h3 className="mb-1 text-xs font-semibold uppercase tracking-wider text-ink-faint">
+              Your streak
+            </h3>
+            <p className="text-2xl font-black text-ink">
+              <span aria-hidden>🔥</span> {streak.current}
+              <span className="ml-1 text-sm font-semibold text-ink-muted">
+                day{streak.current === 1 ? "" : "s"}
+              </span>
+            </p>
+            {(() => {
+              const next = nextMilestone(streak.current);
+              if (!next) {
+                return (
+                  <p className="mt-1 text-xs text-ink-muted">
+                    Max milestone reached — legend status.
+                  </p>
+                );
+              }
+              const pct = Math.min(
+                100,
+                Math.round((streak.current / next) * 100)
               );
-            }
-            const pct = Math.min(
-              100,
-              Math.round((streak.current / next) * 100)
-            );
-            return (
-              <div className="mt-2">
-                <div
-                  className="h-1.5 overflow-hidden rounded-full bg-surface"
-                  role="progressbar"
-                  aria-valuenow={streak.current}
-                  aria-valuemin={0}
-                  aria-valuemax={next}
-                  aria-label={`${streak.current} of ${next} days to your next milestone`}
-                >
+              return (
+                <div className="mt-2">
                   <div
-                    className="h-full rounded-full bg-accent transition-all"
-                    style={{ width: `${pct}%` }}
-                  />
+                    className="h-1.5 overflow-hidden rounded-full bg-surface"
+                    role="progressbar"
+                    aria-valuenow={streak.current}
+                    aria-valuemin={0}
+                    aria-valuemax={next}
+                    aria-label={`${streak.current} of ${next} days to your next milestone`}
+                  >
+                    <div
+                      className="h-full rounded-full bg-accent transition-all"
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                  <p className="mt-1 text-xs text-ink-muted">
+                    {next - streak.current}{" "}
+                    {next - streak.current === 1 ? "day" : "days"} to your{" "}
+                    {next}-day milestone
+                    {streak.best > streak.current &&
+                      ` · best ${streak.best}d`}
+                  </p>
                 </div>
-                <p className="mt-1 text-xs text-ink-muted">
-                  {next - streak.current}{" "}
-                  {next - streak.current === 1 ? "day" : "days"} to your{" "}
-                  {next}-day milestone
-                  {streak.best > streak.current &&
-                    ` · best ${streak.best}d`}
-                </p>
-              </div>
-            );
-          })()}
-          <p className="mt-1 text-xs text-ink-muted">
-            {streak.activeToday
-              ? "Active today — streak safe."
-              : "No activity today yet — post, comment, or react to keep it alive."}
-          </p>
-        </div>
-      )}
+              );
+            })()}
+            <p className="mt-1 text-xs text-ink-muted">
+              {streak.activeToday
+                ? "Active today — streak safe."
+                : "No activity today yet — post, comment, or react to keep it alive."}
+            </p>
+          </div>
+        ) : (
+          <div className="rounded-xl border border-dashed border-line-strong p-4">
+            <h3 className="mb-1 text-xs font-semibold uppercase tracking-wider text-ink-faint">
+              Your streak
+            </h3>
+            <p className="text-sm text-ink-muted">
+              Day zero — react to any post and day one starts ticking.
+            </p>
+          </div>
+        ))}
 
       {/* Founding spots — real member count vs the 500 cap. Only while
           spots remain; vanishes the moment the window closes. */}

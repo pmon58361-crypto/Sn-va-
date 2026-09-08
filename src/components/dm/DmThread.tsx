@@ -508,7 +508,7 @@ export function DmThread({
                 className={`flex flex-col dm-in ${stacked ? "-mt-2.5" : ""}`}
               >
                 {isNewDay && (
-                  <p className="my-3 flex justify-center">
+                  <p data-testid="time-divider" className="my-3 flex justify-center">
                     <span className="rounded-full border border-line bg-surface px-3 py-1 text-[11px] font-semibold text-ink-muted">
                       {dividerLabel(m.createdAt)}
                     </span>
@@ -837,6 +837,7 @@ export function DmThread({
           </button>
           <textarea
             ref={composerRef}
+            data-testid="dm-composer"
             value={draft}
             onChange={(e) => {
               setDraft(e.target.value);
@@ -859,6 +860,7 @@ export function DmThread({
           />
           <button
             type="submit"
+            data-testid="dm-send"
             disabled={sending || uploading || (!draft.trim() && !attached)}
             aria-label="Send message"
             className="btn-primary grid h-10 w-10 shrink-0 place-items-center !rounded-full !px-0"

@@ -48,9 +48,11 @@ test("DMs send optimistically, show seen, toggle reactions, unsend, and render g
   const recipient = await signedInPage(browser, "demo2");
   try {
     await sender.page.goto(`/dm/${demo2.id}`);
-    await expect(sender.page.locator("p.my-2.text-center").first()).toBeVisible();
-    await sender.page.getByPlaceholder("Start a new message").fill(text);
-    await sender.page.getByRole("button", { name: "Send" }).click();
+    // Stable hooks (not styling classes): the divider marks the 31-minute
+    // gap seeded above; the composer is the message box.
+    await expect(sender.page.getByTestId("time-divider").first()).toBeVisible();
+    await sender.page.getByTestId("dm-composer").fill(text);
+    await sender.page.getByTestId("dm-send").click();
     await expect(sender.page.getByText(text)).toBeVisible();
 
     await recipient.page.goto(`/dm/${demo.id}`);
