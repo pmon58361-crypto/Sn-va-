@@ -54,13 +54,15 @@ async function expectsFounding(userId: string): Promise<boolean> {
 }
 
 // The badge shipped in bfc3f14 and went live locally with the EOD rebuild.
+// UI copy is the short chip ("★ Founding"); seniority logic is what's
+// under test here, so match the chip text, not the title attribute.
 test("founding member badge follows account seniority", async ({ browser }) => {
   const { demo2 } = await demoUsers();
   const shouldShow = await expectsFounding(demo2.id);
   const { context, page } = await signedInPage(browser, "demo");
   try {
     await page.goto(`/profile/${demo2.id}`);
-    const badge = page.getByText("Founding Member");
+    const badge = page.getByText("★ Founding");
     if (shouldShow) await expect(badge.first()).toBeVisible();
     else await expect(badge).toHaveCount(0);
   } finally {
