@@ -530,17 +530,36 @@ export function DmThread({
                       size={40}
                     />
                   )}
-                  {/* Hover rail — floats above the row's top-right edge
-                      (Discord placement), never inside the text flow. */}
+                  {/* Hover rail — Discord dock: dark floating bar, quick
+                      emojis inline, smiley opens the rest. */}
                   {!m.id.startsWith("tmp-") && (
                     <div
-                      className={`absolute -top-5 right-4 z-20 items-center gap-0.5 whitespace-nowrap rounded-lg border border-line bg-surface px-0.5 py-0.5 shadow-md transition-opacity ${
+                      className={`absolute -top-5 right-4 z-20 items-center gap-0.5 whitespace-nowrap rounded-lg border border-black bg-[#141414] px-1 py-1 shadow-xl transition-opacity ${
                         activeBarId === m.id
                           ? "flex"
                           : "hidden group-hover/row:flex opacity-0 group-hover/row:opacity-100"
                       }`}
                       onClick={(e) => e.stopPropagation()}
                     >
+                      {["❤️", "👍", "😂"].map((emoji) => {
+                        const reacted = reactions.some(
+                          (r) => r.messageId === m.id && r.userId === meId && r.emoji === emoji
+                        );
+                        return (
+                          <button
+                            key={emoji}
+                            type="button"
+                            onClick={() => react(m, emoji)}
+                            aria-label={`React ${emoji}`}
+                            title={`React ${emoji}`}
+                            className={`rounded-md px-1.5 py-0.5 text-lg leading-none transition hover:scale-125 ${
+                              reacted ? "bg-white/15" : ""
+                            }`}
+                          >
+                            {emoji}
+                          </button>
+                        );
+                      })}
                       <button
                         type="button"
                         aria-label="Add reaction"
@@ -548,10 +567,10 @@ export function DmThread({
                         onClick={() =>
                           setEmojiFor(emojiFor === m.id ? null : m.id)
                         }
-                        className={`grid h-6 w-6 place-items-center rounded-md transition hover:bg-soft hover:text-ink ${
+                        className={`grid h-7 w-7 place-items-center rounded-md transition hover:bg-white/10 hover:text-white ${
                           emojiFor === m.id
                             ? "text-accent"
-                            : "text-ink-faint"
+                            : "text-white/60"
                         }`}
                       >
                         <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -561,7 +580,7 @@ export function DmThread({
                           <circle cx="15" cy="10" r="0.6" fill="currentColor" stroke="none" />
                         </svg>
                       </button>
-                      <span className="h-4 w-px bg-line" />
+                      <span className="h-4 w-px bg-white/15" />
                       {/* Copy only exists when there is text — image-only
                           messages have nothing to copy. */}
                       {m.content.trim() && (
@@ -570,8 +589,8 @@ export function DmThread({
                             type="button"
                             aria-label="Copy message"
                             onClick={() => quickCopy(m)}
-                            className={`grid h-6 w-6 place-items-center rounded-md transition hover:bg-soft hover:text-ink ${
-                              quickCopiedId === m.id ? "text-accent" : "text-ink-faint"
+                            className={`grid h-7 w-7 place-items-center rounded-md transition hover:bg-white/10 hover:text-white ${
+                              quickCopiedId === m.id ? "text-accent" : "text-white/60"
                             }`}
                           >
                             {quickCopiedId === m.id ? (
@@ -587,7 +606,7 @@ export function DmThread({
                           </button>
                         </>
                       )}
-                      <span className="h-4 w-px bg-line" />
+                      <span className="h-4 w-px bg-white/15" />
                       <button
                         type="button"
                         aria-label="Message options"
@@ -598,21 +617,21 @@ export function DmThread({
                           setMenuMode("main");
                           setMenuFor(menuOpen ? null : m.id);
                         }}
-                        className="grid h-6 w-6 place-items-center rounded-md text-ink-faint transition hover:bg-soft hover:text-ink"
+                        className="grid h-7 w-7 place-items-center rounded-md text-white/60 transition hover:bg-white/10 hover:text-white"
                       >
                         <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor">
-                          <circle cx="12" cy="5" r="1.6" />
+                          <circle cx="5" cy="12" r="1.6" />
                           <circle cx="12" cy="12" r="1.6" />
-                          <circle cx="12" cy="19" r="1.6" />
+                          <circle cx="19" cy="12" r="1.6" />
                         </svg>
                       </button>
 
-                      {/* Emoji picker popup — opened from the smiley icon. */}
+                      {/* Emoji picker popup — the three not on the dock. */}
                       {emojiFor === m.id && (
                         <div
-                          className="absolute right-0 top-full z-30 mt-1 flex gap-0.5 rounded-xl border border-line bg-surface p-1 shadow-lg"
+                          className="absolute right-0 top-full z-30 mt-1 flex gap-0.5 rounded-xl border border-black bg-[#141414] p-1.5 shadow-xl"
                         >
-                          {QUICK_EMOJIS.map((emoji) => (
+                          {QUICK_EMOJIS.filter((e) => !["❤️", "👍", "😂"].includes(e)).map((emoji) => (
                             <button
                               key={emoji}
                               type="button"
@@ -620,7 +639,7 @@ export function DmThread({
                                 react(m, emoji);
                                 setEmojiFor(null);
                               }}
-                              className="rounded-full px-1 text-base leading-none transition-transform hover:scale-125"
+                              className="rounded-full px-1.5 py-0.5 text-lg leading-none transition-transform hover:scale-125"
                               aria-label={`React ${emoji}`}
                             >
                               {emoji}
