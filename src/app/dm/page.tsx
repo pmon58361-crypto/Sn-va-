@@ -11,7 +11,12 @@ import { DmTitleBadge } from "./DmTitleBadge";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "DMs", robots: { index: false } };
 
-export default async function DmPage() {
+export default async function DmPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
+  const { q } = await searchParams;
   const session = await auth();
   if (!session?.user?.id) redirect("/auth/signin?callbackUrl=/dm");
   const meId = session.user.id;
@@ -20,6 +25,17 @@ export default async function DmPage() {
   const newPeople = await getMessageableUsers(meId);
   const unreadTotal = conversations.reduce((n, c) => n + c.unread, 0);
   const presence = getPresence(conversations.map((c) => c.other.id));
+  // Online friends float to the top (Discord ordering); search narrows.
+  const visible = conversations
+    .filter((c) =>
+      q ? (c.other.name || "").toLowerCase().includes(q.trim().toLowerCase()) : true
+    )
+    .sort((a, b) => {
+      const ao = presence[a.other.id]?.online ? 0 : 1;
+      const bo = presence[b.other.id]?.online ? 0 : 1;
+      if (ao !== bo) return ao - bo;
+      return b.lastAt.getTime() - a.lastAt.getTime();
+    });
   const founding = new Map<string, boolean>();
   for (const c of conversations) {
     founding.set(
@@ -33,22 +49,36 @@ export default async function DmPage() {
       <DmTitleBadge unread={unreadTotal} />
       <div className="sticky top-0 z-10 border-b border-line bg-bg/85 px-4 py-3 backdrop-blur-md">
         <h1 className="text-xl font-extrabold">Messages</h1>
+        <form action="/dm" method="GET" className="mt-2">
+          <input
+            name="q"
+            defaultValue={q || ""}
+            placeholder="Find a conversation"
+            autoComplete="off"
+            className="input py-2 text-sm"
+          />
+        </form>
       </div>
 
-      {conversations.length === 0 ? (
+      {visible.length === 0 ? (
         <div className="px-8 py-16 text-center">
-          <h2 className="text-2xl font-extrabold">No conversations yet</h2>
+          <h2 className="text-2xl font-extrabold">
+            {q ? "Nobody matches that search" : "No conversations yet"}
+          </h2>
           <p className="mx-auto mt-2 max-w-sm text-[15px] text-ink-secondary">
-            Direct messages are private. Start one from a person&apos;s profile or
-            from the list below.
+            {q
+              ? "Try a shorter name."
+              : "Direct messages are private. Start one from a person's profile or from the list below."}
           </p>
-          <Link href="/people" className="btn-primary mt-6 inline-block">
-            Find people
-          </Link>
+          {!q && (
+            <Link href="/people" className="btn-primary mt-6 inline-block">
+              Find people
+            </Link>
+          )}
         </div>
       ) : (
         <div>
-          {conversations.map((c) => (
+          {visible.map((c) => (
             <Link
               key={c.other.id}
               href={`/dm/${c.other.id}`}

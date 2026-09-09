@@ -40,9 +40,10 @@ test("DMs send optimistically, show seen, toggle reactions, unsend, and render g
   test.setTimeout(150_000);
   const { demo, demo2 } = await demoUsers();
   const text = `${E2E_PREFIX} DM`;
-  // An older message makes the subsequent UI-created message cross the 30-minute divider threshold.
+  // An older message from the previous day guarantees a day divider above
+  // the UI-created message (dividers render once per calendar day).
   await prisma.message.create({
-    data: { senderId: demo2.id, recipientId: demo.id, content: `${E2E_PREFIX} earlier`, createdAt: new Date(Date.now() - 31 * 60_000) },
+    data: { senderId: demo2.id, recipientId: demo.id, content: `${E2E_PREFIX} earlier`, createdAt: new Date(Date.now() - 25 * 60 * 60_000) },
   });
   const sender = await signedInPage(browser, "demo");
   const recipient = await signedInPage(browser, "demo2");
@@ -63,6 +64,9 @@ test("DMs send optimistically, show seen, toggle reactions, unsend, and render g
     }).toPass({ timeout: 30_000 });
 
     await expect(async () => {
+      // The emoji row lives behind the smiley toggle — open it first.
+      // (dispatchEvent bypasses hover-visibility, same as a real tap.)
+      await clickNewestAction(recipient.page, "button[aria-label]", "Add reaction");
       await clickNewestAction(recipient.page, "button[aria-label]", "React ❤️");
     }).toPass({ timeout: 30_000 });
     await expect(recipient.page.getByRole("button", { name: "❤️ 1" })).toBeVisible();

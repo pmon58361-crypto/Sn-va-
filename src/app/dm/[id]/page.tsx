@@ -105,6 +105,8 @@ export default async function DmThreadPage({
         meId={meId}
         otherName={other.name}
         otherImage={other.image}
+        meName={session.user.name}
+        meImage={session.user.image}
         initial={initial}
         initialDraft={initialDraft}
         autoFocusComposer={sp.reply === "1"}

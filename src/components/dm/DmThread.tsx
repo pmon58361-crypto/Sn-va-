@@ -8,6 +8,7 @@ import {
   toggleMessageReaction,
 } from "@/app/dm/actions";
 import { reportTarget } from "@/app/actions";
+import { Avatar } from "@/components/ui/Avatar";
 import { timeAgo } from "@/lib/utils";
 
 type Reaction = { messageId: string; userId: string; emoji: string };
@@ -26,11 +27,8 @@ type Msg = {
 // tab is hidden and does an immediate catch-up on return.
 const POLL_MS = 3000;
 
-// Time divider appears when this much time passes between messages.
-const DIVIDER_GAP_MS = 30 * 60 * 1000;
-
 // Consecutive same-sender messages within this window stack tight
-// (Discord-style grouping) instead of full-gap bubbles.
+// (Discord-style grouping) instead of full-gap rows.
 const GROUP_WINDOW_MS = 5 * 60 * 1000;
 
 // One-tap openers for brand-new conversations.
@@ -52,19 +50,14 @@ function fmtTime(d: Date) {
   return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
 
-// "9:44 PM" today, "Aug 22, 9:44 PM" otherwise.
+// Discord-style day divider: full date, no time ("August 25, 2026").
+// Times live on each message header and the hover gutter instead.
 function dividerLabel(ts: string) {
-  const d = new Date(ts);
-  const now = new Date();
-  if (d.toDateString() === now.toDateString()) return fmtTime(d);
-  const sameYear = d.getFullYear() === now.getFullYear();
-  const date = d.toLocaleDateString(
-    [],
-    sameYear
-      ? { month: "short", day: "numeric" }
-      : { year: "numeric", month: "short", day: "numeric" }
-  );
-  return `${date}, ${fmtTime(d)}`;
+  return new Date(ts).toLocaleDateString([], {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
 }
 
 // Live-ish thread: initial messages rendered server-side are passed in,
@@ -75,6 +68,8 @@ export function DmThread({
   meId,
   otherName,
   otherImage,
+  meName,
+  meImage,
   initial,
   initialDraft,
   autoFocusComposer,
@@ -83,6 +78,8 @@ export function DmThread({
   meId: string;
   otherName?: string | null;
   otherImage?: string | null;
+  meName?: string | null;
+  meImage?: string | null;
   initial: Msg[];
   /** Pre-filled text for the composer (e.g. story-reply deep links). */
   initialDraft?: string;
@@ -464,11 +461,12 @@ export function DmThread({
               i === lastMineIdx &&
               !!seenAt &&
               new Date(seenAt) >= new Date(m.createdAt);
+            // Day divider: a new calendar day (Discord shows one pill per
+            // day, never two identical pills in a row).
             const isNewDay =
               i === 0 ||
-              new Date(m.createdAt).getTime() -
-                new Date(messages[i - 1].createdAt).getTime() >
-                DIVIDER_GAP_MS;
+              new Date(m.createdAt).toDateString() !==
+                new Date(messages[i - 1].createdAt).toDateString();
             const menuOpen = menuFor === m.id;
             // Discord-style stacking: same sender within the window glues to
             // the previous bubble (tight gap, flattened top seam corners).
@@ -505,7 +503,7 @@ export function DmThread({
             return (
               <div
                 key={m.id}
-                className={`flex flex-col dm-in ${stacked ? "-mt-2.5" : ""}`}
+                className={`group/row relative dm-in ${stacked ? "" : "mt-4"}`}
               >
                 {isNewDay && (
                   <p data-testid="time-divider" className="my-3 flex justify-center">
@@ -514,32 +512,32 @@ export function DmThread({
                     </span>
                   </p>
                 )}
-                <div
-                  className={`group relative flex items-end gap-2 ${
-                    mine ? "justify-end" : "justify-start"
-                  }`}
-                >
-                  {/* Peer avatar at the start of each group; stacked messages
-                      keep a spacer so text stays aligned. */}
-                  {!mine &&
-                    (stacked ? (
-                      <span aria-hidden className="w-8 shrink-0" />
-                    ) : (
-                      <PeerAvatar name={otherName} image={otherImage} />
-                    ))}
-                  {/* Discord-style hover / tap toolbar: monochrome icon pill
-                      (react · copy · more). The emoji row lives in a small
-                      popup opened by the smiley — never permanently visible.
-                      Anchored INSIDE the bubble's top edge so it can never
-                      clip against the scroll container or viewport edge. */}
+                {/* Discord-cozy row: full-bleed hover wash, avatar per group,
+                    hover timestamp gutter for stacked rows. */}
+                <div className="-mx-4 px-4 py-0.5 transition-colors hover:bg-surface-hover/60">
+                <div className="mx-auto flex max-w-3xl gap-3">
+                  {stacked ? (
+                    <span
+                      aria-hidden
+                      className="w-10 shrink-0 select-none pt-1 text-center text-[10px] tabular-nums text-ink-faint opacity-0 transition group-hover/row:opacity-100"
+                    >
+                      {fmtTime(new Date(m.createdAt))}
+                    </span>
+                  ) : (
+                    <Avatar
+                      name={mine ? meName : otherName}
+                      image={mine ? meImage : otherImage}
+                      size={40}
+                    />
+                  )}
+                  {/* Hover rail — floats above the row's top-right edge
+                      (Discord placement), never inside the text flow. */}
                   {!m.id.startsWith("tmp-") && (
                     <div
-                      className={`absolute top-1 z-20 items-center gap-0.5 whitespace-nowrap rounded-lg border border-line bg-surface px-0.5 py-0.5 shadow-md transition-opacity ${
-                        mine ? "right-1" : "left-1"
-                      } ${
+                      className={`absolute -top-5 right-4 z-20 items-center gap-0.5 whitespace-nowrap rounded-lg border border-line bg-surface px-0.5 py-0.5 shadow-md transition-opacity ${
                         activeBarId === m.id
                           ? "flex"
-                          : "hidden group-hover:flex opacity-0 group-hover:opacity-100"
+                          : "hidden group-hover/row:flex opacity-0 group-hover/row:opacity-100"
                       }`}
                       onClick={(e) => e.stopPropagation()}
                     >
@@ -638,10 +636,23 @@ export function DmThread({
                       wrapper makes max-w-[78%] circular (78% of fit
                       content ≈ min-content) and stacks one letter per
                       line — the classic collapse. */}
-                  <div className={`flex min-w-0 flex-1 flex-col ${mine ? "items-end" : "items-start"}`}>
+                  <div className="min-w-0 flex-1">
+                    {/* Group header: name + full timestamp (Discord cozy).
+                        Stacked rows skip it — the gutter timestamp covers
+                        them on hover. */}
+                    {!stacked && (
+                      <p className="flex flex-wrap items-baseline gap-x-2">
+                        <span className="text-[15px] font-semibold text-ink">
+                          {mine ? meName || "You" : otherName || "Someone"}
+                        </span>
+                        <span className="text-[11px] text-ink-faint">
+                          {new Date(m.createdAt).toLocaleString()}
+                        </span>
+                      </p>
+                    )}
                     <div
                       onClick={(e) => {
-                        // Mobile affordance: tap bubble to reveal the bar.
+                        // Mobile affordance: tap text to reveal the bar.
                         e.stopPropagation();
                         setActiveBarId(activeBarId === m.id ? null : m.id);
                       }}
@@ -651,15 +662,6 @@ export function DmThread({
                         setMenuMode("main");
                         setMenuFor(m.id);
                       }}
-                      className={`w-fit max-w-[78%] px-4 py-2.5 text-[15px] leading-relaxed shadow-sm sm:max-w-[65%] ${
-                        stacked
-                          ? "rounded-2xl rounded-t-lg" // glued to the bubble above
-                          : "rounded-2xl"
-                      } ${
-                        mine
-                          ? "rounded-br-lg bg-accent text-white"
-                          : "rounded-bl-lg border border-line bg-surface"
-                      }`}
                       title={new Date(m.createdAt).toLocaleString()}
                     >
                       {m.imageUrl && (
@@ -668,7 +670,7 @@ export function DmThread({
                           target="_blank"
                           rel="noopener noreferrer"
                           onClick={(e) => e.stopPropagation()}
-                          className="mb-1.5 block overflow-hidden rounded-xl"
+                          className="mb-1.5 block max-w-md overflow-hidden rounded-xl"
                         >
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
@@ -680,17 +682,16 @@ export function DmThread({
                         </a>
                       )}
                       {m.content && (
-                        <span className="block whitespace-pre-wrap break-words">
+                        <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed text-ink">
                           {m.content}
-                        </span>
+                        </p>
                       )}
                     </div>
 
-                    {/* Reaction pills — real counts only */}
+                    {/* Reaction pills — real counts only, always left-docked
+                        (Discord cozy has no per-side alignment). */}
                     {hasReactions && (
-                      <div
-                        className={`mt-1 flex gap-1 ${mine ? "justify-end" : "justify-start"}`}
-                      >
+                      <div className="mt-1 flex gap-1">
                         {[...grouped.entries()].map(([emoji, g]) => (
                           <button
                             key={emoji}
@@ -717,16 +718,11 @@ export function DmThread({
                       </div>
                     )}
 
-                    {groupLast && (
-                      <p
-                        className={`mt-1 text-[11px] text-ink-faint ${mine ? "text-right" : "text-left"}`}
-                      >
-                        {fmtTime(new Date(m.createdAt))}
-                        {showSeen && (
-                          <span className="ml-1.5 font-semibold text-accent">
-                            · Seen
-                          </span>
-                        )}
+                    {groupLast && showSeen && (
+                      <p className="mt-0.5 text-[11px] text-ink-faint">
+                        <span className="font-semibold text-ink-muted">
+                          Seen {fmtTime(new Date(seenAt!))}
+                        </span>
                       </p>
                     )}
                   </div>
@@ -812,6 +808,7 @@ export function DmThread({
                   </div>
                 )}
               </div>
+            </div>
             );
           })}
           <div ref={bottomRef} />
@@ -822,7 +819,9 @@ export function DmThread({
         onSubmit={submit}
         className="border-t border-line bg-bg/95 px-4 py-3 backdrop-blur-md"
       >
-        <div className="mx-auto flex max-w-3xl items-end gap-2">
+        {/* Discord composer: one gray box, + on the left, send on the
+            right, "Message @name" placeholder. */}
+        <div className="mx-auto flex max-w-3xl items-end gap-1 rounded-2xl border border-line bg-surface px-2 py-2 transition-colors focus-within:border-line-strong">
           <input
             ref={fileRef}
             type="file"
@@ -836,7 +835,7 @@ export function DmThread({
             disabled={sending || uploading || !!attached}
             aria-label="Attach a photo"
             title="Attach a photo"
-            className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-lg text-ink-muted transition hover:bg-surface-hover hover:text-ink disabled:opacity-40"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-xl leading-none text-ink-muted transition hover:bg-surface-hover hover:text-ink disabled:opacity-40"
           >
             {uploading ? "…" : "+"}
           </button>
@@ -858,17 +857,17 @@ export function DmThread({
                 submit(e);
               }
             }}
-            placeholder={`Message ${otherName || "them"}`}
+            placeholder={`Message @${otherName || "them"}`}
             maxLength={2000}
             rows={1}
-            className="input max-h-[148px] flex-1 resize-none overflow-y-auto rounded-2xl py-2.5"
+            className="max-h-[148px] flex-1 resize-none overflow-y-auto bg-transparent py-2 text-[15px] text-ink outline-none placeholder:text-ink-faint"
           />
           <button
             type="submit"
             data-testid="dm-send"
             disabled={sending || uploading || (!draft.trim() && !attached)}
             aria-label="Send message"
-            className="btn-primary grid h-10 w-10 shrink-0 place-items-center !rounded-full !px-0"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-surface-hover text-ink-muted transition hover:bg-accent hover:text-white disabled:opacity-40"
           >
             <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M5 12h13M13 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
@@ -905,32 +904,5 @@ export function DmThread({
         </p>
       </form>
     </div>
-  );
-}
-
-function PeerAvatar({
-  name,
-  image,
-}: {
-  name?: string | null;
-  image?: string | null;
-}) {
-  if (image) {
-    // eslint-disable-next-line @next/next/no-img-element
-    return (
-      <img
-        src={image}
-        alt=""
-        className="h-8 w-8 shrink-0 self-end rounded-full object-cover"
-      />
-    );
-  }
-  return (
-    <span
-      aria-hidden
-      className="grid h-8 w-8 shrink-0 self-end place-items-center rounded-full bg-surface-hover text-xs font-bold text-ink-muted"
-    >
-      {(name || "?").charAt(0).toUpperCase()}
-    </span>
   );
 }
