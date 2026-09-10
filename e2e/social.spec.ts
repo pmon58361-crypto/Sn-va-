@@ -15,7 +15,7 @@ test("bookmarking a post surfaces it under Bookmarks and untoggling removes it",
     // Bookmark lives in the ⋯ menu (not on the action row): open it first.
     // The detail page renders exactly one bookmark action for the post.
     await page.getByRole("button", { name: "More actions" }).click();
-    await page.getByRole("menuitem", { name: "Save post" }).click();
+    await page.getByRole("menuitem", { name: "Bookmark" }).click();
     await expect.poll(async () => prisma.bookmark.findUnique({ where: { userId_postId: { userId: demo.id, postId: post.id } } })).not.toBeNull();
 
     await page.goto("/bookmarks");
@@ -23,7 +23,7 @@ test("bookmarking a post surfaces it under Bookmarks and untoggling removes it",
 
     await page.goBack();
     await page.getByRole("button", { name: "More actions" }).click();
-    await page.getByRole("menuitem", { name: /unsave/ }).click();
+    await page.getByRole("menuitem", { name: "Bookmark" }).click();
     await expect.poll(async () => prisma.bookmark.findUnique({ where: { userId_postId: { userId: demo.id, postId: post.id } } })).toBeNull();
     await page.goto("/bookmarks");
     await expect(page.getByText("Nothing saved yet.")).toBeVisible();

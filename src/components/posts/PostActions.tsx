@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import {
   toggleReaction,
@@ -38,6 +39,7 @@ export function PostActions({
   variant = "card",
   isOwner = false,
 }: Props) {
+  const router = useRouter();
   const [state, setState] = useState({
     likes,
     dislikes,
@@ -117,6 +119,9 @@ export function PostActions({
     setPending(true);
     try {
       await toggleReaction(postId, type);
+      // Pull fresh server data immediately — otherwise the tap looks dead
+      // until the next navigation (same fix as Sn-va--main).
+      router.refresh();
     } catch {
       // revalidation reconciles
     } finally {
@@ -137,6 +142,7 @@ export function PostActions({
     setPending(true);
     try {
       await toggleBookmark(postId);
+      router.refresh();
     } catch {
       setState((s) => ({ ...s, bookmarked: !next }));
     } finally {
@@ -244,7 +250,7 @@ export function PostActions({
           createPortal(
             <>
               <span
-                className="fixed inset-0 z-[70] cursor-default bg-black/50"
+                className="fixed inset-0 z-[70] cursor-default bg-black/30"
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
@@ -256,7 +262,7 @@ export function PostActions({
                 className={
                   menuPos.sheet
                     ? "card fixed inset-x-3 bottom-3 z-[80] bg-surface p-2 pb-5 shadow-lg"
-                    : "card fixed z-[80] w-52 bg-surface p-2 shadow-lg"
+                    :                   "card fixed z-[80] w-56 rounded-xl bg-surface p-1.5 shadow-xl ring-1 ring-line"
                 }
                 style={
                   menuPos.sheet
@@ -271,19 +277,37 @@ export function PostActions({
                     type="button"
                     role="menuitem"
                     onClick={share}
-                    className="block w-full rounded-lg px-2 py-1.5 text-left text-sm text-ink-soft transition-colors hover:bg-soft hover:text-ink"
+                    className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm text-ink-soft transition-colors hover:bg-soft hover:text-ink"
                   >
-                    {copied ? "✓ Link copied" : "Copy link"}
+                    <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 text-ink-faint" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+                      <path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7" strokeLinecap="round" strokeLinejoin="round" />
+                      <path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    <span className="flex-1">{copied ? "Link copied" : "Copy link"}</span>
+                    {copied && (
+                      <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 text-accent" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+                        <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    )}
                   </button>
                   <button
                     type="button"
                     role="menuitem"
                     disabled={pending}
                     onClick={mark}
-                    className="block w-full rounded-lg px-2 py-1.5 text-left text-sm text-ink-soft transition-colors hover:bg-soft hover:text-ink disabled:opacity-50"
+                    className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm transition-colors hover:bg-soft disabled:opacity-50 ${state.bookmarked ? "font-semibold text-accent" : "text-ink-soft hover:text-ink"}`}
                   >
-                    {state.bookmarked ? "★ Saved — tap to unsave" : "☆ Save post"}
+                    <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" fill={state.bookmarked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.8" aria-hidden>
+                      <path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z" strokeLinejoin="round" />
+                    </svg>
+                    <span className="flex-1">Bookmark</span>
+                    {state.bookmarked && (
+                      <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+                        <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    )}
                   </button>
+                  <div aria-hidden className="mx-2.5 my-1.5 h-px bg-line" />
                   <button
                     type="button"
                     role="menuitem"
@@ -296,9 +320,18 @@ export function PostActions({
                       }
                       setReportOpen(true);
                     }}
-                    className="block w-full rounded-lg px-2 py-1.5 text-left text-sm font-medium text-warm transition-colors hover:bg-soft"
+                    className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm text-ink-soft transition-colors hover:bg-warm-tint hover:text-warm"
                   >
-                    {reported ? "✓ Reported" : "Report"}
+                    <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+                      <path d="M5 21V4" strokeLinecap="round" />
+                      <path d="M5 4h13l-2.5 4L18 12H5" strokeLinejoin="round" />
+                    </svg>
+                    <span className="flex-1 font-medium">{reported ? "Reported" : "Report"}</span>
+                    {reported && (
+                      <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+                        <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    )}
                   </button>
                 </>
               ) : (
@@ -313,7 +346,7 @@ export function PostActions({
                         type="button"
                         disabled={pending}
                         onClick={() => submitReport(r)}
-                        className="block w-full rounded-lg px-2 py-1.5 text-left text-sm text-ink-soft transition-colors hover:bg-soft hover:text-ink"
+                    className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm text-ink-soft transition-colors hover:bg-soft hover:text-ink"
                       >
                         {r}
                       </button>
