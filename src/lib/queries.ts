@@ -4,6 +4,7 @@ import {
   applyFeedbackToContext,
   applyInterestsToContext,
   buildPersonalContextFromRows,
+  finalScore,
   rankFeed,
   rotateFeed,
   type FeedSort,
@@ -301,9 +302,16 @@ export async function getPosts({
   for (const g of c12)
     recent12h.set(g.postId, (recent12h.get(g.postId) || 0) + g._count._all);
 
+  // One clock for ranking + rotation so scores agree everywhere.
+  const now = new Date();
   return rotateFeed(
-    rankFeed(eligiblePool, "best", new Date(), ctx, { recent12h, viewerId }),
-    { viewerId }
+    rankFeed(eligiblePool, "best", now, ctx, { recent12h, viewerId }),
+    {
+      viewerId,
+      // Rotation jitters the FULL personalized score — passing it back
+      // keeps affinity/hotness/demotions alive through the reshuffle.
+      scoreOf: (p) => finalScore(p, now, ctx, { recent12h, viewerId }),
+    }
   ).slice(0, limit);
 }
 

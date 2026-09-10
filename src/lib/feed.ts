@@ -31,11 +31,15 @@ const W_APPLICATION = 6;
 const W_DISLIKE = 2;
 
 function freshBoostHours(createdAt: Date, now: Date): number {
-  const h = (now.getTime() - createdAt.getTime()) / 3_600_000;
-  if (h < 2) return 8; // prime of life
-  if (h < 6) return 4; // still warm
-  if (h < 24) return 1; // gentle tail
-  return 0;
+  // Smooth exponential decay — the old 8/4/1/0 steps created visible rank
+  // jumps at the 2h/6h/24h boundaries (posts teleporting past each other
+  // with zero engagement change). Same magnitudes, no cliffs:
+  // newborn ≈ 10, 2h ≈ 7.8, 6h ≈ 4.7, 24h ≈ 0.5.
+  const h = Math.max(
+    0,
+    (now.getTime() - createdAt.getTime()) / 3_600_000
+  );
+  return 10 * Math.exp(-h / 8);
 }
 
 /**
@@ -246,6 +250,61 @@ export type EngagementSignals = {
   viewerId?: string;
 };
 
+/**
+ * The complete per-post score: gravity × personalization × hotness, minus
+ * consumed-content demotions, dislike damping and the quiet penalty.
+ * Exported so rotation can jitter THIS number — jittering raw gravity
+ * instead silently discards personalization on every reshuffle.
+ */
+export function finalScore<T extends PostWithRelations>(
+  p: T,
+  now: Date = new Date(),
+  ctx?: PersonalContext,
+  signals?: EngagementSignals
+): number {
+  let s = feedScore(p, now) * personalMultiplier(p, ctx);
+
+  // HOTNESS — acceleration up to ×2
+  const recent = signals?.recent12h.get(p.id) ?? 0;
+  if (recent > 0) {
+    const hoursOld = Math.max(
+      1,
+      (now.getTime() - p.createdAt.getTime()) / 3_600_000
+    );
+    s *= Math.min(2, 1 + recent / Math.max(2, hoursOld) / 2);
+  }
+
+  // SEEN DEMOTION — already-consumed content sinks (×0.55)
+  if (signals?.viewerId) {
+    const reacted = ((p.reactions ?? []) as { userId: string }[]).some(
+      (r) => r.userId === signals.viewerId
+    );
+    if (reacted) s *= 0.55;
+    // SAVED DEMOTION — bookmarked posts live in Bookmarks; the feed
+    // shouldn't re-pitch what you already shelved (×0.7).
+    const saved = (
+      (p as unknown as { bookmarks?: { userId: string }[] }).bookmarks ?? []
+    ).some((b) => b.userId === signals.viewerId);
+    if (saved) s *= 0.7;
+    // OWN-POST DEMOTION — your own posts rank for everyone else, not for
+    // you (×0.7). Your profile is where you admire your own work.
+    const mine =
+      (p as unknown as { authorId?: string }).authorId === signals.viewerId;
+    if (mine) s *= 0.7;
+  }
+
+  // DISLIKE DAMPING — soft quality control
+  const rs = (p.reactions ?? []) as { type: string }[];
+  const likes = rs.filter((r) => r.type === "like").length;
+  const dislikes = rs.filter((r) => r.type === "dislike").length;
+  s /= 1 + (dislikes / (likes + 1)) * 1.5;
+
+  // QUIET PENALTY — hearts but no discussion is weaker signal
+  if (likes >= 3 && (p._count?.comments ?? 0) === 0) s *= 0.9;
+
+  return s;
+}
+
 export function rankFeed<T extends PostWithRelations>(
   posts: T[],
   sort: FeedSort = "best",
@@ -259,49 +318,7 @@ export function rankFeed<T extends PostWithRelations>(
     );
   }
 
-  const scored = posts.map((p) => {
-    let s = feedScore(p, now) * personalMultiplier(p, ctx);
-
-    // HOTNESS — acceleration up to ×2
-    const recent = signals?.recent12h.get(p.id) ?? 0;
-    if (recent > 0) {
-      const hoursOld = Math.max(
-        1,
-        (now.getTime() - p.createdAt.getTime()) / 3_600_000
-      );
-      s *= Math.min(2, 1 + recent / Math.max(2, hoursOld) / 2);
-    }
-
-    // SEEN DEMOTION — already-consumed content sinks (×0.55)
-    if (signals?.viewerId) {
-      const reacted = ((p.reactions ?? []) as { userId: string }[]).some(
-        (r) => r.userId === signals.viewerId
-      );
-      if (reacted) s *= 0.55;
-      // SAVED DEMOTION — bookmarked posts live in Bookmarks; the feed
-      // shouldn't re-pitch what you already shelved (×0.7).
-      const saved = (
-        (p as unknown as { bookmarks?: { userId: string }[] }).bookmarks ?? []
-      ).some((b) => b.userId === signals.viewerId);
-      if (saved) s *= 0.7;
-      // OWN-POST DEMOTION — your own posts rank for everyone else, not for
-      // you (×0.7). Your profile is where you admire your own work.
-      const mine =
-        (p as unknown as { authorId?: string }).authorId === signals.viewerId;
-      if (mine) s *= 0.7;
-    }
-
-    // DISLIKE DAMPING — soft quality control
-    const rs = (p.reactions ?? []) as { type: string }[];
-    const likes = rs.filter((r) => r.type === "like").length;
-    const dislikes = rs.filter((r) => r.type === "dislike").length;
-    s /= 1 + (dislikes / (likes + 1)) * 1.5;
-
-    // QUIET PENALTY — hearts but no discussion is weaker signal
-    if (likes >= 3 && (p._count?.comments ?? 0) === 0) s *= 0.9;
-
-    return { p, s };
-  });
+  const scored = posts.map((p) => ({ p, s: finalScore(p, now, ctx, signals) }));
 
   return scored.sort((a, b) => b.s - a.s).map((x) => x.p);
 }
@@ -331,23 +348,26 @@ export function currentBucket(bucketHours = 1): number {
  * 2. EXPLORATION — two older posts (7+ days old, ranked outside the top 10)
  *    are re-surfaced at slots ~3 and ~8 by the hourly seed. FB's
  *    "resurfaced memories" / TikTok's out-of-network slot.
- * 3. AUTHOR SPREAD — no author ever appears three times back-to-back.
+ * 3. AUTHOR + CATEGORY SPREAD — no author appears three times back-to-back,
+ *    and neither does one category (jobs walls drown community posts).
  */
 export function rotateFeed<T extends PostWithRelations>(
   ranked: T[],
-  opts: { viewerId?: string; bucketHours?: number } = {}
+  opts: { viewerId?: string; bucketHours?: number; scoreOf?: (p: T) => number } = {}
 ): T[] {
   const now = new Date();
   const bucket = currentBucket(opts.bucketHours ?? 1);
   const seedKey = `${opts.viewerId ?? "anon"}:${bucket}`;
+  // Jitter the FULL ranked score (personalization included). Callers that
+  // ranked with a context must pass it back here — defaulting to raw
+  // gravity would un-personalize every reshuffle.
+  const scoreOf = opts.scoreOf ?? ((p: T) => feedScore(p, now));
 
-  // 1) jittered resort (±12% on the gravity score), stable within the hour
+  // 1) jittered resort (±12% on the full score), stable within the hour
   const jittered = ranked
     .map((p, i) => ({
       p,
-      j:
-        feedScore(p, now) *
-        (0.88 + 0.24 * hashStr(`${seedKey}:${p.id}:${i}`)),
+      j: scoreOf(p) * (0.88 + 0.24 * hashStr(`${seedKey}:${p.id}:${i}`)),
     }))
     .sort((a, b) => b.j - a.j)
     .map((x) => x.p);
@@ -395,18 +415,37 @@ export function rotateFeed<T extends PostWithRelations>(
     i++;
   }
 
-  // 3) author spread — never the same author 3 times in a row
+  // 3) author + category spread — never the same author 3 times in a row,
+  //    never the same category 3 times in a row either.
   const authorOf = (p: T) =>
     (p as unknown as { authorId?: string }).authorId ??
     (p as unknown as { author?: { id?: string } }).author?.id ??
     "?";
+  const categoryOf = (p: T) =>
+    (p as unknown as { category?: string }).category ?? "?";
   const spread: T[] = [];
   const rest = [...mixed];
   while (rest.length) {
-    const lastTwo = spread.slice(-2).map(authorOf);
-    const blocked =
-      lastTwo.length === 2 && lastTwo[0] === lastTwo[1] ? lastTwo[0] : null;
-    let idx = rest.findIndex((p) => !blocked || authorOf(p) !== blocked);
+    const lastTwo = spread.slice(-2);
+    const authorBlocked =
+      lastTwo.length === 2 &&
+      lastTwo[0] &&
+      lastTwo[1] &&
+      authorOf(lastTwo[0]) === authorOf(lastTwo[1])
+        ? authorOf(lastTwo[0])
+        : null;
+    const categoryBlocked =
+      lastTwo.length === 2 &&
+      lastTwo[0] &&
+      lastTwo[1] &&
+      categoryOf(lastTwo[0]) === categoryOf(lastTwo[1])
+        ? categoryOf(lastTwo[0])
+        : null;
+    let idx = rest.findIndex(
+      (p) =>
+        (!authorBlocked || authorOf(p) !== authorBlocked) &&
+        (!categoryBlocked || categoryOf(p) !== categoryBlocked)
+    );
     if (idx === -1) idx = 0;
     spread.push(rest.splice(idx, 1)[0]);
   }
