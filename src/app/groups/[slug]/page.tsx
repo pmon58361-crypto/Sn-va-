@@ -132,6 +132,9 @@ export default async function GroupPage({
   const ownerName =
     group.members.find((m) => m.role === "owner")?.user.name ||
     group.creator.name;
+  const ownerId =
+    group.members.find((m) => m.role === "owner")?.user.id ||
+    group.creator.id;
 
   // Pinned highlights (moderator-curated). Privacy-respecting: outsiders of
   // private groups never get here (canView gate above feeds everything).
@@ -174,7 +177,7 @@ export default async function GroupPage({
                   {group.visibility}
                 </span>
                 <span className="badge shrink-0 bg-[var(--bg-soft)] text-xs capitalize text-ink-muted">
-                  {group.joinMode} join
+                  {group.joinMode === "open" ? "Open" : "Approval"}
                 </span>
                 <span className="text-xs text-ink-faint">
                   {group._count.members}{" "}
@@ -315,6 +318,7 @@ export default async function GroupPage({
         )}
         {/* ── Feed (filtered by channel) ── */}
         <div className="mb-3 flex items-center gap-1 text-sm">
+          <span className="px-1 text-xs text-ink-faint">Sort:</span>
           {(
             [
               { v: "new", label: "New" },
@@ -411,7 +415,13 @@ export default async function GroupPage({
             <div className="flex items-center justify-between gap-2">
               <dt>Owner</dt>
               <dd className="font-medium text-ink-soft">
-                {ownerName || "unknown"}
+                {ownerId ? (
+                  <Link href={`/profile/${ownerId}`} className="hover:underline">
+                    {ownerName || "unknown"}
+                  </Link>
+                ) : (
+                  ownerName || "unknown"
+                )}
               </dd>
             </div>
           </dl>

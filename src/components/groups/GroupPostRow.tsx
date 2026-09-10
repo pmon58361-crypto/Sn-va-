@@ -115,7 +115,7 @@ export function GroupPostRow({
       {thumb && (
         <Link
           href={detailPath(post.category, post.id)}
-          className="hidden w-24 shrink-0 self-start overflow-hidden rounded-lg border border-line sm:block"
+          className="w-20 shrink-0 self-start overflow-hidden rounded-lg border border-line sm:w-24"
           tabIndex={-1}
           aria-hidden
         >
