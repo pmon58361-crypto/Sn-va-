@@ -148,110 +148,104 @@ export default async function GroupPage({
     : [];
 
   return (
-    <div className="mx-auto max-w-3xl px-5 py-6">
-      {/* ── Group header ── */}
+    <div className="mx-auto max-w-5xl px-4 py-6 sm:px-5">
+      {/* ── Group header: banner art, overlapping avatar, name + actions ── */}
       <section className="card overflow-hidden">
         {/* Real art gets the full stage; the fallback tile only needs
             a slim band — a tall empty gradient reads as broken. */}
-        <div className={`w-full overflow-hidden ${group.coverUrl ? "h-36 sm:h-44" : "h-24 sm:h-28"} [&>div]:h-full [&>img]:h-full`}>
+        <div className={`w-full overflow-hidden ${group.coverUrl ? "h-44 sm:h-56" : "h-28 sm:h-36"} [&>div]:h-full [&>img]:h-full`}>
           <GroupCover name={group.name} coverUrl={group.coverUrl} />
         </div>
 
         <div className="p-5 pt-0">
           {/* Overlapping avatar tile — identity sits on the art, Reddit-style. */}
-          <div className="relative z-10 -mt-7 mb-2 flex items-end">
-            <span className="grid h-14 w-14 place-items-center overflow-hidden rounded-2xl bg-accent text-2xl font-black text-white ring-4 ring-[var(--bg-surface,#1a1a1c)]">
+          <div className="relative z-10 -mt-10 mb-3 flex items-end">
+            <span className="grid h-20 w-20 place-items-center overflow-hidden rounded-3xl bg-accent text-3xl font-black text-white ring-4 ring-[var(--bg-surface,#1a1a1c)]">
               {(group.name || "?").trim().charAt(0).toUpperCase()}
             </span>
           </div>
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <h1 className="break-words text-xl font-bold tracking-tight text-ink sm:text-2xl">
-              {group.name}
-            </h1>
-            <span className="badge shrink-0 bg-[var(--bg-soft)] text-xs capitalize text-ink-muted">
-              {group.visibility}
-            </span>
-            <span className="badge shrink-0 bg-[var(--bg-soft)] text-xs capitalize text-ink-muted">
-              {group.joinMode} join
-            </span>
-          </div>
+          <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
+            <div className="min-w-0">
+              <h1 className="break-words text-2xl font-extrabold tracking-tight text-ink sm:text-3xl">
+                {group.name}
+              </h1>
+              <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                <span className="badge shrink-0 bg-[var(--bg-soft)] text-xs capitalize text-ink-muted">
+                  {group.visibility}
+                </span>
+                <span className="badge shrink-0 bg-[var(--bg-soft)] text-xs capitalize text-ink-muted">
+                  {group.joinMode} join
+                </span>
+                <span className="text-xs text-ink-faint">
+                  {group._count.members}{" "}
+                  {group._count.members === 1 ? "member" : "members"} ·{" "}
+                  {group._count.posts}{" "}
+                  {group._count.posts === 1 ? "post" : "posts"}
+                  {onlineCount > 0 && (
+                    <>
+                      {" "}·{" "}
+                      <span className="font-medium text-emerald-500">
+                        {onlineCount} online
+                      </span>
+                    </>
+                  )}
+                </span>
+              </div>
+            </div>
 
-          {group.description && (
-            <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-relaxed text-ink-muted">
-              {group.description}
-            </p>
-          )}
-
-          <p className="mt-3 font-mono text-xs text-ink-faint">
-            {group._count.members}{" "}
-            {group._count.members === 1 ? "member" : "members"} ·{" "}
-            {group._count.posts} {group._count.posts === 1 ? "post" : "posts"} ·
-            owner {ownerName || "unknown"}
-            {onlineCount > 0 && (
-              <>
-                {" "}·{" "}
-                <span className="text-emerald-500">{onlineCount} online</span>
-              </>
-            )}{" "}
-            · since{" "}
-            {new Date(group.createdAt).toLocaleDateString(undefined, {
-              month: "short",
-              year: "numeric",
-            })}
-          </p>
-
-          <div className="mt-4 flex flex-wrap items-center gap-2">
-            {isMember && (
-              <>
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
+              {isMember && (
+                <>
+                  <Link
+                    href={`/new?group=${group.id}`}
+                    className="btn-primary shrink-0 px-4 py-2 text-sm"
+                  >
+                    + Create Post
+                  </Link>
+                  <InviteButton slug={group.slug} />
+                </>
+              )}
+              {!meId ? (
                 <Link
-                  href={`/new?group=${group.id}`}
+                  href={`/auth/signin?callbackUrl=/groups/${group.slug}`}
                   className="btn-primary shrink-0 px-4 py-2 text-sm"
                 >
-                  Post to group
+                  Sign in to join
                 </Link>
-                <InviteButton slug={group.slug} />
-              </>
-            )}
-            {!meId ? (
-              <Link
-                href={`/auth/signin?callbackUrl=/groups/${group.slug}`}
-                className="btn-primary block flex-1 py-2 text-center text-sm"
-              >
-                Sign in to join
-              </Link>
-            ) : !isMember && (group.joinMode !== "open" || group.visibility !== "public") ? (
-              // Approval groups — and private groups of any join mode, where
-              // direct join is impossible — take tracked requests (no more
-              // "DM the owner" dead-end).
-              <div className="min-w-[220px] flex-1">
-                <JoinRequestButton
-                  groupId={group.id}
-                  hasPending={!!myRequest}
-                />
-              </div>
-            ) : (
-              // Owners get roomier controls (the cramped shrink-0 column
-              // squeezed Change/Remove/Delete into a dangling mess); everyone
-              // else gets the full-width join.
-              <div
-                className={
-                  membership?.role === "owner"
-                    ? "min-w-[220px] flex-1"
-                    : "min-w-[200px] flex-1"
-                }
-              >
-                <GroupActions
-                  groupId={group.id}
-                  isOwner={membership?.role === "owner"}
-                  isMember={isMember}
-                />
-              </div>
-            )}
+              ) : !isMember && (group.joinMode !== "open" || group.visibility !== "public") ? (
+                // Approval groups — and private groups of any join mode, where
+                // direct join is impossible — take tracked requests (no more
+                // "DM the owner" dead-end).
+                <div className="min-w-[220px]">
+                  <JoinRequestButton
+                    groupId={group.id}
+                    hasPending={!!myRequest}
+                  />
+                </div>
+              ) : (
+                // Owners get roomier controls (the cramped shrink-0 column
+                // squeezed Change/Remove/Delete into a dangling mess); everyone
+                // else gets join.
+                <div
+                  className={
+                    membership?.role === "owner"
+                      ? "min-w-[220px]"
+                      : "min-w-[200px]"
+                  }
+                >
+                  <GroupActions
+                    groupId={group.id}
+                    isOwner={membership?.role === "owner"}
+                    isMember={isMember}
+                  />
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ── Server body: channels rail · feed · roster (stacks on mobile) ── */}
+      {/* ── Server body: channels row · feed + right rail (stacks on mobile) ── */}
       {canMod && (
         <PendingRequests
           groupId={group.id}
@@ -263,68 +257,60 @@ export default async function GroupPage({
           }))}
         />
       )}
-      <div className="mt-5 grid items-start gap-5 lg:grid-cols-[190px_minmax(0,1fr)_230px]">
-      <div className="flex min-w-0 flex-col gap-5 lg:sticky lg:top-20 lg:self-start">
-        {/* Channels — real slices of this group's feed */}
-        <nav aria-label="Group channels" className="card flex gap-1 overflow-x-auto p-2 lg:sticky lg:top-20 lg:flex-col">
-          {(
-            [
-              { v: "all", label: "# feed", count: feed.length },
-              { v: "media", label: "# media", count: mediaPosts.length },
-              { v: "polls", label: "# polls", count: pollPosts.length },
-            ] as const
-          ).map((c) => (
-            <Link
-              key={c.v}
-              href={viewHref(c.v)}
-              aria-current={activeView === c.v ? "page" : undefined}
-              className={`flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition ${
-                activeView === c.v
-                  ? "bg-surface-hover text-ink"
-                  : "text-ink-muted hover:bg-surface-hover/60 hover:text-ink"
-              }`}
-            >
-              <span className="text-ink-faint">#</span>
-              <span className="truncate">{c.label.slice(2)}</span>
-              <span className="ml-auto font-mono text-[11px] text-ink-faint">
-                {c.count}
-              </span>
-            </Link>
-          ))}
-        </nav>
-        <RulesCard
-          groupId={group.id}
-          rules={(group as { rules?: string | null }).rules ?? null}
-          canEdit={isOwner}
-        />
-        </div>
+      {/* Channels — real slices of this group's feed */}
+      <nav aria-label="Group channels" className="card mt-5 flex gap-1 overflow-x-auto p-2">
+        {(
+          [
+            { v: "all", label: "# feed", count: feed.length },
+            { v: "media", label: "# media", count: mediaPosts.length },
+            { v: "polls", label: "# polls", count: pollPosts.length },
+          ] as const
+        ).map((c) => (
+          <Link
+            key={c.v}
+            href={viewHref(c.v)}
+            aria-current={activeView === c.v ? "page" : undefined}
+            className={`flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition ${
+              activeView === c.v
+                ? "bg-surface-hover text-ink"
+                : "text-ink-muted hover:bg-surface-hover/60 hover:text-ink"
+            }`}
+          >
+            <span className="text-ink-faint">#</span>
+            <span className="truncate">{c.label.slice(2)}</span>
+            <span className="ml-auto font-mono text-[11px] text-ink-faint">
+              {c.count}
+            </span>
+          </Link>
+        ))}
+      </nav>
+      <div className="mt-5 grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
 
         {/* Center feed */}
         <div className="min-w-0">
         {/* ── Pinned highlights (moderator-curated) ── */}
         {activeView === "all" && pinned.length > 0 && (
           <section aria-label="Pinned highlights" className="card mb-4 p-4">
-            <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-faint">
+            <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-ink-faint">
               📌 Highlights
             </h2>
-            <ul className="space-y-1">
+            <div className="flex gap-3 overflow-x-auto pb-1">
               {pinned.map((p) => (
-                <li key={p.id}>
-                  <Link
-                    href={`/community/${p.id}`}
-                    className="flex items-center gap-2 rounded-lg px-2 py-1.5 transition hover:bg-surface-hover/60"
-                  >
-                    <span className="min-w-0 flex-1 truncate text-sm font-semibold text-ink">
-                      {p.title}
-                    </span>
-                    <span className="shrink-0 text-xs text-ink-faint">
-                      {p.author?.name || "Someone"} · {p._count.comments}{" "}
-                      {p._count.comments === 1 ? "reply" : "replies"}
-                    </span>
-                  </Link>
-                </li>
+                <Link
+                  key={p.id}
+                  href={`/community/${p.id}`}
+                  className="w-52 shrink-0 rounded-2xl border border-line bg-soft p-3 transition hover:border-line-strong"
+                >
+                  <span className="block line-clamp-3 min-h-[3.75rem] text-sm font-semibold leading-snug text-ink">
+                    {p.title}
+                  </span>
+                  <span className="mt-2 block truncate text-xs text-ink-faint">
+                    {p.author?.name || "Someone"} · {p._count.comments}{" "}
+                    {p._count.comments === 1 ? "reply" : "replies"}
+                  </span>
+                </Link>
               ))}
-            </ul>
+            </div>
           </section>
         )}
         {/* ── Feed (filtered by channel) ── */}
@@ -391,8 +377,72 @@ export default async function GroupPage({
       )}
         </div>
 
+        {/* Right rail: about · rules · roster */}
+        <div className="min-w-0 space-y-5 lg:sticky lg:top-20 lg:self-start">
+        <section aria-label="About this group" className="card p-5">
+          <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-faint">
+            About
+          </h2>
+          {group.description ? (
+            <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-ink-muted">
+              {group.description}
+            </p>
+          ) : (
+            <p className="text-sm text-ink-faint">
+              No description yet.
+            </p>
+          )}
+          <dl className="mt-3 space-y-1.5 text-xs text-ink-muted">
+            <div className="flex items-center justify-between gap-2">
+              <dt>Created</dt>
+              <dd className="font-medium text-ink-soft">
+                {new Date(group.createdAt).toLocaleDateString(undefined, {
+                  month: "short",
+                  year: "numeric",
+                })}
+              </dd>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <dt>Visibility</dt>
+              <dd className="font-medium capitalize text-ink-soft">
+                {group.visibility}
+              </dd>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <dt>Owner</dt>
+              <dd className="font-medium text-ink-soft">
+                {ownerName || "unknown"}
+              </dd>
+            </div>
+          </dl>
+          <div className="mt-3 grid grid-cols-3 gap-2 border-t border-line pt-3 text-center">
+            <div>
+              <p className="text-base font-extrabold text-ink">
+                {group._count.members}
+              </p>
+              <p className="text-[11px] text-ink-faint">Members</p>
+            </div>
+            <div>
+              <p className="text-base font-extrabold text-ink">
+                {group._count.posts}
+              </p>
+              <p className="text-[11px] text-ink-faint">Posts</p>
+            </div>
+            <div>
+              <p className="text-base font-extrabold text-emerald-500">
+                {onlineCount}
+              </p>
+              <p className="text-[11px] text-ink-faint">Online</p>
+            </div>
+          </div>
+        </section>
+        <RulesCard
+          groupId={group.id}
+          rules={(group as { rules?: string | null }).rules ?? null}
+          canEdit={isOwner}
+        />
         {/* Roster — owner crown, online first, kick for mods */}
-        <aside className="card p-4 lg:sticky lg:top-20">
+        <section className="card p-4">
           <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-ink-faint">
             Members ({group._count.members})
             {onlineCount > 0 && (
@@ -466,7 +516,8 @@ export default async function GroupPage({
               +{group._count.members - group.members.length} more
             </p>
           )}
-        </aside>
+        </section>
+        </div>
       </div>
     </div>
   );
