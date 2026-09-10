@@ -183,7 +183,7 @@ export function PostComposer({
         className="w-full bg-transparent text-xl font-bold text-ink outline-none placeholder:text-ink-faint focus:outline-none"
       />
 
-      {/* Details */}
+      {/* Details — 16px on phones so iOS never auto-zooms on focus. */}
       <textarea
         value={content}
         onChange={(e) => setContent(e.target.value)}
@@ -191,7 +191,7 @@ export function PostComposer({
         required
         maxLength={5000}
         rows={7}
-        className="w-full resize-y rounded-xl border border-line bg-surface px-4 py-3 text-[15px] leading-relaxed text-ink outline-none transition-colors placeholder:text-ink-faint focus:border-accent"
+        className="w-full resize-y rounded-xl border border-line bg-surface px-4 py-3 text-base leading-relaxed text-ink outline-none transition-colors placeholder:text-ink-faint focus:border-accent sm:text-[15px]"
       />
 
       {/* Job-specific fields */}
@@ -205,7 +205,7 @@ export function PostComposer({
               value={budget}
               onChange={(e) => setBudget(e.target.value)}
               placeholder="$50/hr"
-              className="input py-2 text-sm"
+              className="input py-2 text-base sm:text-sm"
             />
           </label>
           <label className="block">
@@ -216,7 +216,7 @@ export function PostComposer({
               value={type}
               onChange={(e) => setType(e.target.value)}
               placeholder="full-time, freelance"
-              className="input py-2 text-sm"
+              className="input py-2 text-base sm:text-sm"
             />
           </label>
           <label className="block">
@@ -227,7 +227,7 @@ export function PostComposer({
               value={location}
               onChange={(e) => setLocation(e.target.value)}
               placeholder="Remote, NYC"
-              className="input py-2 text-sm"
+              className="input py-2 text-base sm:text-sm"
             />
           </label>
         </div>
@@ -240,7 +240,7 @@ export function PostComposer({
           onChange={(e) => setTags(e.target.value)}
           placeholder="Tags — react, design, remote"
           maxLength={200}
-          className="input py-2 text-sm"
+          className="input py-2 text-base sm:text-sm"
         />
         {tagChips.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1.5">
@@ -265,7 +265,7 @@ export function PostComposer({
             type="button"
             onClick={() => setPollOn((v) => !v)}
             aria-expanded={pollOn}
-            className={`flex items-center gap-2 text-sm font-medium transition ${
+            className={`flex items-center gap-2 py-1 text-sm font-medium transition touch-manipulation ${
               pollOn ? "text-accent" : "text-ink-muted hover:text-ink"
             }`}
           >
@@ -282,7 +282,7 @@ export function PostComposer({
                 onChange={(e) => setPollQuestion(e.target.value)}
                 maxLength={200}
                 placeholder="Poll question"
-                className="input py-2 text-sm"
+                className="input py-2 text-base sm:text-sm"
               />
               {pollOptions.map((opt, i) => (
                 <div key={i} className="flex items-center gap-2">
@@ -295,7 +295,7 @@ export function PostComposer({
                     }
                     maxLength={80}
                     placeholder={`Option ${i + 1}`}
-                    className="input py-2 text-sm"
+                    className="input py-2 text-base sm:text-sm"
                   />
                   {pollOptions.length > 2 && (
                     <button
@@ -304,7 +304,7 @@ export function PostComposer({
                         setPollOptions((opts) => opts.filter((_, j) => j !== i))
                       }
                       aria-label={`Remove option ${i + 1}`}
-                      className="shrink-0 rounded-lg px-2 py-1.5 text-xs text-warm transition hover:bg-warm-tint"
+                      className="shrink-0 touch-manipulation rounded-lg p-2 text-xs text-warm transition hover:bg-warm-tint"
                     >
                       ✕
                     </button>
@@ -315,7 +315,7 @@ export function PostComposer({
                 <button
                   type="button"
                   onClick={() => setPollOptions((opts) => [...opts, ""])}
-                  className="text-xs font-medium text-accent hover:underline"
+                  className="py-1 text-xs font-medium text-accent hover:underline"
                 >
                   + Add option
                 </button>
@@ -325,16 +325,16 @@ export function PostComposer({
         </div>
       )}
 
-      {/* Sticky action bar */}
-      <div className="sticky bottom-4 z-10 flex items-center justify-between gap-3 rounded-2xl border border-line bg-surface/90 px-4 py-3 shadow-lg backdrop-blur">
+      {/* Sticky action bar — lifted above the mobile tab bar. */}
+      <div className="sticky bottom-[calc(84px+env(safe-area-inset-bottom))] z-10 flex items-center justify-between gap-3 rounded-2xl border border-line bg-surface/90 px-4 py-3 shadow-lg backdrop-blur lg:bottom-4">
         <span className="text-xs text-ink-faint">
           {title.length}/120 · {content.length}/5000
         </span>
         <div className="flex items-center gap-2">
-          <button type="button" onClick={() => router.back()} className="btn-ghost px-4 py-1.5 text-sm">
+          <button type="button" onClick={() => router.back()} className="btn-ghost px-4 py-2 text-sm sm:py-1.5">
             Cancel
           </button>
-          <button type="submit" disabled={pending} className="btn-primary px-5 py-1.5 text-sm">
+          <button type="submit" disabled={pending} className="btn-primary px-5 py-2 text-sm sm:py-1.5">
             {pending ? "Saving…" : postId ? "Save changes" : "Publish"}
           </button>
         </div>

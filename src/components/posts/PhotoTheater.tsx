@@ -144,7 +144,7 @@ export function PhotoTheater({
               e.stopPropagation();
               onClose();
             }}
-            className="grid h-11 w-11 place-items-center rounded-full bg-white/10 text-xl text-white transition hover:bg-white/25"
+            className="grid h-11 w-11 place-items-center rounded-full bg-white/10 text-xl text-white transition hover:bg-white/25 touch-manipulation"
             aria-label="Close viewer"
           >
             ×
@@ -152,7 +152,7 @@ export function PhotoTheater({
           <Link
             href={`/${post.category === "COMMUNITY" ? "community" : "jobs"}/${post.id}`}
             onClick={(e) => e.stopPropagation()}
-            className="grid h-11 place-items-center rounded-full bg-white/10 px-4 text-xs font-semibold text-white transition hover:bg-white/25"
+            className="grid h-11 place-items-center rounded-full bg-white/10 px-4 text-xs font-semibold text-white transition hover:bg-white/25 touch-manipulation"
           >
             View post
           </Link>
@@ -166,7 +166,7 @@ export function PhotoTheater({
               zoomBy(-0.5);
             }}
             disabled={zoom <= MIN_ZOOM}
-            className="grid h-11 w-11 place-items-center rounded-full bg-white/10 text-xl text-white transition hover:bg-white/25 disabled:opacity-30"
+            className="grid h-11 w-11 place-items-center rounded-full bg-white/10 text-xl text-white transition hover:bg-white/25 touch-manipulation disabled:opacity-30"
             aria-label="Zoom out"
           >
             −
@@ -177,7 +177,7 @@ export function PhotoTheater({
               setZoom(1);
             }}
             disabled={zoom === MIN_ZOOM}
-            className="grid h-11 place-items-center rounded-full bg-white/10 px-3 text-xs font-semibold text-white transition hover:bg-white/25 disabled:opacity-30"
+            className="grid h-11 place-items-center rounded-full bg-white/10 px-3 text-xs font-semibold text-white transition hover:bg-white/25 touch-manipulation disabled:opacity-30"
             aria-label="Reset zoom"
           >
             {Math.round(zoom * 100)}%
@@ -188,7 +188,7 @@ export function PhotoTheater({
               zoomBy(0.5);
             }}
             disabled={zoom >= MAX_ZOOM}
-            className="grid h-11 w-11 place-items-center rounded-full bg-white/10 text-xl text-white transition hover:bg-white/25 disabled:opacity-30"
+            className="grid h-11 w-11 place-items-center rounded-full bg-white/10 text-xl text-white transition hover:bg-white/25 touch-manipulation disabled:opacity-30"
             aria-label="Zoom in"
           >
             +
@@ -242,7 +242,7 @@ export function PhotoTheater({
                 e.stopPropagation();
                 onStep(-1);
               }}
-              className="absolute left-4 top-1/2 z-10 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-white/10 text-2xl text-white transition hover:bg-white/25"
+              className="absolute left-4 top-1/2 z-10 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-white/10 text-2xl text-white transition hover:bg-white/25 touch-manipulation"
               aria-label="Previous image"
             >
               ‹
@@ -252,7 +252,7 @@ export function PhotoTheater({
                 e.stopPropagation();
                 onStep(1);
               }}
-              className="absolute right-4 top-1/2 z-10 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-white/10 text-2xl text-white transition hover:bg-white/25"
+              className="absolute right-4 top-1/2 z-10 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-white/10 text-2xl text-white transition hover:bg-white/25 touch-manipulation"
               aria-label="Next image"
             >
               ›

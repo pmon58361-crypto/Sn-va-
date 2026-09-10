@@ -10,7 +10,6 @@ import {
   UsersIcon,
   BriefcaseIcon,
   ClipboardIcon,
-  CompassIcon,
   MessageIcon,
   BellIcon,
   SearchIcon,
@@ -19,7 +18,7 @@ import {
 const NAV = [
   { href: "/community", label: "Community", icon: UsersIcon },
   { href: "/explore", label: "Explore", icon: SearchIcon },
-  { href: "/people", label: "People", icon: CompassIcon },
+  { href: "/groups", label: "Groups", icon: UsersIcon },
   { href: "/jobs", label: "Jobs", icon: BriefcaseIcon },
   { href: "/applications", label: "Applications", icon: ClipboardIcon },
 ];
@@ -106,14 +105,16 @@ export function Navbar() {
                 <BellIcon className="h-5 w-5" />
               </IconLink>
 
-              {/* Find people — icon-only when narrow, full pill from md up */}
+              {/* Groups — icon-only when narrow, full pill from md up.
+                  People lives in the desktop sidebar; on phones Groups
+                  takes this slot. */}
               <Link
-                href="/people"
-                aria-label="Find people"
+                href="/groups"
+                aria-label="Groups"
                 className="btn-primary !px-3"
               >
-                <CompassIcon className="h-4 w-4" />
-                <span className="hidden md:inline">Find people</span>
+                <UsersIcon className="h-4 w-4" />
+                <span className="hidden md:inline">Groups</span>
               </Link>
 
               {/* Tapping the avatar goes straight to your profile. */}

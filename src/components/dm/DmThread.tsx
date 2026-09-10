@@ -444,7 +444,7 @@ export function DmThread({
                     setDraft(prompt);
                     composerRef.current?.focus();
                   }}
-                  className="rounded-full border border-line bg-surface px-3.5 py-1.5 text-[13px] text-ink-muted transition hover:border-accent hover:text-accent"
+                  className="rounded-full border border-line bg-surface px-3.5 py-2 text-[13px] text-ink-muted transition touch-manipulation hover:border-accent hover:text-accent sm:py-1.5"
                 >
                   {prompt}
                 </button>
@@ -854,7 +854,7 @@ export function DmThread({
             disabled={sending || uploading || !!attached}
             aria-label="Attach a photo"
             title="Attach a photo"
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-xl leading-none text-ink-muted transition hover:bg-surface-hover hover:text-ink disabled:opacity-40"
+            className="grid h-10 w-10 shrink-0 touch-manipulation place-items-center rounded-full text-xl leading-none text-ink-muted transition hover:bg-surface-hover hover:text-ink disabled:opacity-40 sm:h-9 sm:w-9"
           >
             {uploading ? "…" : "+"}
           </button>
@@ -879,14 +879,14 @@ export function DmThread({
             placeholder={`Message @${otherName || "them"}`}
             maxLength={2000}
             rows={1}
-            className="max-h-[148px] flex-1 resize-none overflow-y-auto bg-transparent py-2 text-[15px] text-ink outline-none placeholder:text-ink-faint"
+            className="max-h-[148px] flex-1 resize-none overflow-y-auto bg-transparent py-2 text-base text-ink outline-none placeholder:text-ink-faint sm:text-[15px]"
           />
           <button
             type="submit"
             data-testid="dm-send"
             disabled={sending || uploading || (!draft.trim() && !attached)}
             aria-label="Send message"
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-surface-hover text-ink-muted transition hover:bg-accent hover:text-white disabled:opacity-40"
+            className="grid h-10 w-10 shrink-0 touch-manipulation place-items-center rounded-full bg-surface-hover text-ink-muted transition hover:bg-accent hover:text-white disabled:opacity-40 sm:h-9 sm:w-9"
           >
             <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M5 12h13M13 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
@@ -907,7 +907,7 @@ export function DmThread({
                   type="button"
                   onClick={() => setAttached(null)}
                   aria-label="Remove attachment"
-                  className="absolute -right-2 -top-2 grid h-5 w-5 place-items-center rounded-full bg-warm text-xs text-white"
+                  className="absolute -right-2 -top-2 grid h-6 w-6 place-items-center rounded-full bg-warm text-xs text-white"
                 >
                   ×
                 </button>
@@ -918,7 +918,8 @@ export function DmThread({
             )}
           </div>
         )}
-        <p className="mx-auto mt-1 max-w-3xl text-[11px] text-ink-faint">
+        {/* Desktop-only hint — phones have no Shift+Enter. */}
+        <p className="mx-auto mt-1 hidden max-w-3xl text-[11px] text-ink-faint sm:block">
           Enter to send · Shift+Enter for a new line
         </p>
       </form>
