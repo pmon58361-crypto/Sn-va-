@@ -10,6 +10,8 @@ import {
   promoteMember,
   demoteMember,
   transferOwnership,
+  updateGroupRules,
+  setPostPinned,
 } from "@/app/groups/actions";
 
 function useAsync() {
@@ -179,6 +181,157 @@ export function PendingRequests({
   );
 }
 
+/** Copy-invite-link button for the group header (members grow the room). */
+export function InviteButton({ slug }: { slug: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={async () => {
+        try {
+          await navigator.clipboard.writeText(
+            `${window.location.origin}/groups/${slug}`
+          );
+          setCopied(true);
+          setTimeout(() => setCopied(false), 1500);
+        } catch {}
+      }}
+      className="btn-outline shrink-0 px-4 py-2 text-sm"
+      title="Copy an invite link to this group"
+    >
+      {copied ? "✓ Link copied" : "Invite"}
+    </button>
+  );
+}
+
+/** Pin/unpin toggle for a group post (owner/moderator). Rendered by the
+ *  feed card when the group page opts in. */
+export function PinButton({
+  groupId,
+  postId,
+  pinned,
+}: {
+  groupId: string;
+  postId: string;
+  pinned: boolean;
+}) {
+  const { pending, error, run } = useAsync();
+  return (
+    <span className="inline-flex items-center gap-1">
+      <button
+        type="button"
+        title={pinned ? "Unpin from highlights" : "Pin to highlights"}
+        aria-label={pinned ? "Unpin from highlights" : "Pin to highlights"}
+        aria-pressed={pinned}
+        disabled={pending !== null}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          run(`pin-${postId}`, () => setPostPinned(groupId, postId, !pinned));
+        }}
+        className={`grid h-7 w-7 place-items-center rounded-lg transition disabled:opacity-50 ${
+          pinned
+            ? "text-accent hover:bg-soft"
+            : "text-ink-faint hover:bg-soft hover:text-ink"
+        }`}
+      >
+        <svg viewBox="0 0 24 24" className="h-4 w-4" fill={pinned ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.8" aria-hidden>
+          <path d="M9 4h6l1 7 3 3v2H5v-2l-3-3 1-7z" strokeLinejoin="round" />
+          <path d="M12 16v5" strokeLinecap="round" />
+        </svg>
+      </button>
+      {error && <span className="text-xs text-warm">{error}</span>}
+    </span>
+  );
+}
+
+/** House rules card: numbered list for everyone, inline editor for the owner. */
+export function RulesCard({
+  groupId,
+  rules,
+  canEdit,
+}: {
+  groupId: string;
+  rules: string | null;
+  canEdit: boolean;
+}) {
+  const { pending, error, run } = useAsync();
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(rules ?? "");
+  if (!rules && !canEdit) return null;
+  return (
+    <section aria-label="House rules" className="card p-4">
+      <div className="mb-2 flex items-center justify-between">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-faint">
+          Rules
+        </h2>
+        {canEdit && !editing && (
+          <button
+            type="button"
+            onClick={() => {
+              setDraft(rules ?? "");
+              setEditing(true);
+            }}
+            className="text-xs font-medium text-ink-faint transition hover:text-accent"
+          >
+            Edit
+          </button>
+        )}
+      </div>
+      {editing ? (
+        <div className="flex flex-col gap-2">
+          <textarea
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            rows={4}
+            maxLength={2000}
+            placeholder={"One rule per line.\nBe kind.\nNo spam."}
+            className="input resize-y text-sm"
+            aria-label="Group rules"
+          />
+          <div className="flex gap-2">
+            <button
+              type="button"
+              disabled={pending !== null}
+              onClick={async () => {
+                await run("rules", () => updateGroupRules(groupId, draft));
+                setEditing(false);
+              }}
+              className="btn-primary flex-1 py-1.5 text-sm disabled:opacity-50"
+            >
+              {pending ? "Saving…" : "Save rules"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditing(false)}
+              className="btn-ghost px-3 py-1.5 text-sm"
+            >
+              Cancel
+            </button>
+          </div>
+          {error && <p className="text-xs text-warm">{error}</p>}
+        </div>
+      ) : rules ? (
+        <ol className="list-decimal space-y-1.5 pl-5 text-sm leading-snug text-ink-soft">
+          {rules.split("\n").map((r) => r.trim()).filter(Boolean).map((r, i) => (
+            <li key={i}>{r}</li>
+          ))}
+        </ol>
+      ) : (
+        <button
+          type="button"
+          onClick={() => {
+            setDraft("");
+            setEditing(true);
+          }}
+          className="w-full rounded-xl border-2 border-dashed border-line-strong py-4 text-sm text-ink-secondary transition hover:border-accent hover:text-accent"
+        >
+          + Add house rules
+        </button>
+      )}
+    </section>
+  );
+}
 /** Per-member mod controls for the roster (owner-only actions surface only
  *  when allowed; the server re-checks everything). */
 export function MemberControls({

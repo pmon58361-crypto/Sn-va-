@@ -15,6 +15,8 @@ import {
   JoinRequestButton,
   PendingRequests,
   MemberControls,
+  InviteButton,
+  RulesCard,
 } from "@/components/groups/GroupModeration";
 
 export const dynamic = "force-dynamic";
@@ -126,6 +128,20 @@ export default async function GroupPage({
     group.members.find((m) => m.role === "owner")?.user.name ||
     group.creator.name;
 
+  // Pinned highlights (moderator-curated). Privacy-respecting: outsiders of
+  // private groups never get here (canView gate above feeds everything).
+  const pinned = canView
+    ? await prisma.post.findMany({
+        where: { groupId: group.id, isPinned: true, hidden: false },
+        orderBy: { createdAt: "desc" },
+        take: 4,
+        include: {
+          author: { select: { id: true, name: true, image: true } },
+          _count: { select: { comments: true } },
+        },
+      })
+    : [];
+
   return (
     <div className="mx-auto max-w-3xl px-5 py-6">
       {/* ── Group header ── */}
@@ -158,16 +174,30 @@ export default async function GroupPage({
             {group._count.members === 1 ? "member" : "members"} ·{" "}
             {group._count.posts} {group._count.posts === 1 ? "post" : "posts"} ·
             owner {ownerName || "unknown"}
+            {onlineCount > 0 && (
+              <>
+                {" "}·{" "}
+                <span className="text-emerald-500">{onlineCount} online</span>
+              </>
+            )}{" "}
+            · since{" "}
+            {new Date(group.createdAt).toLocaleDateString(undefined, {
+              month: "short",
+              year: "numeric",
+            })}
           </p>
 
           <div className="mt-4 flex flex-wrap items-center gap-2">
             {isMember && (
-              <Link
-                href={`/new?group=${group.id}`}
-                className="btn-primary shrink-0 px-4 py-2 text-sm"
-              >
-                Post to group
-              </Link>
+              <>
+                <Link
+                  href={`/new?group=${group.id}`}
+                  className="btn-primary shrink-0 px-4 py-2 text-sm"
+                >
+                  Post to group
+                </Link>
+                <InviteButton slug={group.slug} />
+              </>
             )}
             {!meId ? (
               <Link
@@ -221,6 +251,7 @@ export default async function GroupPage({
         />
       )}
       <div className="mt-5 grid items-start gap-5 lg:grid-cols-[190px_minmax(0,1fr)_230px]">
+      <div className="flex min-w-0 flex-col gap-5 lg:sticky lg:top-20 lg:self-start">
         {/* Channels — real slices of this group's feed */}
         <nav aria-label="Group channels" className="card flex gap-1 overflow-x-auto p-2 lg:sticky lg:top-20 lg:flex-col">
           {(
@@ -248,9 +279,41 @@ export default async function GroupPage({
             </Link>
           ))}
         </nav>
+        <RulesCard
+          groupId={group.id}
+          rules={(group as { rules?: string | null }).rules ?? null}
+          canEdit={isOwner}
+        />
+        </div>
 
         {/* Center feed */}
         <div className="min-w-0">
+        {/* ── Pinned highlights (moderator-curated) ── */}
+        {activeView === "all" && pinned.length > 0 && (
+          <section aria-label="Pinned highlights" className="card mb-4 p-4">
+            <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-faint">
+              📌 Highlights
+            </h2>
+            <ul className="space-y-1">
+              {pinned.map((p) => (
+                <li key={p.id}>
+                  <Link
+                    href={`/community/${p.id}`}
+                    className="flex items-center gap-2 rounded-lg px-2 py-1.5 transition hover:bg-surface-hover/60"
+                  >
+                    <span className="min-w-0 flex-1 truncate text-sm font-semibold text-ink">
+                      {p.title}
+                    </span>
+                    <span className="shrink-0 text-xs text-ink-faint">
+                      {p.author?.name || "Someone"} · {p._count.comments}{" "}
+                      {p._count.comments === 1 ? "reply" : "replies"}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
         {/* ── Feed (filtered by channel) ── */}
         {!canView ? (
         <div className="card p-14 text-center">
@@ -275,7 +338,12 @@ export default async function GroupPage({
       ) : (
         <div className="space-y-4">
           {visibleFeed.map((p) => (
-            <PostCard key={p.id} post={p} viewerId={meId} />
+            <PostCard
+              key={p.id}
+              post={p}
+              viewerId={meId}
+              pinContext={canMod ? { groupId: group.id, canPin: true } : undefined}
+            />
           ))}
         </div>
       )}

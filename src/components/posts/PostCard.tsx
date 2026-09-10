@@ -12,6 +12,7 @@ import { timeAgo, parseTags } from "@/lib/utils";
 import { CATEGORY_META } from "@/lib/types";
 import { reactionCounts, type PostWithRelations } from "@/lib/queries";
 import { isFoundingMember } from "@/lib/founding";
+import { PinButton } from "@/components/groups/GroupModeration";
 
 function detailPath(category: string, id: string) {
   const meta = CATEGORY_META[category as keyof typeof CATEGORY_META];
@@ -23,10 +24,13 @@ export async function PostCard({
   post,
   viewerId,
   showFeedback,
+  pinContext,
 }: {
   post: PostWithRelations;
   viewerId?: string;
   showFeedback?: boolean;
+  /** Group page opts in: moderators get a pin toggle in the actions row. */
+  pinContext?: { groupId: string; canPin: boolean };
 }) {
   if (!post) return null;
   const founding =
@@ -233,6 +237,13 @@ export async function PostCard({
           signedIn={!!viewerId}
           isOwner={!!viewerId && viewerId === post.authorId}
         />
+        {pinContext?.canPin && (
+          <PinButton
+            groupId={pinContext.groupId}
+            postId={post.id}
+            pinned={!!(post as { isPinned?: boolean }).isPinned}
+          />
+        )}
         <Link
           href={detailPath(post.category, post.id)}
           className="ml-auto inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1 text-xs font-medium text-ink-faint transition hover:bg-soft hover:text-accent"

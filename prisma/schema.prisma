@@ -88,6 +88,8 @@ model Group {
   slug        String   @unique
   description String?
   coverUrl    String?
+  // House rules, owner-written (one per line). Shown on the group page.
+  rules       String?
   // "public" (listed + feed-visible) | "private" (members only)
   visibility  String   @default("public")
   // Discovery tab (owner-picked at create from a fixed list; null = uncategorized)
@@ -209,6 +211,8 @@ model Post {
   status    String      @default("open") // open | closed
   // Moderation: hidden posts are excluded from feeds but kept for review.
   hidden    Boolean     @default(false)
+  // Owner/moderator highlight: pinned posts lead the group highlights row.
+  isPinned  Boolean     @default(false)
   authorId  String
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt

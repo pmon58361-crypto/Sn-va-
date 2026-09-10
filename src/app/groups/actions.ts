@@ -397,6 +397,58 @@ export async function transferOwnership(
   return { ok: true };
 }
 
+// ── Showcase: rules + pinned highlights ──────────────────────────────────
+
+/** Owner rewrites the house rules (one per line, shown on the group page). */
+export async function updateGroupRules(
+  groupId: string,
+  rules: string
+): Promise<{ ok: boolean; error?: string }> {
+  const me = (await requireActiveUser()).id;
+
+  const group = await prisma.group.findUnique({
+    where: { id: groupId },
+    select: { creatorId: true },
+  });
+  if (!group) return { ok: false, error: "Group not found" };
+  if (group.creatorId !== me && !(await isSiteAdmin(me))) {
+    return { ok: false, error: "Only the owner can edit the rules" };
+  }
+  const clean = rules.trim().slice(0, 2000) || null;
+  if (clean) {
+    try {
+      assertClean(clean, "Rules");
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : "Blocked" };
+    }
+  }
+  await prisma.group.update({ where: { id: groupId }, data: { rules: clean } });
+  revalidatePath(`/groups`);
+  return { ok: true };
+}
+
+/** Pin or unpin a group post into the highlights row (owner/moderator). */
+export async function setPostPinned(
+  groupId: string,
+  postId: string,
+  pinned: boolean
+): Promise<{ ok: boolean; error?: string }> {
+  const me = (await requireActiveUser()).id;
+  const mod = await canModerate(groupId, me);
+  if (!mod.ok) return { ok: false, error: "Forbidden" };
+
+  const post = await prisma.post.findUnique({
+    where: { id: postId },
+    select: { groupId: true },
+  });
+  if (!post || post.groupId !== groupId) {
+    return { ok: false, error: "That post isn't in this group" };
+  }
+  await prisma.post.update({ where: { id: postId }, data: { isPinned: pinned } });
+  revalidatePath(`/groups`);
+  return { ok: true };
+}
+
 // Owner cover change/remove. Accepts a fresh /api/upload URL or null
 // (null = back to the gradient-letter tile). Old asset destroyed when
 // nothing else references it.
