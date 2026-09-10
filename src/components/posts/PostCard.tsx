@@ -224,8 +224,10 @@ export async function PostCard({
 
       {/* Row 4: Actions — relative z-10 gives the report popover a stacking
           context above later feed cards, which otherwise intercept its
-          clicks (absolute z-30 alone loses to subsequent siblings). */}
-      <div className="relative z-10 flex items-center gap-3 border-t border-line px-4 py-2 sm:px-5 sm:py-2.5">
+          clicks (absolute z-30 alone loses to subsequent siblings).
+          Tight gaps + min-w-0: in narrow columns (group detail rail) the
+          row used to overflow the card and clip the replies link. */}
+      <div className="relative z-10 flex min-w-0 items-center gap-2 border-t border-line px-3 py-2 sm:gap-3 sm:px-5 sm:py-2.5">
         <PostActions
           postId={post.id}
           likes={likes}

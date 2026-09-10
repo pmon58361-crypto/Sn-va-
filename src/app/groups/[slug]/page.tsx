@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getMembership, canViewGroup } from "@/lib/groups";
 import { getPosts } from "@/lib/queries";
 import { getPresence } from "@/lib/presence";
-import { PostCard } from "@/components/posts/PostCard";
+import { GroupPostRow } from "@/components/groups/GroupPostRow";
 import { GroupCover } from "@/components/groups/GroupCover";
 import {
   GroupActions,
@@ -39,10 +39,10 @@ export default async function GroupPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ view?: string }>;
+  searchParams: Promise<{ view?: string; sort?: string }>;
 }) {
   const { slug } = await params;
-  const { view } = await searchParams;
+  const { view, sort: sortParam } = await searchParams;
   const session = await auth();
   const meId = session?.user?.id;
   const isAdmin = session?.user?.role === "admin";
@@ -94,7 +94,12 @@ export default async function GroupPage({
   );
 
   const feed = canView
-    ? await getPosts({ groupId: group.id, viewerId: meId, sort: "new", limit: 50 })
+    ? await getPosts({
+        groupId: group.id,
+        viewerId: meId,
+        sort: sortParam === "best" ? "best" : "new",
+        limit: 50,
+      })
     : [];
 
   // Discord-server anatomy: real slices of the feed as channels (no new
@@ -146,11 +151,19 @@ export default async function GroupPage({
     <div className="mx-auto max-w-3xl px-5 py-6">
       {/* ── Group header ── */}
       <section className="card overflow-hidden">
-        <div className="h-36 w-full overflow-hidden sm:h-44 [&>div]:h-full [&>img]:h-full">
+        {/* Real art gets the full stage; the fallback tile only needs
+            a slim band — a tall empty gradient reads as broken. */}
+        <div className={`w-full overflow-hidden ${group.coverUrl ? "h-36 sm:h-44" : "h-24 sm:h-28"} [&>div]:h-full [&>img]:h-full`}>
           <GroupCover name={group.name} coverUrl={group.coverUrl} />
         </div>
 
-        <div className="p-5">
+        <div className="p-5 pt-0">
+          {/* Overlapping avatar tile — identity sits on the art, Reddit-style. */}
+          <div className="relative z-10 -mt-7 mb-2 flex items-end">
+            <span className="grid h-14 w-14 place-items-center overflow-hidden rounded-2xl bg-accent text-2xl font-black text-white ring-4 ring-[var(--bg-surface,#1a1a1c)]">
+              {(group.name || "?").trim().charAt(0).toUpperCase()}
+            </span>
+          </div>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <h1 className="break-words text-xl font-bold tracking-tight text-ink sm:text-2xl">
               {group.name}
@@ -315,6 +328,35 @@ export default async function GroupPage({
           </section>
         )}
         {/* ── Feed (filtered by channel) ── */}
+        <div className="mb-3 flex items-center gap-1 text-sm">
+          {(
+            [
+              { v: "new", label: "New" },
+              { v: "best", label: "Best" },
+            ] as const
+          ).map((s) => {
+            const isActive =
+              (s.v === "best") === (sortParam === "best");
+            const params = new URLSearchParams();
+            if (activeView !== "all") params.set("view", activeView);
+            if (s.v === "best") params.set("sort", "best");
+            const qs = params.toString();
+            return (
+              <Link
+                key={s.v}
+                href={`/groups/${slug}${qs ? `?${qs}` : ""}`}
+                aria-current={isActive ? "true" : undefined}
+                className={`rounded-lg px-3 py-1.5 font-medium transition ${
+                  isActive
+                    ? "bg-surface-hover text-ink"
+                    : "text-ink-muted hover:bg-surface-hover/60 hover:text-ink"
+                }`}
+              >
+                {s.label}
+              </Link>
+            );
+          })}
+        </div>
         {!canView ? (
         <div className="card p-14 text-center">
           <p className="text-lg font-semibold">This group is private</p>
@@ -336,9 +378,9 @@ export default async function GroupPage({
           </p>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
           {visibleFeed.map((p) => (
-            <PostCard
+            <GroupPostRow
               key={p.id}
               post={p}
               viewerId={meId}
