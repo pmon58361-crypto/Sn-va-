@@ -212,7 +212,7 @@ export default async function JobsPage({
         {loc && <input type="hidden" name="loc" value={loc} />}
         {budget && <input type="hidden" name="budget" value={budget} />}
         {status && <input type="hidden" name="status" value={status} />}
-        <input name="q" defaultValue={q || ""} placeholder="Search by skill, tag, or keyword…" className="input" />
+        <input name="q" defaultValue={q || ""} placeholder="Search by skill, tag, or keyword…" className="input min-w-0 flex-1" />
         <button type="submit" className="btn-outline shrink-0">
           Search
         </button>

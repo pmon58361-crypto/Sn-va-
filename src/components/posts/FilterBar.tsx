@@ -4,12 +4,13 @@ import Link from "next/link";
 // FilterBar — server-rendered chip groups for the job board.
 // Every chip is a plain <Link> that patches ONE URL param while keeping the
 // rest, so filtering works with zero client JS and stays shareable/bookmarkable.
+// Soft pill styling in brand accent — no gradients, no mono hacker type.
 // ─────────────────────────────────────────────────────────────────────────
 
 export type FilterGroup = {
   /** Param key this group writes to. */
   param: string;
-  /** Mono label shown above/next to the chips. */
+  /** Small-caps label shown next to the chips. */
   label: string;
   /** value → label options; "" (or special) = "any". */
   options: { value: string; label: string }[];
@@ -30,12 +31,22 @@ function buildHref(
   return qs ? `${base}?${qs}` : base;
 }
 
+function clearHref(base: string, current: CurrentParams, groups: FilterGroup[]) {
+  return buildHref(
+    base,
+    current,
+    Object.fromEntries(groups.map((g) => [g.param, ""]))
+  );
+}
+
 const chipBase =
-  "rounded-full border px-3 py-1 font-mono text-[11px] transition-colors whitespace-nowrap";
+  "rounded-full border px-4 py-2 text-xs font-semibold whitespace-nowrap touch-manipulation transition-colors sm:py-1.5";
 const chipIdle =
-  "border-white/10 bg-white/[0.03] text-white/55 hover:border-white/30 hover:text-white";
+  "border-line bg-surface text-ink-muted hover:border-line-strong hover:text-ink";
 const chipActive =
-  "border-amber-400/60 bg-amber-400/10 text-amber-300 hover:border-amber-400/80";
+  "border-accent/50 bg-accent-tint text-accent shadow-sm";
+const groupLabel =
+  "shrink-0 text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-faint";
 
 export function FilterBar({
   base,
@@ -64,13 +75,11 @@ export function FilterBar({
 
   if (dense) {
     return (
-      <div className="mb-4 rounded-xl border border-line bg-soft/60 px-3 py-2">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+      <div className="mb-4 rounded-2xl border border-line bg-surface p-3">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           {groups.map((g) => (
             <span key={g.param} className="flex flex-wrap items-center gap-1.5">
-              <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-ink-faint">
-                {g.label}
-              </span>
+              <span className={groupLabel}>{g.label}</span>
               {g.options.map((o) => {
                 const active = (current[g.param] || o.value) === o.value;
                 return (
@@ -88,10 +97,10 @@ export function FilterBar({
           ))}
           {anyActive && (
             <Link
-              href={buildHref(base, current, Object.fromEntries(groups.map((g) => [g.param, ""])))}
-              className="ml-auto font-mono text-[11px] text-white/35 underline-offset-2 transition hover:text-amber-300 hover:underline"
+              href={clearHref(base, current, groups)}
+              className="ml-auto rounded-full border border-line px-3 py-1.5 text-xs font-medium text-ink-muted transition-colors hover:border-warm/50 hover:text-warm"
             >
-              ✕ clear ({activeCount})
+              Clear ({activeCount})
             </Link>
           )}
         </div>
@@ -100,12 +109,10 @@ export function FilterBar({
   }
 
   return (
-    <div className="mb-6 space-y-3 rounded-xl border border-line bg-soft/60 p-4">
+    <div className="mb-6 space-y-3 rounded-2xl border border-line bg-surface p-3 sm:p-4">
       {groups.map((g) => (
         <div key={g.param} className="flex flex-wrap items-center gap-2">
-          <span className="w-16 shrink-0 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-faint">
-            {g.label}
-          </span>
+          <span className={`w-16 ${groupLabel}`}>{g.label}</span>
           <div className="flex flex-wrap items-center gap-2">
             {g.options.map((o) => {
               const active = (current[g.param] || o.value) === o.value;
@@ -127,10 +134,10 @@ export function FilterBar({
       {anyActive && (
         <div className="flex justify-end">
           <Link
-            href={buildHref(base, current, Object.fromEntries(groups.map((g) => [g.param, ""])))}
-            className="font-mono text-[11px] text-white/35 underline-offset-2 transition hover:text-amber-300 hover:underline"
+            href={clearHref(base, current, groups)}
+            className="rounded-full border border-line px-3 py-1.5 text-xs font-medium text-ink-muted transition-colors hover:border-warm/50 hover:text-warm"
           >
-            ✕ clear filters
+            Clear all filters
           </Link>
         </div>
       )}
