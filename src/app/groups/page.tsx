@@ -105,24 +105,36 @@ export default async function GroupsPage({
 
   return (
     <div className="mx-auto max-w-5xl px-5 py-8">
-      {/* ── Header: flat card, no billboard. The rooms are the content,
-          not a gradient. ── */}
-      <div className="card flex flex-wrap items-end justify-between gap-x-6 gap-y-3 p-5 sm:px-6">
-        <div>
-          <p className="eyebrow mb-1.5">Groups</p>
-          <h1 className="text-2xl font-bold tracking-tight text-ink">
-            Find your people
+      {/* ── Discovery billboard (Discord language, brand palette): deep
+          indigo stage, display type, live counts, create action. ── */}
+      <div className="relative overflow-hidden rounded-2xl px-6 py-10 sm:px-10 sm:py-12"
+        style={{ background: "linear-gradient(120deg, #2b2350 0%, #17142e 55%, #0a0a0b 100%)" }}
+      >
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -right-16 -top-20 h-72 w-72 rounded-full bg-indigo-500/25 blur-[100px]"
+        />
+        <div className="relative">
+          <p className="font-mono text-[11px] uppercase tracking-[0.3em] text-indigo-300">
+            Groups
+          </p>
+          <h1 className="mt-3 text-5xl font-black uppercase leading-[0.95] tracking-tight text-white sm:text-6xl">
+            Find your
+            <br />
+            people
           </h1>
-          <p className="mt-1 text-sm text-ink-muted">
-            Small rooms around crafts, cities and side-quests.{" "}
-            <span className="font-mono text-xs text-ink-faint">
+          <p className="mt-3 max-w-md text-sm leading-relaxed text-white/60">
+            Small rooms around crafts, cities and side-quests.
+          </p>
+          <div className="mt-5 flex flex-wrap items-center gap-3">
+            <CreateGroupButton signedIn={!!session?.user?.id} />
+            <p className="font-mono text-xs text-white/50">
               {plural(groups.length, "room", "rooms")} ·{" "}
               {plural(totalMembers, "member", "members")} ·{" "}
               {plural(totalPosts, "post", "posts")}
-            </span>
-          </p>
+            </p>
+          </div>
         </div>
-        <CreateGroupButton signedIn={!!session?.user?.id} />
       </div>
 
       <form action="/groups" method="GET" className="mt-5 flex gap-2">
@@ -137,59 +149,25 @@ export default async function GroupsPage({
         </button>
       </form>
 
-      <div className="mt-3 flex gap-2 text-sm">
-        <Link
-          href={newHref}
-          className={`rounded-full border px-3 py-1 ${
-            !popular ? "border-accent font-bold text-ink" : "border-line text-ink-muted"
-          }`}
-        >
-          New
-        </Link>
-        <Link
-          href={`/groups?${new URLSearchParams({
-            ...(q ? { q } : {}),
-            ...(category ? { category } : {}),
-            sort: "popular",
-          })}`}
-          className={`rounded-full border px-3 py-1 ${
-            popular ? "border-accent font-bold text-ink" : "border-line text-ink-muted"
-          }`}
+      {/* ── Tab bar (Discord nav language): text tabs, active gets the
+          accent underline. Categories only render for rooms that exist. ── */}
+      <nav aria-label="Browse groups" className="mt-5 flex items-center gap-5 overflow-x-auto border-b border-line text-[15px]">
+        <TabLink href={chipHref(null)} active={!category}>
+          All
+        </TabLink>
+        {liveCategories.map((c) => (
+          <TabLink key={c} href={chipHref(c)} active={category === c} capitalize>
+            {c}
+          </TabLink>
+        ))}
+        <span className="mx-1 h-4 w-px shrink-0 bg-line" aria-hidden />
+        <TabLink
+          href={`${newHref}${newHref.includes("?") ? "&" : "?"}sort=popular`}
+          active={popular}
         >
           Popular
-        </Link>
-      </div>
-
-      {/* Category tabs — Discord Home/Gaming/Music language, but only tabs
-          for categories that really exist. */}
-      {liveCategories.length > 0 && (
-        <div className="mt-3 flex flex-wrap gap-2 text-sm">
-          <Link
-            href={chipHref(null)}
-            className={`rounded-full border px-3 py-1 capitalize ${
-              !category
-                ? "border-accent font-bold text-ink"
-                : "border-line text-ink-muted"
-            }`}
-          >
-            All
-          </Link>
-          {liveCategories.map((c) => (
-            <Link
-              key={c}
-              href={chipHref(c)}
-              aria-current={category === c ? "page" : undefined}
-              className={`rounded-full border px-3 py-1 capitalize ${
-                category === c
-                  ? "border-accent font-bold text-ink"
-                  : "border-line text-ink-muted"
-              }`}
-            >
-              {c}
-            </Link>
-          ))}
-        </div>
-      )}
+        </TabLink>
+      </nav>
 
       {groups.length === 0 ? (
         <div className="card mt-8 p-14 text-center">
@@ -205,16 +183,23 @@ export default async function GroupsPage({
       ) : (
         <>
           {featured && (
-            <div className="mt-6">
+            <section className="mt-8" aria-label="Featured rooms">
+              <h2 className="mb-3 text-lg font-bold tracking-tight text-ink">
+                Featured rooms
+              </h2>
               <GroupCard
                 group={featured}
                 online={onlineCount(featured.members)}
                 featured
               />
-            </div>
+            </section>
           )}
           {rest.length > 0 && (
-          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <section className="mt-8" aria-label="More rooms">
+            <h2 className="mb-3 text-lg font-bold tracking-tight text-ink">
+              {featured ? "More rooms" : "All rooms"}
+            </h2>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {rest.map((g) => (
               <GroupCard
                 key={g.id}
@@ -223,9 +208,38 @@ export default async function GroupsPage({
               />
             ))}
           </div>
+          </section>
           )}
         </>
       )}
     </div>
+  );
+}
+
+function TabLink({
+  href,
+  active,
+  capitalize,
+  children,
+}: {
+  href: string;
+  active?: boolean;
+  capitalize?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      aria-current={active ? "page" : undefined}
+      className={`shrink-0 border-b-2 pb-2 pt-1 transition-colors ${
+        capitalize ? "capitalize" : ""
+      } ${
+        active
+          ? "border-accent font-bold text-ink"
+          : "border-transparent text-ink-muted hover:text-ink"
+      }`}
+    >
+      {children}
+    </Link>
   );
 }
