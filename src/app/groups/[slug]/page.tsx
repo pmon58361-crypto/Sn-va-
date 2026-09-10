@@ -260,8 +260,10 @@ export default async function GroupPage({
           }))}
         />
       )}
-      {/* Channels — real slices of this group's feed */}
-      <nav aria-label="Group channels" className="card mt-5 flex gap-1 overflow-x-auto p-2">
+      {/* Channels — real slices of this group's feed. Hidden while the
+          group is completely empty: nothing to slice, nothing to sort. */}
+      {feed.length > 0 && (
+        <nav aria-label="Group channels" className="card mt-5 flex gap-1 overflow-x-auto p-2">
         {(
           [
             { v: "all", label: "# feed", count: feed.length },
@@ -287,6 +289,7 @@ export default async function GroupPage({
           </Link>
         ))}
       </nav>
+      )}
       <div className="mt-5 grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
 
         {/* Center feed */}
@@ -317,8 +320,9 @@ export default async function GroupPage({
           </section>
         )}
         {/* ── Feed (filtered by channel) ── */}
-        <div className="mb-3 flex items-center gap-1 text-sm">
-          <span className="px-1 text-xs text-ink-faint">Sort:</span>
+        {feed.length > 0 && (
+          <div className="mb-3 flex items-center gap-1 text-sm">
+            <span className="px-1 text-xs text-ink-faint">Sort:</span>
           {(
             [
               { v: "new", label: "New" },
@@ -346,7 +350,8 @@ export default async function GroupPage({
               </Link>
             );
           })}
-        </div>
+          </div>
+        )}
         {!canView ? (
         <div className="card p-14 text-center">
           <p className="text-lg font-semibold">This group is private</p>
@@ -360,11 +365,24 @@ export default async function GroupPage({
             {activeView === "all" ? "No posts yet" : `Nothing in #${activeView} yet`}
           </p>
           <p className="mt-1 text-sm text-ink-muted">
-            {activeView === "all"
-              ? isMember
-                ? "Be the first — post from the New Post page."
-                : "Members haven't posted yet."
-              : "Post in this group and it shows up here when it matches."}
+            {activeView === "all" ? (
+              isMember ? (
+                <>
+                  Be the first —{" "}
+                  <Link
+                    href={`/new?group=${group.id}`}
+                    className="font-medium text-accent hover:underline"
+                  >
+                    post to this group
+                  </Link>
+                  .
+                </>
+              ) : (
+                "Members haven't posted yet."
+              )
+            ) : (
+              "Post in this group and it shows up here when it matches."
+            )}
           </p>
         </div>
       ) : (
