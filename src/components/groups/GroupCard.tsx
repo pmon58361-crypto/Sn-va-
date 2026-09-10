@@ -40,8 +40,9 @@ export function GroupCard({
       href={`/groups/${group.slug}`}
       className="card card-hover group block overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-xl"
     >
-      {/* Banner */}
-      <div className={`relative w-full overflow-hidden ${featured ? "h-40 sm:h-44" : "h-28"}`}>
+      {/* Banner — capped height: group covers are usually square logos,
+          and a tall crop turns them into an unrecognizable slice. */}
+      <div className={`relative w-full overflow-hidden ${featured ? "h-32 sm:h-36" : "h-28"}`}>
         {showCover ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img

@@ -98,37 +98,31 @@ export default async function GroupsPage({
       : null;
   const rest = featured ? groups.filter((g) => g.id !== featured.id) : groups;
 
+  const totalMembers = groups.reduce((n, g) => n + g._count.members, 0);
+  const totalPosts = groups.reduce((n, g) => n + g._count.posts, 0);
+  const plural = (n: number, one: string, many: string) =>
+    `${n} ${n === 1 ? one : many}`;
+
   return (
     <div className="mx-auto max-w-5xl px-5 py-8">
-      {/* ── Discovery hero: Discord-scale display type on brand gradient ── */}
-      <div className="relative overflow-hidden rounded-2xl px-6 py-10 sm:px-10 sm:py-12"
-        style={{ background: "linear-gradient(120deg, #7f1d1d 0%, #450a0a 45%, #0a0a0b 100%)" }}
-      >
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -right-16 -top-20 h-72 w-72 rounded-full bg-red-600/30 blur-[100px]"
-        />
-        <div className="relative">
-          <p className="font-mono text-[11px] uppercase tracking-[0.3em] text-red-300">
-            Groups
-          </p>
-          <h1 className="mt-3 text-5xl font-black uppercase leading-[0.95] tracking-tight text-white sm:text-6xl">
-            Find your
-            <br />
-            people
+      {/* ── Header: flat card, no billboard. The rooms are the content,
+          not a gradient. ── */}
+      <div className="card flex flex-wrap items-end justify-between gap-x-6 gap-y-3 p-5 sm:px-6">
+        <div>
+          <p className="eyebrow mb-1.5">Groups</p>
+          <h1 className="text-2xl font-bold tracking-tight text-ink">
+            Find your people
           </h1>
-          <p className="mt-3 max-w-md text-sm leading-relaxed text-white/60">
-            Small rooms around crafts, cities and side-quests.
+          <p className="mt-1 text-sm text-ink-muted">
+            Small rooms around crafts, cities and side-quests.{" "}
+            <span className="font-mono text-xs text-ink-faint">
+              {plural(groups.length, "room", "rooms")} ·{" "}
+              {plural(totalMembers, "member", "members")} ·{" "}
+              {plural(totalPosts, "post", "posts")}
+            </span>
           </p>
-          <div className="mt-5 flex flex-wrap items-center gap-3">
-            <CreateGroupButton signedIn={!!session?.user?.id} />
-            <p className="font-mono text-xs text-white/50">
-              {groups.length} {groups.length === 1 ? "room" : "rooms"} ·{" "}
-              {groups.reduce((n, g) => n + g._count.members, 0)} members ·{" "}
-              {groups.reduce((n, g) => n + g._count.posts, 0)} posts
-            </p>
-          </div>
         </div>
+        <CreateGroupButton signedIn={!!session?.user?.id} />
       </div>
 
       <form action="/groups" method="GET" className="mt-5 flex gap-2">
