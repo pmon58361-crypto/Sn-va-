@@ -46,7 +46,9 @@ export async function signInWithAccessCode(page: Page, account: "demo" | "demo2"
   await page.goto(`${BASE_URL}/auth/signin`);
   await page.getByPlaceholder("access code").fill(accessCodeFor(account));
   await page.getByRole("button", { name: /Enter with access code/ }).click();
-  await expect(page).toHaveURL(/\/community/, { timeout: 15_000 });
+  // Hosted-DB stalls make the credentials callback take tens of seconds;
+  // 15s flaked constantly under load.
+  await expect(page).toHaveURL(/\/community/, { timeout: 60_000 });
 }
 
 export async function signedInPage(browser: Browser, account: "demo" | "demo2") {
