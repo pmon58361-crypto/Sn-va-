@@ -4,9 +4,9 @@ import {
   applyFeedbackToContext,
   applyInterestsToContext,
   buildPersonalContextFromRows,
-  finalScore,
-  rankFeed,
+  feedScore,
   rotateFeed,
+  scorePool,
   type FeedSort,
 } from "@/lib/feed";
 import { parseTags } from "@/lib/utils";
@@ -219,7 +219,7 @@ export async function getPosts({
     Date.now() - AFFINITY_WINDOW_DAYS * 86_400_000
   );
 
-  const [pool, myReactions, myComments, myFeedback, mySettings, r12, c12] = await Promise.all([
+  const [pool, myReactions, myComments, myFeedback, mySettings, myFollows, r12, c12] = await Promise.all([
     prisma.post.findMany({
       where,
       include: {
@@ -260,6 +260,14 @@ export async function getPosts({
           select: { interests: true },
         })
       : Promise.resolve(null),
+    // Relationship signal for candidate prioritization (stage 1): a follow
+    // counts as FOLLOW_AFFINITY interaction-equivalents in the ranker.
+    viewerId
+      ? prisma.follow.findMany({
+          where: { followerId: viewerId },
+          select: { followingId: true },
+        })
+      : Promise.resolve([] as { followingId: string }[]),
     prisma.reaction.groupBy({
       by: ["postId"],
       where: { createdAt: { gte: since12 } },
@@ -274,7 +282,12 @@ export async function getPosts({
 
   const ctx =
     viewerId && pool.length
-      ? buildPersonalContextFromRows(myReactions, myComments, viewerId)
+      ? buildPersonalContextFromRows(
+          myReactions,
+          myComments,
+          viewerId,
+          myFollows.map((f) => f.followingId)
+        )
       : undefined;
   if (ctx) {
     applyFeedbackToContext(ctx, myFeedback);
@@ -303,16 +316,20 @@ export async function getPosts({
     recent12h.set(g.postId, (recent12h.get(g.postId) || 0) + g._count._all);
 
   // One clock for ranking + rotation so scores agree everywhere.
+  // scorePool is computed once and shared: rotation jitters these exact
+  // numbers, so personalization survives the reshuffle (stage 6).
   const now = new Date();
-  return rotateFeed(
-    rankFeed(eligiblePool, "best", now, ctx, { recent12h, viewerId }),
-    {
-      viewerId,
-      // Rotation jitters the FULL personalized score — passing it back
-      // keeps affinity/hotness/demotions alive through the reshuffle.
-      scoreOf: (p) => finalScore(p, now, ctx, { recent12h, viewerId }),
-    }
-  ).slice(0, limit);
+  const signals = { recent12h, viewerId };
+  const scores = scorePool(eligiblePool, now, ctx, signals);
+  const ranked = [...eligiblePool].sort(
+    (a, b) => (scores.get(b.id) ?? 0) - (scores.get(a.id) ?? 0)
+  );
+  return rotateFeed(ranked, {
+    viewerId,
+    limit,
+    scoreOf: (p) => scores.get(p.id) ?? feedScore(p, now),
+    affinityOf: (authorId) => ctx?.authorAffinity.get(authorId) ?? 0,
+  }).slice(0, limit);
 }
 
 export async function getComments(postId: string) {
