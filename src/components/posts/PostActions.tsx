@@ -177,8 +177,9 @@ export function PostActions({
   }
 
   const icon = variant === "detail" ? "h-[22px] w-[22px]" : "h-5 w-5";
+  // Roomier tap targets on phones (44px-adjacent), unchanged desktop density.
   const btn =
-    "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-ink-faint transition-colors";
+    "inline-flex touch-manipulation items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium text-ink-faint transition-colors sm:px-2.5 sm:py-1.5";
 
   return (
     <div className="flex items-center gap-1 sm:gap-2">

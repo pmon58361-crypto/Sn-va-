@@ -95,7 +95,7 @@ export function PollBox({
                 type="button"
                 disabled={pending}
                 onClick={() => vote(o.id)}
-                className="block w-full rounded-lg border border-line bg-surface px-3 py-2 text-left text-sm text-ink-soft transition hover:border-accent hover:text-accent disabled:opacity-60"
+                className="block w-full touch-manipulation rounded-lg border border-line bg-surface px-3 py-2.5 text-left text-[15px] text-ink-soft transition hover:border-accent hover:text-accent active:scale-[0.99] disabled:opacity-60 sm:py-2 sm:text-sm"
               >
                 {o.label}
               </button>
