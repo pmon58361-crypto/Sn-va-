@@ -73,13 +73,15 @@ model User {
   // adopted verbatim so the groups-ui code matches the generated client.
   groupsCreated     Group[]       @relation("GroupCreator")
   groupMemberships  GroupMember[] @relation("GroupMemberships")
+  groupJoinRequests GroupJoinRequest[]
 
   // Weekly challenges (community contests — Quests infrastructure later).
   challengesCreated Challenge[] @relation("ChallengeCreator")
 }
 
-// Discord-style groups v1: a page with its own post feed. Owner-managed;
-// visibility gates the feed, joinMode gates membership.
+// Discord-style groups: a page with its own post feed. Owner + moderators
+// run it; visibility gates the feed, joinMode gates membership (open =
+// instant join, approval = tracked request, private = request-only).
 model Group {
   id          String   @id @default(cuid())
   name        String
@@ -90,11 +92,12 @@ model Group {
   visibility  String   @default("public")
   // Discovery tab (owner-picked at create from a fixed list; null = uncategorized)
   category    String?
-  // "open" (join instantly) | "approval" (contact owner — DM deep-link v1)
+  // "open" (join instantly) | "approval" (request → owner/moderator approves)
   joinMode    String   @default("open")
   creatorId   String
   creator     User     @relation("GroupCreator", fields: [creatorId], references: [id], onDelete: Cascade)
   members     GroupMember[]
+  joinRequests GroupJoinRequest[]
   posts       Post[]
   createdAt   DateTime @default(now())
 
@@ -106,12 +109,30 @@ model GroupMember {
   groupId  String
   user     User     @relation("GroupMemberships", fields: [userId], references: [id], onDelete: Cascade)
   userId   String
-  // "owner" | "member" (no richer roles in v1)
+  // "owner" | "moderator" | "member". Moderators kick + approve requests;
+  // only the owner deletes, transfers, or touches the cover.
   role     String   @default("member")
   joinedAt DateTime @default(now())
 
   @@id([groupId, userId])
   @@index([userId])
+}
+
+// Tracked join request — replaces the "DM the owner" dead-end for approval
+// and private groups. One pending row per user per group; approving creates
+// the membership, declining/revoking deletes the row. History is not kept
+// (re-requesting after a decline is allowed).
+model GroupJoinRequest {
+  id        String   @id @default(cuid())
+  groupId   String
+  group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  message   String?
+  createdAt DateTime @default(now())
+
+  @@unique([groupId, userId])
+  @@index([groupId])
 }
 
 // Weekly community challenge (contests — Quests infrastructure later).

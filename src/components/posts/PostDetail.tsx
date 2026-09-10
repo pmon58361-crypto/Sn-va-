@@ -161,19 +161,6 @@ export function PostDetail({
           {/* Video link embed — first recognized YouTube/TikTok/Reels URL */}
           <PostEmbeds content={post.content} />
 
-          {(() => {
-            const polls = (post as { polls?: PollData[] | null }).polls;
-            const poll = polls?.[0];
-            if (!poll) return null;
-            return (
-              <PollBox
-                poll={poll}
-                meId={viewerId}
-                forceResults={viewerId === post.authorId}
-              />
-            );
-          })()}
-
           {tags.length > 0 && (
             <div className="mt-5 flex flex-wrap gap-1.5">
               {tags.map((t) => (
@@ -214,6 +201,22 @@ export function PostDetail({
             ))}
           </div>
         )}
+
+        {/* Attached poll - BELOW the photo. */}
+        {(() => {
+          const polls = (post as { polls?: PollData[] | null }).polls;
+          const poll = polls?.[0];
+          if (!poll) return null;
+          return (
+            <div className="border-t border-line p-4">
+              <PollBox
+                poll={poll}
+                meId={viewerId}
+                forceResults={viewerId === post.authorId}
+              />
+            </div>
+          );
+        })()}
 
         {/* Action row */}
         <div className="flex items-center gap-2 border-t border-line px-6 py-4">

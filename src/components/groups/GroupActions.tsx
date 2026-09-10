@@ -6,21 +6,15 @@ import { joinGroup, leaveGroup, deleteGroup, kickMember, updateGroupCover } from
 
 type Props = {
   groupId: string;
-  ownerId: string;
-  ownerName?: string | null;
   isOwner: boolean;
   isMember: boolean;
-  joinMode: "open" | "approval";
 };
 
 /** Join / Leave / Delete + member kick controls. Server actions, no client cache. */
 export function GroupActions({
   groupId,
-  ownerId,
-  ownerName,
   isOwner,
   isMember,
-  joinMode,
 }: Props) {
   const router = useRouter();
   const [pending, setPending] = useState<string | null>(null);
@@ -97,11 +91,16 @@ export function GroupActions({
           <button
             type="button"
             disabled={pending === "cover"}
-            title="Back to the gradient tile"
+            title="Remove cover (back to the gradient tile)"
+            aria-label="Remove cover"
             onClick={() => run("cover", () => updateGroupCover(groupId, null))}
-            className="btn-ghost shrink-0 px-3 py-2 text-xs disabled:opacity-50"
+            className="btn-outline grid h-[38px] w-[38px] shrink-0 place-items-center disabled:opacity-50"
           >
-            Remove
+            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+              <path d="M4 7h16" strokeLinecap="round" />
+              <path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" strokeLinecap="round" />
+              <path d="M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13" strokeLinejoin="round" />
+            </svg>
           </button>
         </div>
         <div className="flex items-center gap-2">
@@ -154,24 +153,8 @@ export function GroupActions({
     );
   }
 
-  if (joinMode === "approval") {
-    return (
-      <div className="flex flex-col gap-1">
-        <a
-          href={`/dm/${ownerId}?text=${encodeURIComponent(
-            "Hi! Could I join your group?"
-          )}`}
-          className="btn-outline w-full py-2 text-center text-sm"
-        >
-          Ask to join
-        </a>
-        <p className="text-center text-xs text-ink-faint">
-          {ownerName ? `DM ${ownerName} for an invite.` : "DM the owner for an invite."}
-        </p>
-      </div>
-    );
-  }
-
+  // Approval/private outsiders never reach here (the page renders
+  // JoinRequestButton instead) — open join is the only remaining path.
   return (
     <div className="flex flex-col gap-2">
       <button

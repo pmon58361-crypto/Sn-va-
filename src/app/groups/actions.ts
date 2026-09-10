@@ -112,7 +112,8 @@ export async function leaveGroup(
   return { ok: true };
 }
 
-/** Owner (or admin) removes a non-owner member. */
+/** Owner (or moderator/admin) removes a member. Owners may kick anyone
+ *  except themselves; moderators may kick plain members only. */
 export async function kickMember(
   groupId: string,
   userId: string
@@ -128,6 +129,9 @@ export async function kickMember(
   }))?.role === "admin";
 
   if (!actor && !isAdmin) return { ok: false, error: "Forbidden" };
+  if (actor && actor.role !== "owner" && actor.role !== "moderator" && !isAdmin) {
+    return { ok: false, error: "Only owners and moderators can remove members" };
+  }
 
   const target = await prisma.groupMember.findUnique({
     where: { groupId_userId: { groupId, userId } },
@@ -136,6 +140,10 @@ export async function kickMember(
   if (target.role === "owner") {
     return { ok: false, error: "The owner can't be kicked" };
   }
+  if (target.role === "moderator" && actor?.role !== "owner" && !isAdmin) {
+    return { ok: false, error: "Only the owner can remove a moderator" };
+  }
+  if (userId === me) return { ok: false, error: "Leave the group instead" };
 
   await prisma.groupMember.delete({
     where: { groupId_userId: { groupId, userId } },
@@ -144,8 +152,9 @@ export async function kickMember(
   return { ok: true };
 }
 
-/** Owner (or admin) deletes the group. Posts cascade; their image assets are
- *  best-effort destroyed first so nothing leaks against storage quota. */
+/** Owner (or admin) deletes the group. Posts survive (SetNull unscope to
+ *  the community feed), so only the cover asset is destroyed — never post
+ *  images, which keep rendering on the surviving posts. */
 export async function deleteGroup(
   groupId: string
 ): Promise<{ ok: boolean; error?: string }> {
@@ -165,17 +174,226 @@ export async function deleteGroup(
     return { ok: false, error: "Only the owner can delete this group" };
   }
 
-  const posts = await prisma.post.findMany({
-    where: { groupId },
-    select: { images: { select: { url: true } } },
-  });
-  await destroyAssets([
-    group.coverUrl,
-    ...posts.flatMap((p) => p.images.map((i) => i.url)),
-  ]);
+  await destroyAssets([group.coverUrl]);
 
   await prisma.group.delete({ where: { id: groupId } });
   revalidatePath("/groups");
+  return { ok: true };
+}
+
+// ── Join requests + moderation ───────────────────────────────────────────
+// Replaces the "DM the owner" dead-end: approval and private groups take
+// tracked requests; owners and moderators approve from the roster.
+
+async function isSiteAdmin(userId: string): Promise<boolean> {
+  return (
+    (
+      await prisma.user.findUnique({ where: { id: userId }, select: { role: true } })
+    )?.role === "admin"
+  );
+}
+
+/** True when the caller may approve requests and kick members. */
+async function canModerate(
+  groupId: string,
+  me: string
+): Promise<{ ok: boolean; role: string | null }> {
+  const m = await prisma.groupMember.findUnique({
+    where: { groupId_userId: { groupId, userId: me } },
+    select: { role: true },
+  });
+  if (!m) {
+    return { ok: (await isSiteAdmin(me)) ? true : false, role: null };
+  }
+  if (m.role === "owner" || m.role === "moderator") return { ok: true, role: m.role };
+  return { ok: (await isSiteAdmin(me)) ? true : false, role: m.role };
+}
+
+/** Ask to join an approval/private group. Idempotent; open groups should
+ *  use Join instead. Members can't request. */
+export async function requestJoin(
+  groupId: string,
+  message?: string
+): Promise<{ ok: boolean; error?: string }> {
+  const me = (await requireActiveUser()).id;
+
+  const group = await prisma.group.findUnique({
+    where: { id: groupId },
+    select: { id: true, joinMode: true, visibility: true },
+  });
+  if (!group) return { ok: false, error: "Group not found" };
+  // Open PUBLIC groups join instantly — requesting is pointless. Anything
+  // else (approval, or private of any join mode) goes through requests.
+  if (group.joinMode === "open" && group.visibility === "public") {
+    return { ok: false, error: "This group is open — just hit Join" };
+  }
+  const existing = await prisma.groupMember.findUnique({
+    where: { groupId_userId: { groupId, userId: me } },
+  });
+  if (existing) return { ok: false, error: "You're already a member" };
+
+  const note = message?.trim().slice(0, 200) || null;
+  await prisma.groupJoinRequest.upsert({
+    where: { groupId_userId: { groupId, userId: me } },
+    update: { message: note },
+    create: { groupId, userId: me, message: note },
+  });
+  revalidatePath(`/groups`);
+  return { ok: true };
+}
+
+/** Withdraw my own pending request. */
+export async function cancelRequest(
+  groupId: string
+): Promise<{ ok: boolean; error?: string }> {
+  const me = (await requireActiveUser()).id;
+  await prisma.groupJoinRequest
+    .delete({ where: { groupId_userId: { groupId, userId: me } } })
+    .catch(() => null);
+  revalidatePath(`/groups`);
+  return { ok: true };
+}
+
+/** Approve a request: membership + request cleanup, atomically. */
+export async function approveRequest(
+  groupId: string,
+  userId: string
+): Promise<{ ok: boolean; error?: string }> {
+  const me = (await requireActiveUser()).id;
+  const mod = await canModerate(groupId, me);
+  if (!mod.ok) return { ok: false, error: "Forbidden" };
+
+  const req = await prisma.groupJoinRequest.findUnique({
+    where: { groupId_userId: { groupId, userId } },
+  });
+  if (!req) return { ok: false, error: "Request not found" };
+
+  await prisma.$transaction([
+    prisma.groupMember.upsert({
+      where: { groupId_userId: { groupId, userId } },
+      update: {},
+      create: { groupId, userId, role: "member" },
+    }),
+    prisma.groupJoinRequest.delete({
+      where: { groupId_userId: { groupId, userId } },
+    }),
+  ]);
+  revalidatePath(`/groups`);
+  return { ok: true };
+}
+
+/** Decline a request (no history kept — they may ask again). */
+export async function declineRequest(
+  groupId: string,
+  userId: string
+): Promise<{ ok: boolean; error?: string }> {
+  const me = (await requireActiveUser()).id;
+  const mod = await canModerate(groupId, me);
+  if (!mod.ok) return { ok: false, error: "Forbidden" };
+
+  await prisma.groupJoinRequest
+    .delete({ where: { groupId_userId: { groupId, userId } } })
+    .catch(() => null);
+  revalidatePath(`/groups`);
+  return { ok: true };
+}
+
+/** Owner promotes a member to moderator. */
+export async function promoteMember(
+  groupId: string,
+  userId: string
+): Promise<{ ok: boolean; error?: string }> {
+  const me = (await requireActiveUser()).id;
+
+  const group = await prisma.group.findUnique({
+    where: { id: groupId },
+    select: { creatorId: true },
+  });
+  if (!group) return { ok: false, error: "Group not found" };
+  const admin = await isSiteAdmin(me);
+  if (group.creatorId !== me && !admin) {
+    return { ok: false, error: "Only the owner can promote moderators" };
+  }
+  const target = await prisma.groupMember.findUnique({
+    where: { groupId_userId: { groupId, userId } },
+  });
+  if (!target || target.role !== "member") {
+    return { ok: false, error: "Only members can be promoted" };
+  }
+  await prisma.groupMember.update({
+    where: { groupId_userId: { groupId, userId } },
+    data: { role: "moderator" },
+  });
+  revalidatePath(`/groups`);
+  return { ok: true };
+}
+
+/** Owner demotes a moderator (moderators may also step down themselves). */
+export async function demoteMember(
+  groupId: string,
+  userId: string
+): Promise<{ ok: boolean; error?: string }> {
+  const me = (await requireActiveUser()).id;
+
+  const group = await prisma.group.findUnique({
+    where: { id: groupId },
+    select: { creatorId: true },
+  });
+  if (!group) return { ok: false, error: "Group not found" };
+  const admin = await isSiteAdmin(me);
+  const selfStepDown = userId === me;
+  if (group.creatorId !== me && !admin && !selfStepDown) {
+    return { ok: false, error: "Only the owner can demote moderators" };
+  }
+  const target = await prisma.groupMember.findUnique({
+    where: { groupId_userId: { groupId, userId } },
+  });
+  if (!target || target.role !== "moderator") {
+    return { ok: false, error: "Not a moderator" };
+  }
+  await prisma.groupMember.update({
+    where: { groupId_userId: { groupId, userId } },
+    data: { role: "member" },
+  });
+  revalidatePath(`/groups`);
+  return { ok: true };
+}
+
+/** Owner hands the crown to a member/moderator (atomic swap). The previous
+ *  owner becomes a plain member and may leave normally afterwards. */
+export async function transferOwnership(
+  groupId: string,
+  userId: string
+): Promise<{ ok: boolean; error?: string }> {
+  const me = (await requireActiveUser()).id;
+  if (userId === me) return { ok: false, error: "You already own this group" };
+
+  const group = await prisma.group.findUnique({
+    where: { id: groupId },
+    select: { creatorId: true },
+  });
+  if (!group) return { ok: false, error: "Group not found" };
+  // Creator row is the source of truth for ownership (role mirrors it).
+  if (group.creatorId !== me) {
+    return { ok: false, error: "Only the owner can transfer ownership" };
+  }
+  const target = await prisma.groupMember.findUnique({
+    where: { groupId_userId: { groupId, userId } },
+  });
+  if (!target) return { ok: false, error: "They're not a member" };
+
+  await prisma.$transaction([
+    prisma.group.update({ where: { id: groupId }, data: { creatorId: userId } }),
+    prisma.groupMember.update({
+      where: { groupId_userId: { groupId, userId } },
+      data: { role: "owner" },
+    }),
+    prisma.groupMember.update({
+      where: { groupId_userId: { groupId, userId: me } },
+      data: { role: "member" },
+    }),
+  ]);
+  revalidatePath(`/groups`);
   return { ok: true };
 }
 

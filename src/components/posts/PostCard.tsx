@@ -161,26 +161,10 @@ export async function PostCard({
           Nested anchors caused hydration errors and killed viewer state. */}
       <PostEmbeds content={post.content} />
 
-      {/* Attached poll — interactive, so it lives OUTSIDE the card Link
-          (same reasoning as the image grid). Authors see totals directly. */}
-      {(() => {
-        const polls = (post as { polls?: PollData[] | null }).polls;
-        const poll = polls?.[0];
-        if (!poll) return null;
-        return (
-          <div className="px-4 pt-3 sm:px-5">
-            <PollBox
-              poll={poll}
-              meId={viewerId}
-              forceResults={viewerId === post.authorId}
-            />
-          </div>
-        );
-      })()}
-
       {/* Row 3: Image grid — Facebook-style. Separate from the link so
           individual tiles can navigate independently. Theater gets the
-          same action state as the card row below (single source of truth). */}
+          same action state as the card row below (single source of truth).
+          The poll sits BELOW the photo, never above it. */}
       {images.length > 0 && (
         <div className="mt-2.5">
           <ImageGrid
@@ -216,6 +200,24 @@ export async function PostCard({
         </div>
       )}
 
+      {/* Attached poll — BELOW the photo. Interactive, so it lives OUTSIDE
+          the card Link (same reasoning as the image grid). Authors see
+          totals directly. */}
+      {(() => {
+        const polls = (post as { polls?: PollData[] | null }).polls;
+        const poll = polls?.[0];
+        if (!poll) return null;
+        return (
+          <div className="px-4 pt-3 sm:px-5">
+            <PollBox
+              poll={poll}
+              meId={viewerId}
+              forceResults={viewerId === post.authorId}
+            />
+          </div>
+        );
+      })()}
+
       {/* Row 4: Actions — relative z-10 gives the report popover a stacking
           context above later feed cards, which otherwise intercept its
           clicks (absolute z-30 alone loses to subsequent siblings). */}
@@ -233,7 +235,7 @@ export async function PostCard({
         />
         <Link
           href={detailPath(post.category, post.id)}
-          className="ml-auto inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium text-ink-faint transition hover:bg-soft hover:text-accent"
+          className="ml-auto inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1 text-xs font-medium text-ink-faint transition hover:bg-soft hover:text-accent"
         >
           {post.category === "JOB_LISTING" ? (
             <>

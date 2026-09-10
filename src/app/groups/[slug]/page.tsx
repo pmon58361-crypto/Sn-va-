@@ -11,6 +11,11 @@ import {
   GroupActions,
   KickButton,
 } from "@/components/groups/GroupActions";
+import {
+  JoinRequestButton,
+  PendingRequests,
+  MemberControls,
+} from "@/components/groups/GroupModeration";
 
 export const dynamic = "force-dynamic";
 
@@ -57,6 +62,27 @@ export default async function GroupPage({
   const membership = await getMembership(group.id, meId);
   const isMember = !!membership;
   const isOwner = membership?.role === "owner" || isAdmin;
+  const myRole = membership?.role ?? null;
+  const canMod = isOwner || myRole === "moderator";
+
+  // Pending join requests (moderators+ see them) and my own request state.
+  const [pendingRequests, myRequest] = await Promise.all([
+    canMod
+      ? prisma.groupJoinRequest.findMany({
+          where: { groupId: group.id },
+          orderBy: { createdAt: "asc" },
+          include: {
+            user: { select: { id: true, name: true, image: true } },
+          },
+        })
+      : Promise.resolve([]),
+    !isMember && meId
+      ? prisma.groupJoinRequest.findUnique({
+          where: { groupId_userId: { groupId: group.id, userId: meId } },
+          select: { id: true },
+        })
+      : Promise.resolve(null),
+  ]);
 
   // Private groups show header + locked notice to outsiders.
   const canView = canViewGroup(
@@ -150,23 +176,31 @@ export default async function GroupPage({
               >
                 Sign in to join
               </Link>
+            ) : !isMember && (group.joinMode !== "open" || group.visibility !== "public") ? (
+              // Approval groups — and private groups of any join mode, where
+              // direct join is impossible — take tracked requests (no more
+              // "DM the owner" dead-end).
+              <div className="min-w-[220px] flex-1">
+                <JoinRequestButton
+                  groupId={group.id}
+                  hasPending={!!myRequest}
+                />
+              </div>
             ) : (
-              // Owners get compact controls (a full-width delete bar looked
-              // like a second CTA); everyone else gets the full-width join.
+              // Owners get roomier controls (the cramped shrink-0 column
+              // squeezed Change/Remove/Delete into a dangling mess); everyone
+              // else gets the full-width join.
               <div
                 className={
                   membership?.role === "owner"
-                    ? "shrink-0"
+                    ? "min-w-[220px] flex-1"
                     : "min-w-[200px] flex-1"
                 }
               >
                 <GroupActions
                   groupId={group.id}
-                  ownerId={group.creatorId}
-                  ownerName={ownerName}
                   isOwner={membership?.role === "owner"}
                   isMember={isMember}
-                  joinMode={group.joinMode as "open" | "approval"}
                 />
               </div>
             )}
@@ -175,6 +209,17 @@ export default async function GroupPage({
       </section>
 
       {/* ── Server body: channels rail · feed · roster (stacks on mobile) ── */}
+      {canMod && (
+        <PendingRequests
+          groupId={group.id}
+          requests={pendingRequests.map((r) => ({
+            userId: r.userId,
+            message: r.message,
+            createdAt: r.createdAt.toISOString(),
+            user: r.user,
+          }))}
+        />
+      )}
       <div className="mt-5 grid items-start gap-5 lg:grid-cols-[190px_minmax(0,1fr)_230px]">
         {/* Channels — real slices of this group's feed */}
         <nav aria-label="Group channels" className="card flex gap-1 overflow-x-auto p-2 lg:sticky lg:top-20 lg:flex-col">
@@ -283,7 +328,21 @@ export default async function GroupPage({
                       ♛ owner
                     </span>
                   )}
+                  {m.role === "moderator" && (
+                    <span className="ml-1.5 text-[10px] uppercase tracking-wide text-ink-faint">
+                      mod
+                    </span>
+                  )}
                 </Link>
+                {(isOwner || (m.role === "moderator" && m.userId === meId)) && (
+                  <MemberControls
+                    groupId={group.id}
+                    userId={m.userId}
+                    role={m.role}
+                    isOwner={isOwner}
+                    isSelf={m.userId === meId}
+                  />
+                )}
                 {(isOwner || isAdmin) &&
                   m.role !== "owner" &&
                   m.userId !== meId && (
