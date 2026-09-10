@@ -55,7 +55,7 @@ export function PostActions({
   // Portal anchor: the menu renders in document.body (fixed, from the
   // button rect) so no overflow-hidden card ancestor can clip it.
   const btnRef = useRef<HTMLButtonElement>(null);
-  const [menuPos, setMenuPos] = useState<{ bottom: number; left: number } | null>(null);
+  const [menuPos, setMenuPos] = useState<{ bottom: number; left: number; sheet: boolean } | null>(null);
 
   function openMenu() {
     const r = btnRef.current?.getBoundingClientRect();
@@ -63,6 +63,8 @@ export function PostActions({
       setMenuPos({
         // Anchored above the button (bottom-anchored so any menu height
         // grows upward); clamped into the viewport (208px menu width).
+        // Narrow screens get a bottom sheet instead (see render).
+        sheet: window.innerWidth < 640,
         bottom: window.innerHeight - r.top + 8,
         left: Math.max(8, Math.min(r.right - 208, window.innerWidth - 216)),
       });
@@ -242,7 +244,7 @@ export function PostActions({
           createPortal(
             <>
               <span
-                className="fixed inset-0 z-40 cursor-default"
+                className="fixed inset-0 z-[70] cursor-default bg-black/50"
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
@@ -251,8 +253,16 @@ export function PostActions({
               />
               <div
                 role="menu"
-                className="card fixed z-50 w-52 bg-surface p-2 shadow-lg"
-                style={{ bottom: menuPos.bottom, left: menuPos.left }}
+                className={
+                  menuPos.sheet
+                    ? "card fixed inset-x-3 bottom-3 z-[80] bg-surface p-2 pb-5 shadow-lg"
+                    : "card fixed z-[80] w-52 bg-surface p-2 shadow-lg"
+                }
+                style={
+                  menuPos.sheet
+                    ? undefined
+                    : { bottom: menuPos.bottom, left: menuPos.left }
+                }
                 onClick={(e) => e.stopPropagation()}
               >
               {!reportOpen ? (
