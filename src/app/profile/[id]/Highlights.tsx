@@ -224,9 +224,14 @@ function ViewModal({
   onClose: () => void;
 }) {
   const [pending, startTransition] = useTransition();
+  const [confirming, setConfirming] = useState(false);
   const router = useRouter();
 
   function remove() {
+    if (!confirming) {
+      setConfirming(true);
+      return;
+    }
     startTransition(async () => {
       await deleteHighlight(highlight.id);
       onClose();
@@ -234,34 +239,87 @@ function ViewModal({
     });
   }
 
+  const count = highlight.items.length;
+
   return (
     <Modal onClose={onClose} wide label={highlight.title}>
-      <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-xl font-extrabold">{highlight.title}</h3>
-        {isOwner && (
-          <button
-            onClick={remove}
-            disabled={pending}
-            className="text-xs font-medium text-warm hover:underline disabled:opacity-50"
-          >
-            {pending ? "Deleting…" : "Delete highlight"}
-          </button>
-        )}
+      {/* Header: cover thumb + title + count, close always visible */}
+      <div className="mb-4 flex items-center gap-3">
+        <HighlightThumb
+          title={highlight.title}
+          coverUrl={highlight.coverUrl}
+          items={highlight.items}
+        />
+        <div className="min-w-0 flex-1 leading-tight">
+          <h3 className="truncate text-xl font-extrabold">
+            {highlight.title || "Untitled"}
+          </h3>
+          <p className="mt-0.5 text-xs text-ink-faint">
+            {count === 0
+              ? "No photos yet"
+              : count === 1
+                ? "1 photo"
+                : `${count} photos`}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close highlight viewer"
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-xl leading-none text-ink-faint transition hover:bg-soft hover:text-ink"
+        >
+          {"\u00D7"}
+        </button>
       </div>
-      {highlight.items.length === 0 ? (
-        <p className="py-8 text-center text-sm text-ink-muted">No photos.</p>
+      {count === 0 ? (
+        <p className="rounded-2xl bg-soft py-10 text-center text-sm text-ink-muted">
+          No photos in this highlight yet.
+        </p>
       ) : (
-        <div className="grid max-h-[60vh] grid-cols-3 gap-1.5 overflow-y-auto sm:grid-cols-4">
+        <div
+          className={`grid gap-2 overflow-y-auto ${
+            count === 1
+              ? "max-h-[65vh] grid-cols-1"
+              : count <= 4
+                ? "max-h-[65vh] grid-cols-2"
+                : "max-h-[60vh] grid-cols-2 sm:grid-cols-3"
+          }`}
+        >
           {highlight.items.map((it) => (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               key={it.id}
-              src={cdnUrl(it.imageUrl, 320)}
+              src={cdnUrl(it.imageUrl, 640)}
               alt=""
               loading="lazy"
-              className="aspect-square w-full rounded-lg border border-line object-cover"
+              className={`w-full rounded-2xl border border-line object-cover ${
+                count === 1
+                  ? "mx-auto max-h-[60vh] max-w-md object-contain"
+                  : "aspect-square"
+              }`}
             />
           ))}
+        </div>
+      )}
+      {isOwner && (
+        <div className="mt-4 flex justify-end border-t border-line pt-3">
+          <button
+            type="button"
+            onClick={remove}
+            onBlur={() => setConfirming(false)}
+            disabled={pending}
+            className={`rounded-xl px-4 py-2 text-sm font-medium transition disabled:opacity-50 ${
+              confirming
+                ? "bg-warm font-semibold text-white"
+                : "bg-warm-tint text-warm hover:bg-warm hover:text-white"
+            }`}
+          >
+            {pending
+              ? "Deleting…"
+              : confirming
+                ? "Tap again to confirm"
+                : "Delete highlight"}
+          </button>
         </div>
       )}
     </Modal>
@@ -282,24 +340,30 @@ function Modal({
   label?: string;
 }) {
   // Esc closes — keyboard parity with the post lightbox.
+  // Body scroll locks while open so the backdrop feels like a real viewer.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
   }, [onClose]);
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 px-4"
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
       aria-label={label}
     >
       <div
-        className={`card w-full bg-bg p-5 ${wide ? "max-w-lg" : "max-w-md"}`}
+        className={`w-full rounded-3xl border border-line bg-surface p-5 shadow-2xl sm:p-6 ${wide ? "max-w-2xl" : "max-w-md"}`}
         onClick={(e) => e.stopPropagation()}
       >
         {children}
