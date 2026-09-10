@@ -14,7 +14,7 @@ test.afterEach(async () => cleanupE2EData());
 test("group join requests, moderation and ownership transfer", async ({
   browser,
 }) => {
-  test.setTimeout(240_000);
+  test.setTimeout(600_000);
   const { demo, demo2 } = await demoUsers();
   const stamp = `${E2E_PREFIX} ops ${Date.now()}`;
   const approval = await prisma.group.create({
@@ -41,17 +41,21 @@ test("group join requests, moderation and ownership transfer", async ({
   const applicant = await signedInPage(browser, "demo2");
   try {
     // 1. Request to join the approval group (with a hello message).
-    // Send is retried like a user re-tapping (hosted-DB stalls + dev
-    // compile races make single clicks flaky — dm.spec.ts convention).
+    // Goal-first: skip ahead when already sent; patient inners for 30s+
+    // hosted-DB round-trips (dm.spec.ts convention, hardened).
     await applicant.page.goto(`/groups/${approval.slug}`);
-    await applicant.page.getByRole("button", { name: "Request to join" }).click();
-    await applicant.page.getByLabel("Message to the owner").fill(`${E2E_PREFIX} hi`);
     await expect(async () => {
+      if ((await applicant.page.getByText("Request sent — the owner will review it.").count()) > 0) return;
+      const send = applicant.page.getByRole("button", { name: "Send request" });
+      if ((await send.count()) === 0) {
+        await applicant.page.getByRole("button", { name: "Request to join" }).click();
+        await applicant.page.getByLabel("Message to the owner").fill(`${E2E_PREFIX} hi`);
+      }
       await applicant.page.getByRole("button", { name: "Send request" }).click();
       await expect(
         applicant.page.getByText("Request sent — the owner will review it.")
-      ).toBeVisible({ timeout: 10_000 });
-    }).toPass({ timeout: 90_000 });
+      ).toBeVisible({ timeout: 60_000 });
+    }).toPass({ timeout: 200_000 });
     await expect
       .poll(async () =>
         prisma.groupJoinRequest.findUnique({
@@ -62,13 +66,17 @@ test("group join requests, moderation and ownership transfer", async ({
 
     // 2. Private groups take requests too (join is impossible there).
     await applicant.page.goto(`/groups/${priv.slug}`);
-    await applicant.page.getByRole("button", { name: "Request to join" }).click();
     await expect(async () => {
+      if ((await applicant.page.getByText("Request sent — the owner will review it.").count()) > 0) return;
+      const send = applicant.page.getByRole("button", { name: "Send request" });
+      if ((await send.count()) === 0) {
+        await applicant.page.getByRole("button", { name: "Request to join" }).click();
+      }
       await applicant.page.getByRole("button", { name: "Send request" }).click();
       await expect(
         applicant.page.getByText("Request sent — the owner will review it.")
-      ).toBeVisible({ timeout: 10_000 });
-    }).toPass({ timeout: 90_000 });
+      ).toBeVisible({ timeout: 60_000 });
+    }).toPass({ timeout: 200_000 });
 
     // 3. Owner declines the private request; applicant stays an outsider.
     await owner.page.goto(`/groups/${priv.slug}`);
@@ -83,9 +91,9 @@ test("group join requests, moderation and ownership transfer", async ({
           prisma.groupJoinRequest.findUnique({
             where: { groupId_userId: { groupId: priv.id, userId: demo2.id } },
           })
-        , { timeout: 10_000 })
+        , { timeout: 30_000 })
         .toBeNull();
-    }).toPass({ timeout: 90_000 });
+    }).toPass({ timeout: 200_000 });
 
     // 4. Owner approves the approval-group request → membership.
     await owner.page.goto(`/groups/${approval.slug}`);
@@ -100,40 +108,47 @@ test("group join requests, moderation and ownership transfer", async ({
           prisma.groupMember.findUnique({
             where: { groupId_userId: { groupId: approval.id, userId: demo2.id } },
           })
-        , { timeout: 10_000 })
+        , { timeout: 30_000 })
         .toMatchObject({ role: "member" });
-    }).toPass({ timeout: 90_000 });
+    }).toPass({ timeout: 200_000 });
 
-    // 5. Promote to moderator, then transfer the crown.
+    // 5. Promote to moderator, then transfer the crown (each wrapped:
+    // slow actions must not burn the whole budget on one shot).
     const roster = owner.page.locator("li", { hasText: demo2.name || "Someone" }).first();
-    await roster.getByRole("button", { name: "Promote to moderator" }).click();
-    await expect
-      .poll(async () =>
-        (
-          await prisma.groupMember.findUnique({
-            where: { groupId_userId: { groupId: approval.id, userId: demo2.id } },
-          })
-        )?.role
-      )
-      .toBe("moderator");
-    await roster.getByRole("button", { name: "Transfer ownership" }).click();
-    await roster.getByRole("button", { name: "Confirm crown" }).click();
-    await expect
-      .poll(async () =>
-        (await prisma.group.findUnique({ where: { id: approval.id } }))?.creatorId
-      )
-      .toBe(demo2.id);
+    await expect(async () => {
+      await roster.getByRole("button", { name: "Promote to moderator" }).click();
+      await expect
+        .poll(async () =>
+          (
+            await prisma.groupMember.findUnique({
+              where: { groupId_userId: { groupId: approval.id, userId: demo2.id } },
+            })
+          )?.role
+        , { timeout: 30_000 })
+        .toBe("moderator");
+    }).toPass({ timeout: 200_000 });
+    await expect(async () => {
+      await roster.getByRole("button", { name: "Transfer ownership" }).click();
+      await roster.getByRole("button", { name: "Confirm crown" }).click();
+      await expect
+        .poll(async () =>
+          (await prisma.group.findUnique({ where: { id: approval.id } }))?.creatorId
+        , { timeout: 30_000 })
+        .toBe(demo2.id);
+    }).toPass({ timeout: 200_000 });
 
     // 6. Previous owner (now a member) leaves normally.
     await owner.page.goto(`/groups/${approval.slug}`);
-    await owner.page.getByRole("button", { name: "Leave group" }).click();
-    await expect
-      .poll(async () =>
-        prisma.groupMember.findUnique({
-          where: { groupId_userId: { groupId: approval.id, userId: demo.id } },
-        })
-      )
-      .toBeNull();
+    await expect(async () => {
+      await owner.page.getByRole("button", { name: "Leave group" }).click();
+      await expect
+        .poll(async () =>
+          prisma.groupMember.findUnique({
+            where: { groupId_userId: { groupId: approval.id, userId: demo.id } },
+          })
+        , { timeout: 30_000 })
+        .toBeNull();
+    }).toPass({ timeout: 200_000 });
 
     // 7. Deleting a group keeps its posts (unscoped, images intact).
     const post = await prisma.post.create({
@@ -149,11 +164,13 @@ test("group join requests, moderation and ownership transfer", async ({
       data: { postId: post.id, url: "/uploads/e2e-keep.jpg", order: 0 },
     });
     await applicant.page.goto(`/groups/${approval.slug}`);
-    await applicant.page.getByRole("button", { name: "Delete group" }).click();
-    await applicant.page.getByRole("button", { name: "Yes, delete" }).click();
-    await expect
-      .poll(async () => prisma.group.findUnique({ where: { id: approval.id } }))
-      .toBeNull();
+    await expect(async () => {
+      await applicant.page.getByRole("button", { name: "Delete group" }).click();
+      await applicant.page.getByRole("button", { name: "Yes, delete" }).click();
+      await expect
+        .poll(async () => prisma.group.findUnique({ where: { id: approval.id } }), { timeout: 30_000 })
+        .toBeNull();
+    }).toPass({ timeout: 200_000 });
     const survived = await prisma.post.findUnique({
       where: { id: post.id },
       include: { images: true },
