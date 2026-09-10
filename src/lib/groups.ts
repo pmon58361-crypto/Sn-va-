@@ -1,5 +1,11 @@
 import { prisma } from "@/lib/prisma";
 
+// Category constants live in ./group-categories (client-safe, no DB
+// import). Re-exported here so server code keeps a single import point.
+export { GROUP_CATEGORIES } from "./group-categories";
+export type { GroupCategory } from "./group-categories";
+export { normalizeCategory } from "./group-categories";
+
 // URL-safe slug from a group name: "Design Crew!" -> "design-crew"
 export function slugifyName(name: string): string {
   return (
@@ -19,28 +25,6 @@ export async function uniqueSlug(base: string): Promise<string> {
     slug = `${base}-${i++}`;
   }
   return slug;
-}
-
-// Discovery tabs (Discord Home/Gaming/Music… language). Fixed list keeps
-// chips clean; groups without one stay uncategorized and still list.
-export const GROUP_CATEGORIES = [
-  "craft",
-  "city",
-  "music",
-  "gaming",
-  "tech",
-  "books",
-  "fitness",
-  "food",
-  "film",
-  "study",
-] as const;
-
-export type GroupCategory = (typeof GROUP_CATEGORIES)[number];
-
-export function normalizeCategory(raw: unknown): string | null {
-  const v = String(raw || "").trim().toLowerCase();
-  return (GROUP_CATEGORIES as readonly string[]).includes(v) ? v : null;
 }
 
 export async function getMembership(groupId: string, userId?: string | null) {

@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createGroup } from "@/app/groups/actions";
-import { GROUP_CATEGORIES } from "@/lib/groups";
+import { GROUP_CATEGORIES } from "@/lib/group-categories";
 
 /**
  * Create-group modal: name (slug auto-derived, editable), description,

@@ -5,7 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { requireActiveUser } from "@/lib/session";
 import { assertClean } from "@/lib/filter";
 import { destroyAssets } from "@/lib/storage";
-import { slugifyName, uniqueSlug, normalizeCategory } from "@/lib/groups";
+import { slugifyName, uniqueSlug } from "@/lib/groups";
+import { normalizeCategory } from "@/lib/group-categories";
 
 const VISIBILITIES = ["public", "private"];
 const JOIN_MODES = ["open", "approval"];

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getPresence } from "@/lib/presence";
-import { normalizeCategory } from "@/lib/groups";
+import { normalizeCategory } from "@/lib/group-categories";
 import { CreateGroupButton } from "@/components/groups/CreateGroupModal";
 import { GroupCard } from "@/components/groups/GroupCard";
 
