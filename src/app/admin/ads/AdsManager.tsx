@@ -5,6 +5,7 @@ import {
   createAd,
   updateAd,
   setAdActive,
+  approveAd,
   deleteAd,
   type SerializedAd,
 } from "../actions";
@@ -128,6 +129,20 @@ export function AdsManager({ initial }: { initial: AdsManagerAd[] }) {
     try {
       const res = await setAdActive(a.id, !a.active);
       if (res.ok) setAds((prev) => prev.map((x) => (x.id === a.id ? { ...x, active: !x.active } : x)));
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function onApprove(a: AdsManagerAd) {
+    if (busyId) return;
+    setBusyId(a.id);
+    try {
+      const res = await approveAd(a.id);
+      if (res.ok)
+        setAds((prev) =>
+          prev.map((x) => (x.id === a.id ? { ...x, approved: true, active: true } : x))
+        );
     } finally {
       setBusyId(null);
     }
@@ -368,14 +383,19 @@ export function AdsManager({ initial }: { initial: AdsManagerAd[] }) {
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
+                    {!a.approved && (
+                      <span className="badge bg-warm-tint text-warm">
+                        Pending review
+                      </span>
+                    )}
                     <span
                       className={`badge ${
-                        a.active
+                        a.active && a.approved
                           ? "bg-accent-tint text-accent"
                           : "bg-soft text-ink-muted"
                       }`}
                     >
-                      {a.active ? "Active" : "Paused"}
+                      {a.active && a.approved ? "Active" : "Paused"}
                     </span>
                     <span className="badge bg-soft text-ink-muted">{a.placement}</span>
                   </div>
@@ -383,7 +403,9 @@ export function AdsManager({ initial }: { initial: AdsManagerAd[] }) {
                     {a.headline}
                   </h3>
                   <p className="mt-0.5 text-xs text-ink-muted">
-                    {a.advertiser} ·{" "}
+                    {a.advertiser}
+                    {a.ownerName ? ` · by ${a.ownerName}` : ""}
+                    {a.paidCents > 0 ? ` · ${formatCents(a.paidCents)} funded` : ""} ·{" "}
                     <a
                       href={a.targetUrl}
                       target="_blank"
@@ -467,6 +489,16 @@ export function AdsManager({ initial }: { initial: AdsManagerAd[] }) {
               </div>
 
               <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-line pt-3">
+                {!a.approved && (
+                  <button
+                    type="button"
+                    disabled={busyId === a.id}
+                    onClick={() => onApprove(a)}
+                    className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+                  >
+                    Approve & launch
+                  </button>
+                )}
                 <button
                   type="button"
                   disabled={busyId === a.id}

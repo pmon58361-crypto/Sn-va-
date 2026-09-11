@@ -185,6 +185,9 @@ export type SerializedAd = {
   budgetCents: number | null;
   topics: string | null;
   viewableImpressions: number;
+  approved: boolean;
+  paidCents: number;
+  ownerName: string | null;
 };
 
 function serializeAd(ad: {
@@ -204,6 +207,9 @@ function serializeAd(ad: {
   budgetCents: number | null;
   topics: string | null;
   viewableImpressions: number;
+  approved: boolean;
+  paidCents: number;
+  ownerName: string | null;
 }): SerializedAd {
   return {
     ...ad,
@@ -333,10 +339,11 @@ export async function createAd(
         budgetCents: input.budgetCents,
         topics: input.topics,
       },
+      include: { user: { select: { name: true } } },
     });
     revalidatePath("/admin/ads");
     revalidatePath("/community");
-    return { ok: true, ad: serializeAd(ad) };
+    return { ok: true, ad: serializeAd({ ...ad, ownerName: ad.user?.name ?? null }) };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Create failed" };
   }
@@ -385,10 +392,11 @@ export async function updateAd(
         topics: input.topics,
         ...(imageUrl !== undefined ? { imageUrl } : {}),
       },
+      include: { user: { select: { name: true } } },
     });
     revalidatePath("/admin/ads");
     revalidatePath("/community");
-    return { ok: true, ad: serializeAd(ad) };
+    return { ok: true, ad: serializeAd({ ...ad, ownerName: ad.user?.name ?? null }) };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Update failed" };
   }
@@ -403,6 +411,23 @@ export async function setAdActive(
   revalidatePath("/admin/ads");
   revalidatePath("/community");
   return { ok: true };
+}
+
+// Self-serve approval queue. Approving flips an ad live (approved + active);
+// rejecting deletes it (same path + confirm as Delete ad).
+export async function approveAd(id: string): Promise<{ ok: boolean; error?: string }> {
+  await requireAdmin();
+  try {
+    await prisma.ad.update({
+      where: { id },
+      data: { approved: true, active: true },
+    });
+    revalidatePath("/admin/ads");
+    revalidatePath("/community");
+    return { ok: true };
+  } catch {
+    return { ok: false, error: "Approve failed" };
+  }
 }
 
 export async function deleteAd(id: string): Promise<{ ok: boolean }> {

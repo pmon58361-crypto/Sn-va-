@@ -12,7 +12,10 @@ export default async function AdminAdsPage() {
   if (!session?.user?.id) redirect("/");
   if (session.user.role !== "admin") redirect("/");
 
-  const ads = await prisma.ad.findMany({ orderBy: { createdAt: "desc" } });
+  const ads = await prisma.ad.findMany({
+    orderBy: { createdAt: "desc" },
+    include: { user: { select: { name: true } } },
+  });
 
   const initial: AdsManagerAd[] = ads.map((a) => ({
     id: a.id,
@@ -31,6 +34,9 @@ export default async function AdminAdsPage() {
     budgetCents: a.budgetCents,
     topics: a.topics,
     viewableImpressions: a.viewableImpressions,
+    approved: a.approved,
+    paidCents: a.paidCents,
+    ownerName: a.user?.name ?? null,
   }));
 
   return (

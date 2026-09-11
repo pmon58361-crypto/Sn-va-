@@ -56,6 +56,7 @@ async function pickAd(placement: AdPlacement, viewerId?: string | null): Promise
   const candidates = await prisma.ad.findMany({
     where: {
       active: true,
+      approved: true,
       placement,
       OR: [{ startsAt: null }, { startsAt: { lte: now } }],
       AND: [{ OR: [{ endsAt: null }, { endsAt: { gte: now } }] }],
