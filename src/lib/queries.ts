@@ -392,10 +392,12 @@ export type CreatorDashboard = {
   };
   postsByCategory: { category: string; count: number }[];
   recentPosts: CreatorPostRow[];
+  week: { posts: number; commentsReceived: number };
 };
 
 export async function getCreatorDashboard(meId: string): Promise<CreatorDashboard> {
-  const [posts, followers, likes, comments, bookmarks, applications, byCategory, recent] =
+  const weekAgo = new Date(Date.now() - 7 * 86_400_000);
+  const [posts, followers, likes, comments, bookmarks, applications, byCategory, recent, postsThisWeek, commentsThisWeek] =
     await Promise.all([
       prisma.post.count({ where: { authorId: meId, hidden: false } }),
       prisma.follow.count({ where: { followingId: meId } }),
@@ -422,6 +424,9 @@ export async function getCreatorDashboard(meId: string): Promise<CreatorDashboar
         orderBy: { createdAt: "desc" as const },
         take: 10,
       }),
+      // Weekly-goals inputs (rolling 7 days): my output + replies earned.
+      prisma.post.count({ where: { authorId: meId, hidden: false, createdAt: { gte: weekAgo } } }),
+      prisma.comment.count({ where: { post: { authorId: meId }, createdAt: { gte: weekAgo } } }),
     ]);
 
   return {
@@ -434,6 +439,7 @@ export async function getCreatorDashboard(meId: string): Promise<CreatorDashboar
       applicationsReceived: applications,
     },
     postsByCategory: byCategory.map((g) => ({ category: g.category, count: g._count._all })),
+    week: { posts: postsThisWeek, commentsReceived: commentsThisWeek },
     recentPosts: recent.map((p) => ({
       id: p.id,
       title: p.title,

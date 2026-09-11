@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getCreatorDashboard, getCreatorAnalytics } from "@/lib/queries";
+import { getStreak, nextMilestone } from "@/lib/streak";
+import { weeklyGoals, buildInsights } from "@/lib/dashboard-insights";
 import { CATEGORY_META } from "@/lib/types";
 import { timeAgo } from "@/lib/utils";
 import { CreatorAnalytics } from "@/components/dashboard/CreatorAnalytics";
@@ -44,10 +46,15 @@ export default async function DashboardPage({
   const { range, sort } = await searchParams;
   const activeRange = RANGES.find((r) => r.id === range) ?? RANGES[1];
   const postSort = sort === "liked" || sort === "commented" || sort === "saved" || sort === "engaged" ? sort : "new";
-  const [analytics, summary] = await Promise.all([
+  const [analytics, summary, streak] = await Promise.all([
     getCreatorAnalytics(meId, activeRange.days),
     getCreatorDashboard(meId),
+    getStreak(meId),
   ]);
+
+  const goals = weeklyGoals(summary.week, streak);
+  const insights = buildInsights({ analytics, summary, streak });
+  const milestone = nextMilestone(streak.current);
 
   // Memories — "on this day" from previous years (real posts only; the card
   // disappears entirely when there's nothing real to resurface).
@@ -188,6 +195,70 @@ export default async function DashboardPage({
         </section>
       )}
 
+      {/* Goals + streak */}
+      <div className="mt-6 grid gap-4 sm:grid-cols-2">
+        <section className="card p-5" aria-label="Weekly goals">
+          <h2 className="text-sm font-semibold text-ink">This week</h2>
+          <ul className="mt-3 space-y-3">
+            {goals.map((g) => (
+              <li key={g.id}>
+                <div className="flex items-baseline justify-between text-sm">
+                  <span className={g.complete ? "font-semibold text-accent" : "text-ink-soft"}>
+                    {g.complete ? "✓ " : ""}{g.label}
+                  </span>
+                  <span className="text-xs tabular-nums text-ink-faint">
+                    {g.target !== null ? `${g.done}/${g.target}` : g.hint}
+                  </span>
+                </div>
+                {g.target !== null && (
+                  <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-soft" aria-hidden>
+                    <div
+                      className={`h-full rounded-full ${g.complete ? "bg-accent" : "bg-accent/50"}`}
+                      style={{ width: `${Math.min(100, (g.done / g.target) * 100)}%` }}
+                    />
+                  </div>
+                )}
+                {!g.complete && (
+                  <p className="mt-1 text-xs text-ink-faint">{g.hint}</p>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+        <section className="card flex flex-col justify-between p-5" aria-label="Posting streak">
+          <div className="flex items-baseline justify-between">
+            <h2 className="text-sm font-semibold text-ink">Streak</h2>
+            {streak.best > 0 && (
+              <p className="text-xs text-ink-faint">Best {streak.best}</p>
+            )}
+          </div>
+          <p className="mt-2 text-4xl font-extrabold tabular-nums tracking-tight text-ink">
+            {streak.current}
+            <span className="ml-2 align-middle text-sm font-medium text-ink-faint">
+              {streak.current === 1 ? "day" : "days"}
+            </span>
+          </p>
+          {milestone !== null ? (
+            <>
+              <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-soft" aria-hidden>
+                <div
+                  className="h-full rounded-full bg-accent"
+                  style={{ width: `${Math.min(100, (streak.current / milestone) * 100)}%` }}
+                />
+              </div>
+              <p className="mt-2 text-xs text-ink-muted">
+                {milestone - streak.current} {milestone - streak.current === 1 ? "day" : "days"} to your {milestone}-day milestone.
+                {streak.activeToday ? " Today is covered." : " Post, reply, or react today."}
+              </p>
+            </>
+          ) : (
+            <p className="mt-2 text-xs text-ink-muted">
+              Max milestone reached. Legendary.
+            </p>
+          )}
+        </section>
+      </div>
+
       <div className="mt-8">
         <CreatorAnalytics
           daily={analytics.daily}
@@ -197,8 +268,7 @@ export default async function DashboardPage({
         />
       </div>
 
-      {/* Precision row: when to post + what to post about */}
-      {(timedTotal > 0 || analytics.topTags.length > 0) && (
+      {/* Precision row: when to post + what to post about */}      {(timedTotal > 0 || analytics.topTags.length > 0) && (
         <div className="mt-8 grid gap-4 sm:grid-cols-2">
           {timedTotal > 0 && (
             <section className="card p-5" aria-label="Best time to post">
@@ -254,6 +324,40 @@ export default async function DashboardPage({
             </section>
           )}
         </div>
+      )}
+
+      {/* Insights — what the numbers mean, in words */}
+      {insights.length > 0 && (
+        <section className="mt-8" aria-label="Insights">
+          <h2 className="text-sm font-semibold text-ink">Insights</h2>
+          <ul className="mt-3 space-y-2">
+            {insights.map((ins, i) => (
+              <li
+                key={`${ins.title}-${i}`}
+                className="flex items-start gap-3 rounded-2xl border border-line bg-surface p-4"
+              >
+                <span
+                  aria-hidden
+                  className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
+                    ins.tone === "good"
+                      ? "bg-accent"
+                      : ins.tone === "warn"
+                        ? "bg-warm"
+                        : "bg-ink-faint"
+                  }`}
+                />
+                <span>
+                  <span className="block text-sm font-semibold text-ink">
+                    {ins.title}
+                  </span>
+                  <span className="mt-0.5 block text-[13px] leading-relaxed text-ink-muted">
+                    {ins.body}
+                  </span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
 
       {/* Your content */}
