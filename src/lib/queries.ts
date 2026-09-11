@@ -675,3 +675,137 @@ export async function getCreatorAnalytics(
     topTags,
   };
 }
+
+// -- Audience + stories + hiring analytics (same YouTube-Studio spirit) ----
+
+export type StoryStatRow = {
+  id: string;
+  caption: string | null;
+  createdAt: Date;
+  expired: boolean;
+  views: number;
+};
+
+export type StoryAnalytics = {
+  stories: number;
+  views: number;
+  viewers: number;
+  avgViews: number;
+  recent: StoryStatRow[];
+};
+
+export async function getStoryAnalytics(meId: string): Promise<StoryAnalytics> {
+  const stories = await prisma.story.findMany({
+    where: { authorId: meId },
+    orderBy: { createdAt: "desc" },
+    take: 12,
+    select: {
+      id: true,
+      caption: true,
+      createdAt: true,
+      expiresAt: true,
+      views: { select: { userId: true } },
+    },
+  });
+  const totalViews = await prisma.storyView.count({
+    where: { story: { authorId: meId } },
+  });
+  const viewers = new Set<string>();
+  for (const s of stories) for (const v of s.views) viewers.add(v.userId);
+  const now = Date.now();
+  return {
+    stories: stories.length,
+    views: totalViews,
+    viewers: viewers.size,
+    avgViews: stories.length > 0 ? Math.round((totalViews / stories.length) * 10) / 10 : 0,
+    recent: stories.slice(0, 8).map((s) => ({
+      id: s.id,
+      caption: s.caption,
+      createdAt: s.createdAt,
+      expired: s.expiresAt.getTime() < now,
+      views: s.views.length,
+    })),
+  };
+}
+
+export type FollowerAnalytics = {
+  total: number;
+  gained: number;
+  mutuals: number;
+  recent: { id: string; name: string | null; image: string | null }[];
+};
+
+export async function getFollowerAnalytics(
+  meId: string,
+  days: number
+): Promise<FollowerAnalytics> {
+  const since = days > 0 ? new Date(Date.now() - days * 86_400_000) : null;
+  const [total, gainedRows, recentRows, myFollowing] = await Promise.all([
+    prisma.follow.count({ where: { followingId: meId } }),
+    prisma.follow.findMany({
+      where: { followingId: meId, ...(since ? { createdAt: { gte: since } } : {}) },
+      select: { followerId: true },
+    }),
+    prisma.follow.findMany({
+      where: { followingId: meId },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+      select: {
+        follower: { select: { id: true, name: true, image: true } },
+      },
+    }),
+    prisma.follow.findMany({
+      where: { followerId: meId },
+      select: { followingId: true },
+    }),
+  ]);
+  const following = new Set(myFollowing.map((f) => f.followingId));
+  return {
+    total,
+    gained: gainedRows.length,
+    mutuals: gainedRows.filter((g) => following.has(g.followerId)).length,
+    recent: recentRows.map((r) => r.follower),
+  };
+}
+
+export type FunnelRow = {
+  id: string;
+  title: string;
+  createdAt: Date;
+  applicants: number;
+  accepted: number;
+  rejected: number;
+  firstReplyHours: number | null;
+};
+
+export async function getJobsFunnel(meId: string): Promise<FunnelRow[]> {
+  const listings = await prisma.post.findMany({
+    where: { authorId: meId, category: "JOB_LISTING", hidden: false },
+    orderBy: { createdAt: "desc" },
+    take: 10,
+    select: {
+      id: true,
+      title: true,
+      createdAt: true,
+      applications: { select: { status: true, createdAt: true } },
+    },
+  });
+  return listings.map((p) => {
+    const first = p.applications.reduce<number | null>(
+      (min, a) => (min === null || a.createdAt.getTime() < min ? a.createdAt.getTime() : min),
+      null
+    );
+    return {
+      id: p.id,
+      title: p.title,
+      createdAt: p.createdAt,
+      applicants: p.applications.length,
+      accepted: p.applications.filter((a) => a.status === "accepted").length,
+      rejected: p.applications.filter((a) => a.status === "rejected").length,
+      firstReplyHours:
+        first === null
+          ? null
+          : Math.round(((first - p.createdAt.getTime()) / 3_600_000) * 10) / 10,
+    };
+  });
+}

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { getCreatorDashboard, getCreatorAnalytics } from "@/lib/queries";
+import { getCreatorDashboard, getCreatorAnalytics, getStoryAnalytics, getFollowerAnalytics, getJobsFunnel } from "@/lib/queries";
 import { getStreak, nextMilestone } from "@/lib/streak";
 import { weeklyGoals, buildInsights } from "@/lib/dashboard-insights";
 import { updateGoals, resetGoalTargets } from "./actions";
@@ -47,10 +47,13 @@ export default async function DashboardPage({
   const { range, sort } = await searchParams;
   const activeRange = RANGES.find((r) => r.id === range) ?? RANGES[1];
   const postSort = sort === "liked" || sort === "commented" || sort === "saved" || sort === "engaged" || sort === "reach" ? sort : "new";
-  const [analytics, summary, streak] = await Promise.all([
+  const [analytics, summary, streak, stories, followers, funnel] = await Promise.all([
     getCreatorAnalytics(meId, activeRange.days),
     getCreatorDashboard(meId),
     getStreak(meId),
+    getStoryAnalytics(meId),
+    getFollowerAnalytics(meId, activeRange.days),
+    getJobsFunnel(meId),
   ]);
 
   const goals = weeklyGoals(summary.week, streak, summary.goals);
@@ -376,8 +379,89 @@ export default async function DashboardPage({
         </div>
       )}
 
-      {/* Insights — what the numbers mean, in words */}
-      {insights.length > 0 && (
+      {/* Audience trio: stories · followers · hiring funnel */}
+      <div className="mt-8 grid gap-4 sm:grid-cols-2">
+        {stories.stories > 0 && (
+          <section className="card p-5" aria-label="Story analytics">
+            <div className="flex items-baseline justify-between">
+              <h2 className="text-sm font-semibold text-ink">Stories</h2>
+              <p className="text-xs tabular-nums text-ink-faint">
+                {stories.views} views · {stories.viewers} viewers · {stories.avgViews} avg
+              </p>
+            </div>
+            <ul className="mt-3 space-y-2">
+              {stories.recent.slice(0, 5).map((s) => (
+                <li key={s.id} className="flex items-center gap-2 text-sm">
+                  <span className="min-w-0 flex-1 truncate text-ink-soft">
+                    {s.caption || "Photo story"}
+                  </span>
+                  {s.expired && (
+                    <span className="shrink-0 text-[11px] text-ink-faint">expired</span>
+                  )}
+                  <span className="shrink-0 text-xs tabular-nums text-ink-muted">
+                    {s.views} {s.views === 1 ? "view" : "views"}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+        <section className="card p-5" aria-label="Follower analytics">
+          <div className="flex items-baseline justify-between">
+            <h2 className="text-sm font-semibold text-ink">Followers</h2>
+            <p className="text-xs tabular-nums text-ink-faint">
+              +{followers.gained} this {activeRange.days > 0 ? `${activeRange.days}d` : "time"}
+            </p>
+          </div>
+          <p className="mt-2 text-3xl font-extrabold tabular-nums tracking-tight text-ink">
+            {followers.total.toLocaleString()}
+          </p>
+          <p className="mt-1 text-xs text-ink-muted">
+            {followers.mutuals} {followers.mutuals === 1 ? "mutual" : "mutuals"} — follows you back
+          </p>
+          {followers.recent.length > 0 && (
+            <ul className="mt-3 space-y-1.5">
+              {followers.recent.map((f) => (
+                <li key={f.id}>
+                  <Link
+                    href={`/profile/${f.id}`}
+                    className="text-[13px] font-medium text-ink-soft hover:text-accent hover:underline"
+                  >
+                    {f.name || "Someone"}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      </div>
+      {funnel.length > 0 && (
+        <section className="card mt-4 p-5" aria-label="Hiring funnel">
+          <h2 className="text-sm font-semibold text-ink">Hiring funnel</h2>
+          <ul className="mt-3 space-y-2">
+            {funnel.map((f) => {
+              const rate = f.applicants > 0 ? Math.round((f.accepted / f.applicants) * 100) : null;
+              return (
+                <li key={f.id} className="flex items-center gap-2 text-sm">
+                  <Link
+                    href={`/applications/${f.id}`}
+                    className="min-w-0 flex-1 truncate font-medium text-ink-soft hover:text-accent hover:underline"
+                  >
+                    {f.title || "Untitled listing"}
+                  </Link>
+                  <span className="shrink-0 text-xs tabular-nums text-ink-muted">
+                    {f.applicants} applied
+                    {rate !== null ? ` · ${rate}% hired` : ""}
+                    {f.firstReplyHours !== null ? ` · first reply ${f.firstReplyHours}h` : " · no replies yet"}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+
+      {/* Insights — what the numbers mean, in words */}      {insights.length > 0 && (
         <section className="mt-8" aria-label="Insights">
           <h2 className="text-sm font-semibold text-ink">Insights</h2>
           <ul className="mt-3 space-y-2">
