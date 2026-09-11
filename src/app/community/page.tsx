@@ -69,15 +69,15 @@ export default async function CommunityPage({
       : Promise.resolve(null),
   ]);
 
-  // Sponsored feed card: max one per page, slotted 3–6 by the hourly seed
+  // Sponsored feed card: max one per page, slotted by the hourly seed
   // (stable within the hour, drifts across visits — never a fixed billboard,
-  // never layout shift on reload). Small feeds (4+) still qualify; quieter
-  // than that, the ad would dominate and stays out.
+  // never layout shift on reload). Feeds shorter than 3 posts skip it —
+  // quieter than that, the ad would dominate. Slot clamps to the feed.
   // "From the archives" — one quality old post, only on unfiltered default
   // views with a real feed beneath it. Hides itself when the archive is empty.
   // Tail fetches run in parallel (were sequential — saves 1 Neon RT when both fire).
   const [feedAd, archivePost] = await Promise.all([
-    posts.length >= 4 ? getFeedAd(meId) : Promise.resolve(null),
+    posts.length >= 3 ? getFeedAd(meId) : Promise.resolve(null),
     !q && !isFollowing && !validBefore && posts.length >= 6
       ? getArchivedCommunityPost(posts.map((p) => p.id))
       : Promise.resolve(null),
