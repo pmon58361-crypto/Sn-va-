@@ -559,10 +559,33 @@ model Ad {
   endsAt      DateTime?
   impressions Int       @default(0)
   clicks      Int       @default(0)
+  // Billing (Phase 1: direct-sold, admin-managed). Rates in integer cents;
+  // null rate = that event type is free. budgetCents null = unlimited.
+  rateCpmCents Int?
+  rateCpcCents Int?
+  budgetCents  Int?
+  events      AdEvent[]
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
   @@index([active, placement])
+}
+
+// Immutable billing ledger: one row per billable serve/click. Invoices and
+// revenue math read THESE rows, never the mutable counters (disputes need
+// history, counters only know the present). costMillicents = thousandths of
+// a cent — exact for any sane rate (CPM $2 → 200/impression, CPC $0.50 →
+// 50000/click). Rows cascade with their ad (matches "counters go with it").
+model AdEvent {
+  id            String   @id @default(cuid())
+  adId          String
+  ad            Ad       @relation(fields: [adId], references: [id], onDelete: Cascade)
+  type          String   // "impression" | "click"
+  costMillicents Int     // billable cost of THIS event
+  date          String   // YYYY-MM-DD bucket (billing periods, no date math)
+  createdAt     DateTime @default(now())
+
+  @@index([adId, date])
 }
 
 // ── Polls (E's polls feature — DRAFT shape, reconcile with E's ticket

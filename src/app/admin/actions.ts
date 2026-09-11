@@ -162,6 +162,9 @@ export type AdInput = {
   placement: string;
   startsAt?: string | null;
   endsAt?: string | null;
+  rateCpmCents?: number | null;
+  rateCpcCents?: number | null;
+  budgetCents?: number | null;
 };
 
 export type SerializedAd = {
@@ -176,6 +179,9 @@ export type SerializedAd = {
   endsAt: string | null;
   impressions: number;
   clicks: number;
+  rateCpmCents: number | null;
+  rateCpcCents: number | null;
+  budgetCents: number | null;
 };
 
 function serializeAd(ad: {
@@ -190,6 +196,9 @@ function serializeAd(ad: {
   endsAt: Date | null;
   impressions: number;
   clicks: number;
+  rateCpmCents: number | null;
+  rateCpcCents: number | null;
+  budgetCents: number | null;
 }): SerializedAd {
   return {
     ...ad,
@@ -224,6 +233,19 @@ function parseAdForm(form: FormData): AdInput {
     throw new Error("Placement must be FEED or SIDEBAR.");
   }
 
+  // Pricing, all in integer cents. Blank = free/unlimited. Budgets need a
+  // rate to mean anything, but we don't force it — an admin may set the
+  // budget first and the rate when the deal lands.
+  const cents = (key: string, max: number) => {
+    const raw = String(form.get(key) || "").trim();
+    if (!raw) return null;
+    const n = Math.trunc(Number(raw));
+    if (!Number.isFinite(n) || n < 0 || n > max) {
+      throw new Error(`Invalid ${key}: whole cents, 0–${max}.`);
+    }
+    return n;
+  };
+
   return {
     advertiser,
     headline,
@@ -231,6 +253,9 @@ function parseAdForm(form: FormData): AdInput {
     placement,
     startsAt: startsAt || null,
     endsAt: endsAt || null,
+    rateCpmCents: cents("rateCpmCents", 100_000),
+    rateCpcCents: cents("rateCpcCents", 100_000),
+    budgetCents: cents("budgetCents", 100_000_000),
   };
 }
 
@@ -289,6 +314,9 @@ export async function createAd(
         imageUrl,
         startsAt: dateOrNull(input.startsAt),
         endsAt: dateOrNull(input.endsAt),
+        rateCpmCents: input.rateCpmCents,
+        rateCpcCents: input.rateCpcCents,
+        budgetCents: input.budgetCents,
       },
     });
     revalidatePath("/admin/ads");
@@ -336,6 +364,9 @@ export async function updateAd(
         placement: input.placement,
         startsAt: dateOrNull(input.startsAt),
         endsAt: dateOrNull(input.endsAt),
+        rateCpmCents: input.rateCpmCents,
+        rateCpcCents: input.rateCpcCents,
+        budgetCents: input.budgetCents,
         ...(imageUrl !== undefined ? { imageUrl } : {}),
       },
     });

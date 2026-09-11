@@ -52,3 +52,54 @@ test("an admin can create, serve, pause, and delete a feed ad", async ({ browser
     await context.close();
   }
 });
+
+test("budgets accrue spend and auto-pause the ad", async ({ browser }) => {
+  const { demo } = await demoUsers();
+  const headline = `${E2E_PREFIX} budgeted headline`;
+  const advertiser = `${E2E_PREFIX} budgeted advertiser`;
+  await prisma.post.createMany({
+    data: Array.from({ length: 10 }, (_, index) => ({
+      authorId: demo.id,
+      category: "COMMUNITY",
+      title: `${E2E_PREFIX} budget fixture ${index}`,
+      content: `${E2E_PREFIX} budget fixture body ${index}`,
+    })),
+  });
+  const { context, page } = await signedInPage(browser, "demo");
+  try {
+    await page.goto("/admin/ads");
+    const create = page.locator("section").filter({ has: page.getByRole("heading", { name: "Create ad" }) });
+    await create.locator("input").nth(0).fill(advertiser);
+    await create.locator("input").nth(1).fill(headline);
+    await create.locator("input").nth(2).fill("https://example.com/e2e-budget");
+    // Pricing fields live after the image input — located by placeholder so
+    // form order can evolve without breaking this.
+    await create.getByPlaceholder("e.g. 200 ($2)").fill("10000");
+    await create.getByPlaceholder("e.g. 5000 ($50)").fill("5");
+    await create.getByRole("button", { name: "Create ad" }).click();
+    const card = page.locator("article").filter({ hasText: headline });
+    await expect(card).toBeVisible();
+    await expect(card.getByText("$0.05 budget")).toBeVisible();
+
+    // Single candidate → this serve is deterministic. One $100-CPM
+    // impression costs $0.10, blowing the $0.05 budget on the spot.
+    await page.goto("/community");
+    await expect(page.getByText(headline)).toBeVisible();
+
+    await page.goto("/admin/ads");
+    const spent = page.locator("article").filter({ hasText: headline });
+    await expect(spent.getByText("Paused")).toBeVisible();
+    await expect(spent.getByText("$0.10")).toBeVisible();
+
+    // Paused ads stop serving.
+    await page.goto("/community");
+    await expect(page.getByText(headline)).toHaveCount(0);
+
+    await page.goto("/admin/ads");
+    page.once("dialog", (dialog) => dialog.accept());
+    await page.locator("article").filter({ hasText: headline }).getByRole("button", { name: "Delete ad" }).click();
+    await expect(page.getByText(headline)).toHaveCount(0);
+  } finally {
+    await context.close();
+  }
+});

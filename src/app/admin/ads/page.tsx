@@ -26,6 +26,9 @@ export default async function AdminAdsPage() {
     endsAt: a.endsAt ? a.endsAt.toISOString() : null,
     impressions: a.impressions,
     clicks: a.clicks,
+    rateCpmCents: a.rateCpmCents,
+    rateCpcCents: a.rateCpcCents,
+    budgetCents: a.budgetCents,
   }));
 
   return (

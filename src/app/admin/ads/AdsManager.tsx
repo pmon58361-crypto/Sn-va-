@@ -8,6 +8,7 @@ import {
   deleteAd,
   type SerializedAd,
 } from "../actions";
+import { spendCents, formatCents } from "@/lib/ads-money";
 
 export type AdsManagerAd = SerializedAd;
 
@@ -18,6 +19,9 @@ type FormState = {
   placement: string;
   startsAt: string;
   endsAt: string;
+  rateCpmCents: string;
+  rateCpcCents: string;
+  budgetCents: string;
 };
 
 const EMPTY_FORM: FormState = {
@@ -27,6 +31,9 @@ const EMPTY_FORM: FormState = {
   placement: "FEED",
   startsAt: "",
   endsAt: "",
+  rateCpmCents: "",
+  rateCpcCents: "",
+  budgetCents: "",
 };
 
 function toFormValue(iso: string | null) {
@@ -66,6 +73,9 @@ export function AdsManager({ initial }: { initial: AdsManagerAd[] }) {
     fd.set("placement", f.placement);
     fd.set("startsAt", f.startsAt);
     fd.set("endsAt", f.endsAt);
+    fd.set("rateCpmCents", f.rateCpmCents);
+    fd.set("rateCpcCents", f.rateCpcCents);
+    fd.set("budgetCents", f.budgetCents);
     return fd;
   }
 
@@ -217,12 +227,67 @@ export function AdsManager({ initial }: { initial: AdsManagerAd[] }) {
             <p className="mt-1 text-xs text-ink-muted">{fileState.name}</p>
           )}
         </div>
+        {/* Pricing — appended LAST so the first inputs keep stable DOM order
+            (e2e fills advertiser/headline/url by index). Cents integers. */}
+        <div className="mt-3 grid gap-3 sm:grid-cols-3">
+          <div>
+            <label className={labelCls}>CPM ¢ / 1000 views</label>
+            <input
+              inputMode="numeric"
+              className={inputCls}
+              value={state.rateCpmCents}
+              onChange={(e) => setState({ ...state, rateCpmCents: e.target.value })}
+              placeholder="e.g. 200 ($2)"
+            />
+          </div>
+          <div>
+            <label className={labelCls}>CPC ¢ / click</label>
+            <input
+              inputMode="numeric"
+              className={inputCls}
+              value={state.rateCpcCents}
+              onChange={(e) => setState({ ...state, rateCpcCents: e.target.value })}
+              placeholder="e.g. 50 ($0.50)"
+            />
+          </div>
+          <div>
+            <label className={labelCls}>Budget ¢ (auto-pause)</label>
+            <input
+              inputMode="numeric"
+              className={inputCls}
+              value={state.budgetCents}
+              onChange={(e) => setState({ ...state, budgetCents: e.target.value })}
+              placeholder="e.g. 5000 ($50)"
+            />
+          </div>
+        </div>
       </>
     );
   }
 
   return (
     <div>
+      {/* Revenue header — what advertisers owe across all ads. */}
+      <section className="card mb-8 grid grid-cols-3 gap-3 p-5" aria-label="Ad revenue">
+        <div>
+          <p className="text-[11px] uppercase tracking-wide text-ink-faint">Billable</p>
+          <p className="mt-0.5 text-2xl font-bold tabular-nums text-ink">
+            {formatCents(ads.reduce((s, a) => s + spendCents(a), 0))}
+          </p>
+        </div>
+        <div>
+          <p className="text-[11px] uppercase tracking-wide text-ink-faint">Impressions</p>
+          <p className="mt-0.5 text-2xl font-bold tabular-nums text-ink">
+            {ads.reduce((s, a) => s + a.impressions, 0).toLocaleString()}
+          </p>
+        </div>
+        <div>
+          <p className="text-[11px] uppercase tracking-wide text-ink-faint">Clicks</p>
+          <p className="mt-0.5 text-2xl font-bold tabular-nums text-ink">
+            {ads.reduce((s, a) => s + a.clicks, 0).toLocaleString()}
+          </p>
+        </div>
+      </section>
       {/* Create */}
       <section className="card mb-8 p-5">
         <h2 className="mb-4 text-sm font-bold uppercase tracking-wider text-ink-muted">
@@ -322,6 +387,17 @@ export function AdsManager({ initial }: { initial: AdsManagerAd[] }) {
                       {a.endsAt ? new Date(a.endsAt).toLocaleString() : "open end"}
                     </p>
                   )}
+                  {(a.rateCpmCents != null || a.rateCpcCents != null || a.budgetCents != null) && (
+                    <p className="mt-0.5 text-xs text-ink-faint">
+                      {[
+                        a.rateCpmCents != null ? `$${(a.rateCpmCents / 100).toFixed(2)} CPM` : null,
+                        a.rateCpcCents != null ? `$${(a.rateCpcCents / 100).toFixed(2)} CPC` : null,
+                        a.budgetCents != null ? `${formatCents(a.budgetCents)} budget` : null,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </p>
+                  )}
                 </div>
 
                 {/* Real counters only */}
@@ -346,6 +422,24 @@ export function AdsManager({ initial }: { initial: AdsManagerAd[] }) {
                       CTR
                     </p>
                   </div>
+                  <div>
+                    <p className="text-lg font-bold tabular-nums text-accent">
+                      {formatCents(spendCents(a))}
+                    </p>
+                    <p className="text-[10px] uppercase tracking-wide text-ink-faint">
+                      Spend
+                    </p>
+                  </div>
+                  {a.budgetCents != null && (
+                    <div>
+                      <p className="text-lg font-bold tabular-nums text-ink">
+                        {formatCents(Math.max(0, a.budgetCents - spendCents(a)))}
+                      </p>
+                      <p className="text-[10px] uppercase tracking-wide text-ink-faint">
+                        Left
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -372,6 +466,9 @@ export function AdsManager({ initial }: { initial: AdsManagerAd[] }) {
                       placement: a.placement,
                       startsAt: toFormValue(a.startsAt),
                       endsAt: toFormValue(a.endsAt),
+                      rateCpmCents: a.rateCpmCents != null ? String(a.rateCpmCents) : "",
+                      rateCpcCents: a.rateCpcCents != null ? String(a.rateCpcCents) : "",
+                      budgetCents: a.budgetCents != null ? String(a.budgetCents) : "",
                     });
                   }}
                   className="rounded-lg border border-line-strong px-3 py-1.5 text-xs font-medium text-ink-muted transition hover:border-accent hover:text-accent disabled:opacity-50"
