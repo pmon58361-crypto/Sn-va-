@@ -88,6 +88,9 @@ model Group {
   slug        String   @unique
   description String?
   coverUrl    String?
+  // Square group icon, customized independently from the banner cover.
+  // Null = auto letter tile (and GroupCard falls back to a cover crop).
+  avatarUrl   String?
   // House rules, owner-written (one per line). Shown on the group page.
   rules       String?
   // "public" (listed + feed-visible) | "private" (members only)

@@ -6,7 +6,7 @@ import { getMembership, canViewGroup } from "@/lib/groups";
 import { getPosts } from "@/lib/queries";
 import { getPresence } from "@/lib/presence";
 import { GroupPostRow } from "@/components/groups/GroupPostRow";
-import { GroupCover } from "@/components/groups/GroupCover";
+import { GroupCover, GroupAvatar } from "@/components/groups/GroupCover";
 import {
   GroupActions,
   KickButton,
@@ -161,11 +161,13 @@ export default async function GroupPage({
         </div>
 
         <div className="p-5 pt-0">
-          {/* Overlapping avatar tile — identity sits on the art, Reddit-style. */}
+          {/* Overlapping avatar tile — custom icon when set, letter fallback. */}
           <div className="relative z-10 -mt-10 mb-3 flex items-end">
-            <span className="grid h-20 w-20 place-items-center overflow-hidden rounded-3xl bg-accent text-3xl font-black text-white ring-4 ring-[var(--bg-surface,#1a1a1c)]">
-              {(group.name || "?").trim().charAt(0).toUpperCase()}
-            </span>
+            <GroupAvatar
+              name={group.name}
+              avatarUrl={group.avatarUrl}
+              tileClassName="h-20 w-20 rounded-3xl text-3xl ring-4 ring-[var(--bg-surface,#1a1a1c)]"
+            />
           </div>
           <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
             <div className="min-w-0">

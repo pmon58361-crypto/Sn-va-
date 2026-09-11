@@ -27,3 +27,45 @@ export function GroupCover({ name, coverUrl }: { name: string; coverUrl: string 
     />
   );
 }
+
+/**
+ * Square group icon, customized independently from the banner cover.
+ * Dead/missing avatarUrl falls back to the letter tile — never a broken
+ * glyph. Pair with `tileClassName` sized by the caller (card tile, hero
+ * avatar) since the image simply fills its box.
+ */
+export function GroupAvatar({
+  name,
+  avatarUrl,
+  coverUrl,
+  tileClassName,
+}: {
+  name: string;
+  avatarUrl: string | null;
+  /** Second fallback for card tiles: crop the banner before the letter. */
+  coverUrl?: string | null;
+  tileClassName: string;
+}) {
+  const [dead, setDead] = useState(false);
+  const letter = (name || "?").trim().charAt(0).toUpperCase();
+  const src = !dead ? avatarUrl || coverUrl || null : null;
+  if (!src) {
+    return (
+      <span className={`grid place-items-center overflow-hidden bg-accent font-black text-white ${tileClassName}`}>
+        {letter}
+      </span>
+    );
+  }
+  return (
+    <span className={`block overflow-hidden ${tileClassName}`}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={src}
+        alt=""
+        loading="lazy"
+        onError={() => setDead(true)}
+        className="h-full w-full object-cover"
+      />
+    </span>
+  );
+}

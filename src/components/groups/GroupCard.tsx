@@ -13,6 +13,7 @@ export type CardGroup = {
   visibility: string;
   category: string | null;
   coverUrl: string | null;
+  avatarUrl: string | null;
   _count: { members: number; posts: number };
   members: { user: { id: string; name: string | null; image: string | null } }[];
 };
@@ -32,7 +33,10 @@ export function GroupCard({
   featured?: boolean;
 }) {
   const [dead, setDead] = useState(false);
+  const [deadAvatar, setDeadAvatar] = useState(false);
   const showCover = !!group.coverUrl && !dead;
+  // Custom square icon wins; then the banner crop; then the letter tile.
+  const showAvatar = !!group.avatarUrl && !deadAvatar;
   const initial = (group.name || "?").trim().charAt(0).toUpperCase();
 
   return (
@@ -88,7 +92,16 @@ export function GroupCard({
                 : { background: hueGradient(group.name, { light: 32 }) }
             }
           >
-            {showCover ? (
+            {showAvatar ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={group.avatarUrl!}
+                alt=""
+                loading="lazy"
+                onError={() => setDeadAvatar(true)}
+                className="h-full w-full object-cover"
+              />
+            ) : showCover ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={group.coverUrl!}

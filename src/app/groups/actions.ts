@@ -482,3 +482,38 @@ export async function updateGroupCover(
   revalidatePath("/groups");
   return { ok: true };
 }
+
+// Owner avatar change/remove — the square icon, independent from the banner
+// cover. Accepts a fresh /api/upload URL or null (null = back to the auto
+// letter tile; GroupCard then falls back to a cover crop). Same ownership
+// and orphan-asset rules as the cover.
+export async function updateGroupAvatar(
+  groupId: string,
+  avatarUrl: string | null
+): Promise<{ ok: boolean; error?: string }> {
+  const me = (await requireActiveUser()).id;
+
+  const group = await prisma.group.findUnique({
+    where: { id: groupId },
+    select: { creatorId: true, avatarUrl: true },
+  });
+  if (!group) return { ok: false, error: "Group not found" };
+  if (group.creatorId !== me) {
+    return { ok: false, error: "Only the owner can change the avatar" };
+  }
+
+  const next = avatarUrl?.trim() || null;
+  if (next && !next.startsWith("https://") && !next.startsWith("/uploads/")) {
+    return { ok: false, error: "Invalid image" };
+  }
+
+  await prisma.group.update({ where: { id: groupId }, data: { avatarUrl: next } });
+  if (group.avatarUrl && group.avatarUrl !== next) {
+    const shared = await prisma.group.count({
+      where: { avatarUrl: group.avatarUrl, id: { not: groupId } },
+    });
+    if (shared === 0) destroyAssets([group.avatarUrl]).catch(() => {});
+  }
+  revalidatePath("/groups");
+  return { ok: true };
+}
