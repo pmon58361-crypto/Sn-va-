@@ -11,7 +11,6 @@ import {
   BriefcaseIcon,
   ClipboardIcon,
   PlusIcon,
-  UserIcon,
   MenuIcon,
   BookIcon,
   CompassIcon,
@@ -41,9 +40,10 @@ const MORE_LINKS = [
 /**
  * Mobile bottom tab bar — Instagram/TikTok pattern.
  * Fixed below the lg breakpoint; desktop keeps the sidebar.
- * Center slot is an elevated "New Post" action button; the last slot
- * opens a "More" sheet with everything else (profile, bookmarks,
- * people, dashboard, settings, moderation).
+ * Five equal slots so the elevated "New Post" button sits dead-center.
+ * (Six slots can't center it — slot 3 of 6 sits left of middle.)
+ * Profile moved into the "More" sheet header (and stays on the top-bar
+ * avatar) — no destination lost, bar stays symmetric.
  */
 export function BottomNav() {
   const pathname = usePathname();
@@ -79,7 +79,6 @@ export function BottomNav() {
     { href: "/jobs", label: "Jobs", icon: BriefcaseIcon },
     { href: "/new", label: "New", icon: PlusIcon, primary: true },
     { href: "/applications", label: "Apps", icon: ClipboardIcon },
-    { href: profileHref, label: "You", icon: UserIcon, needsAuth: true },
   ];
 
   const isActive = (href: string) =>
@@ -94,7 +93,7 @@ export function BottomNav() {
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
         aria-label="Primary"
       >
-        <div className="mx-auto grid max-w-md grid-cols-6">
+        <div className="mx-auto grid max-w-md grid-cols-5">
           {tabs.map(({ href, label, icon: Icon, primary }) => {
             const active = !primary && isActive(href);
             return (
