@@ -54,9 +54,9 @@ const NAMES: Record<string, string> = {
   yahoo: "Yahoo",
 };
 
-// Shared field styling for the email/password forms (terminal aesthetic).
-const FIELD =
-  "w-full rounded-lg border border-white/10 bg-black/50 px-4 py-3 text-sm text-white placeholder:text-white/30 outline-none transition focus:border-amber-400/60";
+// Shared field styling for the email/password forms (brand inputs:
+// 16px kills the iOS focus-zoom, accent ring on focus).
+const FIELD = "input";
 
 export function SignInForm({
   oauthProviders,
@@ -91,7 +91,7 @@ export function SignInForm({
         onClick={() => setShowPw((v) => !v)}
         aria-label={showPw ? "Hide passwords" : "Show passwords"}
         title={showPw ? "Hide passwords" : "Show passwords"}
-        className="absolute right-3 top-1/2 -translate-y-1/2 text-white/35 transition hover:text-white/70"
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-faint transition hover:text-ink"
       >
         {showPw ? (
           <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -218,72 +218,35 @@ export function SignInForm({
 
   return (
     <>
-      <style dangerouslySetInnerHTML={{ __html: "body{background:#0a0a0b!important}" }} />
-      <main className="page-flood relative flex min-h-screen flex-col items-center justify-center bg-[#0a0a0b] px-5 py-16">
-      {/* terminal grid + waves */}
-      <div aria-hidden className="term-grid pointer-events-none absolute inset-0 abs-bleed" />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0"
-        style={{ background: "radial-gradient(ellipse 70% 55% at 50% 35%, transparent 30%, #0a0a0b 80%)" }}
-      />
-      <div aria-hidden className="wave-band abs-bleed z-0">
-        <svg className="wave-2" viewBox="0 0 2880 200" preserveAspectRatio="none">
-          <path d="M0,120 C240,60 480,170 720,105 C960,45 1200,175 1440,115 C1680,55 1920,170 2160,105 C2400,45 2640,175 2880,115 L2880,200 L0,200 Z" fill="rgba(201,162,75,0.15)" />
-        </svg>
-        <svg className="wave-3" viewBox="0 0 2880 200" preserveAspectRatio="none">
-          <path d="M0,70 C240,130 480,25 720,85 C960,140 1200,30 1440,90 C1680,145 1920,35 2160,95 C2400,150 2640,30 2880,80 L2880,200 L0,200 Z" fill="rgba(245,158,11,0.13)" />
-        </svg>
-        <svg className="wave-1" viewBox="0 0 2880 200" preserveAspectRatio="none">
-          <path d="M0,96 C240,160 480,32 720,96 C960,160 1200,32 1440,96 C1680,160 1920,32 2160,96 C2400,160 2640,32 2880,96 L2880,200 L0,200 Z" fill="rgba(251,191,36,0.12)" />
-        </svg>
-        <svg className="wave-4" viewBox="0 0 2880 200" preserveAspectRatio="none">
-          <path d="M0,140 C240,100 480,155 720,125 C960,90 1200,150 1440,135 C1680,95 1920,155 2160,130 C2400,95 2640,150 2880,140 L2880,200 L0,200 Z" fill="rgba(252,211,77,0.10)" />
-        </svg>
-      </div>
-
-      <div className="reveal relative z-10 w-full max-w-md min-w-0">
-        <div className="mb-8 flex flex-col items-center gap-4 text-center">
-          <Logo size={52} />
-          <div>
-            <p className="font-mono text-xs text-white/40">
-              <span className="text-amber-300">$</span> ssh demo@snívať.dev
-            </p>
-            <h1 className="mt-2 text-3xl font-black tracking-tight">
-              {mode === "create" ? "Create your account." : "Welcome back."}
-            </h1>
-            <p className="mt-1.5 text-sm text-white/50">
-              {mode === "create"
-                ? "Join Snívať — share what you're building."
-                : "Sign in to share what you're building."}
-            </p>
-          </div>
-        </div>
-
-        <div className="overflow-hidden rounded-xl border border-white/10 bg-black/70 shadow-[0_0_80px_-20px_rgba(245,158,11,0.22)] backdrop-blur">
-          <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-            <span className="flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-full bg-white/15" />
-              <span className="h-2.5 w-2.5 rounded-full bg-white/15" />
-              <span className="h-2.5 w-2.5 rounded-full bg-amber-400/70" />
-            </span>
-            <span className="font-mono text-xs text-white/40">auth --in</span>
-            <span className="w-10" />
+      <main className="relative flex min-h-screen flex-col items-center justify-center px-5 py-16">
+        <div className="reveal relative z-10 w-full max-w-md min-w-0">
+          <div className="mb-8 flex flex-col items-center gap-4 text-center">
+            <Logo size={52} />
+            <div>
+              <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-ink">
+                {mode === "create" ? "Create your account." : "Welcome back."}
+              </h1>
+              <p className="mt-1.5 text-sm text-ink-muted">
+                {mode === "create"
+                  ? "Join Snívať — share what you're building."
+                  : "Sign in to share what you're building."}
+              </p>
+            </div>
           </div>
 
-          <div className="p-6 sm:p-8">
+          <div className="card p-6 sm:p-8">
             {shownError && (
               <div
                 role="alert"
-                className="mb-5 rounded-lg border border-red-400/30 bg-red-500/10 px-4 py-3 font-mono text-sm text-red-300"
+                className="mb-5 rounded-xl border border-warm/40 bg-warm-tint px-4 py-3 text-sm text-warm"
               >
-                // {shownError}
+                {shownError}
               </div>
             )}
 
             {/* Mode switch — Sign in / Create account */}
             <div
-              className="mb-5 grid grid-cols-2 gap-1 rounded-lg border border-white/10 bg-black/40 p-1"
+              className="mb-5 grid grid-cols-2 gap-1 rounded-xl border border-line bg-soft p-1"
               role="tablist"
               aria-label="Account"
             >
@@ -297,8 +260,8 @@ export function SignInForm({
                     setMode(m);
                     setError(null);
                   }}
-                  className={`rounded-md py-2 text-sm font-semibold transition ${
-                    mode === m ? "bg-white/10 text-white" : "text-white/50 hover:text-white/80"
+                  className={`rounded-lg py-2 text-sm font-semibold transition touch-manipulation ${
+                    mode === m ? "bg-surface text-ink shadow-sm" : "text-ink-muted hover:text-ink"
                   }`}
                 >
                   {m === "signin" ? "Sign in" : "Create account"}
@@ -316,22 +279,22 @@ export function SignInForm({
                 required
                 autoComplete="off"
                 placeholder="access code"
-                className="w-full rounded-lg border border-white/10 bg-black/50 px-4 py-3 text-center font-mono text-sm tracking-[0.35em] text-white placeholder:tracking-normal placeholder:text-white/30 outline-none transition focus:border-amber-400/60"
+                className="input text-center"
               />
               <button
                 type="submit"
                 disabled={loading === "credentials"}
-                className="w-full rounded-lg bg-white py-3 text-sm font-bold text-black transition hover:bg-white/90 disabled:opacity-50"
+                className="btn-primary w-full py-3 text-sm disabled:opacity-50"
               >
                 {loading === "credentials" ? "Checking" : "Enter with access code"}
               </button>
-              <p className="text-center font-mono text-xs text-white/30">
-                // have a code? that is your way in
+              <p className="text-center text-xs text-ink-faint">
+                Have a code? That is your way in.
               </p>
             </form>
 
                 {/* Email + password sign-in for registered accounts */}
-                <form onSubmit={handleEmailSignIn} className="mt-5 space-y-3 border-t border-white/10 pt-5">
+                <form onSubmit={handleEmailSignIn} className="mt-5 space-y-3 border-t border-line pt-5">
                   <input
                     name="email"
                     type="email"
@@ -354,13 +317,13 @@ export function SignInForm({
                   <button
                     type="submit"
                     disabled={loading === "email"}
-                    className="w-full rounded-lg border border-white/15 py-3 text-sm font-bold text-white transition hover:bg-white/10 disabled:opacity-50"
+                    className="btn-outline w-full py-3 text-sm font-semibold disabled:opacity-50"
                   >
                     {loading === "email" ? "Checking" : "Sign in with email"}
                   </button>
                   <Link
                     href="/auth/forgot-password"
-                    className="text-center font-mono text-xs text-white/40 transition-colors hover:text-white/70"
+                    className="block text-center text-xs text-ink-muted transition-colors hover:text-accent"
                   >
                     forgot password?
                   </Link>
@@ -376,11 +339,11 @@ export function SignInForm({
                     <span
                       key={s}
                       className={`h-1 flex-1 rounded-full transition-colors ${
-                        step >= s ? "bg-amber-400" : "bg-white/10"
+                        step >= s ? "bg-accent" : "bg-soft"
                       }`}
                     />
                   ))}
-                  <span className="font-mono text-[11px] text-white/40">
+                  <span className="text-[11px] tabular-nums text-ink-faint">
                     {step}/3
                   </span>
                 </div>
@@ -411,7 +374,7 @@ export function SignInForm({
                     <button
                       type="submit"
                       disabled={!suName.trim()}
-                      className="w-full rounded-lg bg-white py-3 text-sm font-bold text-black transition hover:bg-white/90 disabled:opacity-50"
+                      className="btn-primary w-full py-3 text-sm disabled:opacity-50"
                     >
                       Continue
                     </button>
@@ -459,27 +422,27 @@ export function SignInForm({
                     <button
                       type="submit"
                       disabled={loading === "create"}
-                      className="w-full rounded-lg bg-amber-400 py-3 text-sm font-bold text-black transition hover:bg-amber-300 disabled:opacity-50"
+                      className="btn-primary w-full py-3 text-sm disabled:opacity-50"
                     >
                       {loading === "create" ? "Creating…" : "Create account"}
                     </button>
                     <button
                       type="button"
                       onClick={() => { setStep(1); setError(null); }}
-                      className="w-full text-center font-mono text-xs text-white/40 transition-colors hover:text-white/70"
+                      className="w-full text-center text-xs text-ink-muted transition-colors hover:text-ink"
                     >
                       ← back
                     </button>
-                    <p className="text-center font-mono text-xs text-white/30">
-                      // your email stays private
+                    <p className="text-center text-xs text-ink-faint">
+                      Your email stays private.
                     </p>
                   </form>
                 )}
 
                 {step === 3 && (
                   <div className="space-y-4">
-                    <p className="font-mono text-xs text-white/50">
-                      account created ✓ — last step:
+                    <p className="text-xs text-ink-muted">
+                      Account created — last step:
                     </p>
                     <div className="max-h-[34vh] overflow-y-auto pr-1">
                       <InterestChips
@@ -495,7 +458,7 @@ export function SignInForm({
                       />
                     </div>
                     {suInterests.length > 0 && suInterests.length < 3 && (
-                      <p className="text-xs text-white/40">
+                      <p className="text-xs text-ink-faint">
                         Pick 3 for a sharper feed.
                       </p>
                     )}
@@ -503,7 +466,7 @@ export function SignInForm({
                       type="button"
                       onClick={finishSignup}
                       disabled={loading === "finish"}
-                      className="w-full rounded-lg bg-amber-400 py-3 text-sm font-bold text-black transition hover:bg-amber-300 disabled:opacity-50"
+                      className="btn-primary w-full py-3 text-sm disabled:opacity-50"
                     >
                       {loading === "finish"
                         ? "Tuning…"
@@ -515,7 +478,7 @@ export function SignInForm({
                       type="button"
                       onClick={finishSignup}
                       disabled={loading === "finish"}
-                      className="w-full text-center font-mono text-xs text-white/40 transition-colors hover:text-white/70"
+                      className="w-full text-center text-xs text-ink-muted transition-colors hover:text-ink"
                     >
                       skip interests
                     </button>
@@ -529,9 +492,9 @@ export function SignInForm({
             {oauthProviders.length > 0 && (
               <>
                 <div className="my-6 flex items-center gap-4">
-                  <span className="h-px flex-1 bg-white/10" />
-                  <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-white/35">or</span>
-                  <span className="h-px flex-1 bg-white/10" />
+                  <span className="h-px flex-1 bg-line" />
+                  <span className="text-[11px] uppercase tracking-[0.2em] text-ink-faint">or</span>
+                  <span className="h-px flex-1 bg-line" />
                 </div>
 
                 <div className="space-y-3">
@@ -540,7 +503,7 @@ export function SignInForm({
                       key={id}
                       onClick={() => handleOAuth(id)}
                       disabled={!!loading}
-                      className="flex w-full items-center justify-center gap-3 rounded-lg border border-white/10 bg-white/[0.03] px-5 py-3 text-sm font-medium text-white/85 transition hover:border-white/30 hover:bg-white/[0.07] disabled:opacity-50"
+                      className="flex w-full touch-manipulation items-center justify-center gap-3 rounded-xl border border-line bg-surface px-5 py-3 text-sm font-medium text-ink-soft transition hover:border-line-strong hover:text-ink disabled:opacity-50"
                     >
                       {MARKS[id]}
                       {loading === id ? "Connecting…" : `Continue with ${NAMES[id] ?? id}`}
@@ -550,18 +513,17 @@ export function SignInForm({
               </>
             )}
           </div>
-        </div>
 
-        <p className="mt-6 text-center font-mono text-xs leading-relaxed text-white/35">
+        <p className="mt-6 text-center text-xs leading-relaxed text-ink-faint">
           By continuing you agree to our terms.{" "}
-          <Link href="/terms" className="text-amber-300/90 hover:text-amber-200 hover:underline">
+          <Link href="/terms" className="text-accent hover:underline">
             read them
           </Link>
         </p>
       </div>
 
       <div className="mt-6">
-        <LegalLinks variant="dark" />
+        <LegalLinks />
       </div>
     </main>
     </>
