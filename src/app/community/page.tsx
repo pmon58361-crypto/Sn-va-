@@ -73,7 +73,7 @@ export default async function CommunityPage({
   // views with a real feed beneath it. Hides itself when the archive is empty.
   // Tail fetches run in parallel (were sequential — saves 1 Neon RT when both fire).
   const [feedAd, archivePost] = await Promise.all([
-    posts.length >= 10 ? getFeedAd() : Promise.resolve(null),
+    posts.length >= 10 ? getFeedAd(meId) : Promise.resolve(null),
     !q && !isFollowing && !validBefore && posts.length >= 6
       ? getArchivedCommunityPost(posts.map((p) => p.id))
       : Promise.resolve(null),
@@ -180,7 +180,7 @@ export default async function CommunityPage({
                 <Fragment key={p.id}>
                   <PostCard post={p} viewerId={session?.user?.id} showFeedback />
                   {idx === 3 && feedAd && (
-                    <AdCard ad={feedAd} variant="feed" />
+                    <AdCard ad={feedAd} variant="feed" viewerId={meId} />
                   )}
                   {idx === 8 && archivePost && (
                     <div>

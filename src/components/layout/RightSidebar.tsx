@@ -102,11 +102,11 @@ export async function RightSidebar({ viewerId }: { viewerId?: string | null }) {
     .slice(0, 5);
 
   // Sponsored slot — first block; collapses to nothing when no ad is running.
-  const sidebarAd = await getSidebarAd();
+  const sidebarAd = await getSidebarAd(viewerId);
 
   return (
     <aside className="sticky top-0 hidden h-screen w-72 shrink-0 flex-col gap-6 overflow-y-auto border-l border-line px-5 py-6 xl:flex">
-      {sidebarAd && <AdCard ad={sidebarAd} variant="sidebar" />}
+      {sidebarAd && <AdCard ad={sidebarAd} variant="sidebar" viewerId={viewerId} />}
 
       {/* Your streak — derived from real activity. Always visible when
           signed in: a live streak shows the milestone rail, day zero shows

@@ -22,6 +22,7 @@ type FormState = {
   rateCpmCents: string;
   rateCpcCents: string;
   budgetCents: string;
+  topics: string;
 };
 
 const EMPTY_FORM: FormState = {
@@ -34,6 +35,7 @@ const EMPTY_FORM: FormState = {
   rateCpmCents: "",
   rateCpcCents: "",
   budgetCents: "",
+  topics: "",
 };
 
 function toFormValue(iso: string | null) {
@@ -76,6 +78,7 @@ export function AdsManager({ initial }: { initial: AdsManagerAd[] }) {
     fd.set("rateCpmCents", f.rateCpmCents);
     fd.set("rateCpcCents", f.rateCpcCents);
     fd.set("budgetCents", f.budgetCents);
+    fd.set("topics", f.topics);
     return fd;
   }
 
@@ -261,6 +264,19 @@ export function AdsManager({ initial }: { initial: AdsManagerAd[] }) {
             />
           </div>
         </div>
+        <div className="mt-3">
+          <label className={labelCls}>Topics (optional, comma-separated)</label>
+          <input
+            className={inputCls}
+            value={state.topics}
+            maxLength={200}
+            onChange={(e) => setState({ ...state, topics: e.target.value })}
+            placeholder="e.g. react, design, remote"
+          />
+          <p className="mt-1 text-xs text-ink-faint">
+            Matched against viewer interests for weighting — never exclusive, fill rate unaffected.
+          </p>
+        </div>
       </>
     );
   }
@@ -387,12 +403,13 @@ export function AdsManager({ initial }: { initial: AdsManagerAd[] }) {
                       {a.endsAt ? new Date(a.endsAt).toLocaleString() : "open end"}
                     </p>
                   )}
-                  {(a.rateCpmCents != null || a.rateCpcCents != null || a.budgetCents != null) && (
+                  {(a.rateCpmCents != null || a.rateCpcCents != null || a.budgetCents != null || a.topics) && (
                     <p className="mt-0.5 text-xs text-ink-faint">
                       {[
                         a.rateCpmCents != null ? `$${(a.rateCpmCents / 100).toFixed(2)} CPM` : null,
                         a.rateCpcCents != null ? `$${(a.rateCpcCents / 100).toFixed(2)} CPC` : null,
                         a.budgetCents != null ? `${formatCents(a.budgetCents)} budget` : null,
+                        a.topics ? `topics: ${a.topics}` : null,
                       ]
                         .filter(Boolean)
                         .join(" · ")}
@@ -420,6 +437,12 @@ export function AdsManager({ initial }: { initial: AdsManagerAd[] }) {
                     </p>
                     <p className="text-[10px] uppercase tracking-wide text-ink-faint">
                       CTR
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-lg font-bold text-ink">{a.viewableImpressions}</p>
+                    <p className="text-[10px] uppercase tracking-wide text-ink-faint">
+                      Viewed
                     </p>
                   </div>
                   <div>
@@ -469,6 +492,7 @@ export function AdsManager({ initial }: { initial: AdsManagerAd[] }) {
                       rateCpmCents: a.rateCpmCents != null ? String(a.rateCpmCents) : "",
                       rateCpcCents: a.rateCpcCents != null ? String(a.rateCpcCents) : "",
                       budgetCents: a.budgetCents != null ? String(a.budgetCents) : "",
+                      topics: a.topics ?? "",
                     });
                   }}
                   className="rounded-lg border border-line-strong px-3 py-1.5 text-xs font-medium text-ink-muted transition hover:border-accent hover:text-accent disabled:opacity-50"

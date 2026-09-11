@@ -29,6 +29,8 @@ export default async function AdminAdsPage() {
     rateCpmCents: a.rateCpmCents,
     rateCpcCents: a.rateCpcCents,
     budgetCents: a.budgetCents,
+    topics: a.topics,
+    viewableImpressions: a.viewableImpressions,
   }));
 
   return (

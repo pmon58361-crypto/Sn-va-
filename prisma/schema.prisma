@@ -564,6 +564,14 @@ model Ad {
   rateCpmCents Int?
   rateCpcCents Int?
   budgetCents  Int?
+  // Targeting (Phase 2): comma-separated topic tags. Null/empty = run of
+  // network. Matched against viewer interests for WEIGHTED (not exclusive)
+  // selection — fill rate never suffers, relevance does the steering.
+  topics String?
+  // Viewability (Phase 2): counted by client beacon on real view, separate
+  // from served impressions. Displayed, not yet billed — billing still
+  // follows served+CPC until viewability proves out.
+  viewableImpressions Int @default(0)
   events      AdEvent[]
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -580,12 +588,16 @@ model AdEvent {
   id            String   @id @default(cuid())
   adId          String
   ad            Ad       @relation(fields: [adId], references: [id], onDelete: Cascade)
-  type          String   // "impression" | "click"
-  costMillicents Int     // billable cost of THIS event
+  type          String   // "impression" | "click" | "view"
+  costMillicents Int     // billable cost of THIS event (views bill 0)
   date          String   // YYYY-MM-DD bucket (billing periods, no date math)
+  // First-party frequency-cap accounting: which viewer was served. Same DB,
+  // same practices as reactions/messages — never leaves the platform.
+  viewerId      String?
   createdAt     DateTime @default(now())
 
   @@index([adId, date])
+  @@index([viewerId, date])
 }
 
 // ── Polls (E's polls feature — DRAFT shape, reconcile with E's ticket

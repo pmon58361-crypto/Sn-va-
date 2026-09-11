@@ -165,6 +165,7 @@ export type AdInput = {
   rateCpmCents?: number | null;
   rateCpcCents?: number | null;
   budgetCents?: number | null;
+  topics?: string | null;
 };
 
 export type SerializedAd = {
@@ -182,6 +183,8 @@ export type SerializedAd = {
   rateCpmCents: number | null;
   rateCpcCents: number | null;
   budgetCents: number | null;
+  topics: string | null;
+  viewableImpressions: number;
 };
 
 function serializeAd(ad: {
@@ -199,6 +202,8 @@ function serializeAd(ad: {
   rateCpmCents: number | null;
   rateCpcCents: number | null;
   budgetCents: number | null;
+  topics: string | null;
+  viewableImpressions: number;
 }): SerializedAd {
   return {
     ...ad,
@@ -246,6 +251,14 @@ function parseAdForm(form: FormData): AdInput {
     return n;
   };
 
+  // Targeting topics: comma-separated, normalized lowercase, max 10.
+  const rawTopics = String(form.get("topics") || "")
+    .split(",")
+    .map((t) => t.trim().toLowerCase())
+    .filter(Boolean)
+    .slice(0, 10);
+  const topics = rawTopics.length > 0 ? [...new Set(rawTopics)].join(",") : null;
+
   return {
     advertiser,
     headline,
@@ -256,6 +269,7 @@ function parseAdForm(form: FormData): AdInput {
     rateCpmCents: cents("rateCpmCents", 100_000),
     rateCpcCents: cents("rateCpcCents", 100_000),
     budgetCents: cents("budgetCents", 100_000_000),
+    topics,
   };
 }
 
@@ -317,6 +331,7 @@ export async function createAd(
         rateCpmCents: input.rateCpmCents,
         rateCpcCents: input.rateCpcCents,
         budgetCents: input.budgetCents,
+        topics: input.topics,
       },
     });
     revalidatePath("/admin/ads");
@@ -367,6 +382,7 @@ export async function updateAd(
         rateCpmCents: input.rateCpmCents,
         rateCpcCents: input.rateCpcCents,
         budgetCents: input.budgetCents,
+        topics: input.topics,
         ...(imageUrl !== undefined ? { imageUrl } : {}),
       },
     });

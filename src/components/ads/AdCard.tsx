@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export type AdData = {
   id: string;
@@ -14,18 +14,62 @@ export type AdData = {
 // any kind — the click goes through our own redirect route which counts it.
 // If the image fails to load we hide the node and keep headline+advertiser,
 // so the card degrades gracefully instead of showing a broken-image icon.
+//
+// Viewability: once the card holds the viewport for a full second we fire a
+// single beacon at the view route. Attention, not delivery, and unbilled.
 export function AdCard({
   ad,
   variant = "feed",
+  viewerId,
 }: {
   ad: AdData;
   variant?: "feed" | "sidebar";
+  viewerId?: string | null;
 }) {
   const [imgOk, setImgOk] = useState(true);
+  const cardRef = useRef<HTMLAnchorElement>(null);
   const sidebar = variant === "sidebar";
+
+  useEffect(() => {
+    const el = cardRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let done = false;
+    const send = () => {
+      if (done) return;
+      done = true;
+      fetch(`/api/ads/${ad.id}/view`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(viewerId ? { viewerId } : {}),
+        keepalive: true,
+      }).catch(() => {});
+    };
+    const io = new IntersectionObserver(
+      (entries) => {
+        const visible = entries.some((e) => e.isIntersecting && e.intersectionRatio >= 0.5);
+        if (visible && !timer) {
+          timer = setTimeout(() => {
+            timer = null;
+            send();
+          }, 1000);
+        } else if (!visible && timer) {
+          clearTimeout(timer);
+          timer = null;
+        }
+      },
+      { threshold: [0, 0.5, 1] }
+    );
+    io.observe(el);
+    return () => {
+      if (timer) clearTimeout(timer);
+      io.disconnect();
+    };
+  }, [ad.id, viewerId]);
 
   return (
     <a
+      ref={cardRef}
       href={`/api/ads/${ad.id}/click`}
       target="_blank"
       rel="nofollow sponsored noopener"
