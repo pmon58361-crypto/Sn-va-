@@ -133,7 +133,9 @@ export function StoriesBar({
                         >
                           <span className="block truncate">{latest!.caption}</span>
                           {latest!.musicUrl && (
-                            <MusicChip url={latest!.musicUrl} title={latest!.musicTitle} compact />
+                            <span className="block max-w-full [&>a]:block [&>a]:max-w-full [&>a]:truncate">
+                              <MusicChip url={latest!.musicUrl} title={latest!.musicTitle} compact />
+                            </span>
                           )}
                         </span>
                         <span
@@ -180,7 +182,7 @@ export function StoriesBar({
                 style={{ left, top: notePop.cy + 8 }}
               >
                 <p
-                  className="rounded-lg px-2.5 py-2 text-sm font-semibold leading-snug"
+                  className="rounded-lg px-2.5 py-2 text-sm font-semibold leading-snug break-words"
                   style={{ background: st.css, color: st.fg }}
                 >
                   {latest?.caption}

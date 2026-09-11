@@ -153,7 +153,7 @@ export function PostDetail({
           )}
 
           {stripEmbedUrl(post.content) && (
-            <div className="max-w-none whitespace-pre-wrap leading-relaxed text-ink-soft">
+            <div className="max-w-none whitespace-pre-wrap break-words leading-relaxed text-ink-soft">
               {stripEmbedUrl(post.content)}
             </div>
           )}
@@ -269,7 +269,7 @@ export function CommentList({
                 className="ml-auto"
               />
             </div>
-            <p className="mt-1 whitespace-pre-wrap text-sm text-ink-soft">
+            <p className="mt-1 whitespace-pre-wrap break-words text-sm text-ink-soft">
               {c.content}
             </p>
           </div>

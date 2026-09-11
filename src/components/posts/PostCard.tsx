@@ -122,7 +122,7 @@ export async function PostCard({
             {post.title}
           </h3>
           {stripEmbedUrl(post.content) && (
-            <p className="mt-1 line-clamp-4 text-sm leading-relaxed text-ink-muted">
+            <p className="mt-1 line-clamp-4 break-words text-sm leading-relaxed text-ink-muted">
               {stripEmbedUrl(post.content)}
             </p>
           )}

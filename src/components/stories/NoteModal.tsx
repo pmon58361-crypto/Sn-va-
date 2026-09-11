@@ -94,7 +94,7 @@ export function NoteModal({
           <div className="relative mb-1 flex w-full justify-center px-8">
             {note.trim() ? (
               <div
-                className="max-w-[280px] rounded-2xl px-5 py-3 text-center text-[15px] font-semibold text-white shadow-lg"
+                className="max-w-[280px] break-words rounded-2xl px-5 py-3 text-center text-[15px] font-semibold text-white shadow-lg"
                 style={{ background: accent }}
               >
                 {note.trim()}
