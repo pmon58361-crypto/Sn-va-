@@ -318,6 +318,7 @@ model Settings {
   background         String? // custom background hex, null = theme default
   isCreator          Boolean @default(false)
   interests          String? // comma-separated interest tags (C's picker; inert until wired)
+  goals              Json? // weekly targets override: { posts?: number, replies?: number }
 
   // ── Pending schema window (drafted 2026-08-25; reconcile E/F shapes) ──
 

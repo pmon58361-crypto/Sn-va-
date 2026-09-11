@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getCreatorDashboard, getCreatorAnalytics } from "@/lib/queries";
 import { getStreak, nextMilestone } from "@/lib/streak";
 import { weeklyGoals, buildInsights } from "@/lib/dashboard-insights";
+import { updateGoals, resetGoalTargets } from "./actions";
 import { CATEGORY_META } from "@/lib/types";
 import { timeAgo } from "@/lib/utils";
 import { CreatorAnalytics } from "@/components/dashboard/CreatorAnalytics";
@@ -45,14 +46,14 @@ export default async function DashboardPage({
 
   const { range, sort } = await searchParams;
   const activeRange = RANGES.find((r) => r.id === range) ?? RANGES[1];
-  const postSort = sort === "liked" || sort === "commented" || sort === "saved" || sort === "engaged" ? sort : "new";
+  const postSort = sort === "liked" || sort === "commented" || sort === "saved" || sort === "engaged" || sort === "reach" ? sort : "new";
   const [analytics, summary, streak] = await Promise.all([
     getCreatorAnalytics(meId, activeRange.days),
     getCreatorDashboard(meId),
     getStreak(meId),
   ]);
 
-  const goals = weeklyGoals(summary.week, streak);
+  const goals = weeklyGoals(summary.week, streak, summary.goals);
   const insights = buildInsights({ analytics, summary, streak });
   const milestone = nextMilestone(streak.current);
 
@@ -104,6 +105,7 @@ export default async function DashboardPage({
     if (postSort === "liked") return b.likes - a.likes;
     if (postSort === "commented") return b.comments - a.comments;
     if (postSort === "saved") return b.saves - a.saves;
+    if (postSort === "reach") return b.reach - a.reach;
     if (postSort === "engaged") return engagedScore(b) - engagedScore(a);
     return b.createdAt.getTime() - a.createdAt.getTime();
   });
@@ -112,6 +114,7 @@ export default async function DashboardPage({
   const SORTS = [
     { id: "new", label: "Newest" },
     { id: "engaged", label: "Engaged" },
+    { id: "reach", label: "Reach" },
     { id: "liked", label: "Liked" },
     { id: "commented", label: "Discussed" },
     { id: "saved", label: "Saved" },
@@ -198,7 +201,54 @@ export default async function DashboardPage({
       {/* Goals + streak */}
       <div className="mt-6 grid gap-4 sm:grid-cols-2">
         <section className="card p-5" aria-label="Weekly goals">
-          <h2 className="text-sm font-semibold text-ink">This week</h2>
+          <div className="flex items-baseline justify-between">
+            <h2 className="text-sm font-semibold text-ink">This week</h2>
+            <details className="relative text-xs">
+              <summary className="cursor-pointer touch-manipulation list-none rounded-lg px-2 py-1 text-ink-faint transition-colors hover:text-accent">
+                Customize
+              </summary>
+              <form
+                action={updateGoals}
+                className="absolute right-0 z-20 mt-1 w-52 rounded-2xl border border-line bg-surface p-3 shadow-xl"
+              >
+                <label className="mb-2 block">
+                  <span className="mb-1 block text-[11px] font-medium text-ink-muted">Posts per week</span>
+                  <input
+                    name="posts"
+                    type="number"
+                    min={1}
+                    max={30}
+                    defaultValue={summary.goals.posts}
+                    className="input py-1.5 text-sm"
+                  />
+                </label>
+                <label className="mb-3 block">
+                  <span className="mb-1 block text-[11px] font-medium text-ink-muted">Replies per week</span>
+                  <input
+                    name="replies"
+                    type="number"
+                    min={1}
+                    max={50}
+                    defaultValue={summary.goals.replies}
+                    className="input py-1.5 text-sm"
+                  />
+                </label>
+                <div className="flex gap-2">
+                  <button type="submit" className="btn-primary flex-1 py-1.5 text-xs">
+                    Save
+                  </button>
+                  <button
+                    type="submit"
+                    formAction={resetGoalTargets}
+                    className="btn-ghost px-3 py-1.5 text-xs"
+                    title="Back to 3 posts / 5 replies"
+                  >
+                    Reset
+                  </button>
+                </div>
+              </form>
+            </details>
+          </div>
           <ul className="mt-3 space-y-3">
             {goals.map((g) => (
               <li key={g.id}>
@@ -406,6 +456,7 @@ export default async function DashboardPage({
                 `${p.likes} ${p.likes === 1 ? "like" : "likes"}`,
                 `${p.comments} ${p.comments === 1 ? "comment" : "comments"}`,
                 `${p.saves} ${p.saves === 1 ? "save" : "saves"}`,
+                `${p.reach} reached`,
               ];
               if (p.category === "JOB_LISTING")
                 bits.push(`${p.applications} ${p.applications === 1 ? "application" : "applications"}`);

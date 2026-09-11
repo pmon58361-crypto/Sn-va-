@@ -16,12 +16,51 @@ export type StreakState = {
 
 const DAY = 86_400_000;
 
-// Weekly goals: fixed sensible defaults, no configuration UI to maintain.
-// Progress comes from real counts; the targets are documented, not magic.
+// Weekly goals: fixed sensible defaults, overridable per user via the
+// dashboard editor (stored on Settings.goals). No configuration UI to
+// maintain beyond two number inputs.
 export const WEEKLY_GOALS = {
   posts: 3,
   replies: 5,
 } as const;
+
+export type GoalTargets = {
+  posts: number;
+  replies: number;
+};
+
+export function resolveTargets(
+  stored: unknown
+): GoalTargets {
+  const o =
+    stored !== null && typeof stored === "object" && !Array.isArray(stored)
+      ? (stored as Record<string, unknown>)
+      : {};
+  const num = (v: unknown, fallback: number) =>
+    typeof v === "number" && Number.isFinite(v) && v >= 1 && v <= 50
+      ? Math.trunc(v)
+      : fallback;
+  return { posts: num(o.posts, WEEKLY_GOALS.posts), replies: num(o.replies, WEEKLY_GOALS.replies) };
+}
+
+/**
+ * Distinct engaged reach per post: unique accounts across likes, comments,
+ * saves and applications. Comment authors cap at 250 rows per post (counts
+ * beyond that saturate the metric — documented, not silent).
+ */
+export function distinctReach(parts: {
+  likeUserIds: string[];
+  commentAuthorIds: string[];
+  saveUserIds: string[];
+  applicationUserIds: string[];
+}): number {
+  return new Set([
+    ...parts.likeUserIds,
+    ...parts.commentAuthorIds,
+    ...parts.saveUserIds,
+    ...parts.applicationUserIds,
+  ]).size;
+}
 
 export type GoalProgress = {
   id: "posts" | "replies" | "streak";
@@ -34,28 +73,29 @@ export type GoalProgress = {
 
 export function weeklyGoals(
   week: { posts: number; commentsReceived: number },
-  streak: StreakState
+  streak: StreakState,
+  targets: GoalTargets = WEEKLY_GOALS
 ): GoalProgress[] {
   return [
     {
       id: "posts",
-      label: "Post 3 times",
-      done: Math.min(week.posts, WEEKLY_GOALS.posts),
-      target: WEEKLY_GOALS.posts,
-      complete: week.posts >= WEEKLY_GOALS.posts,
+      label: `Post ${targets.posts}×`,
+      done: Math.min(week.posts, targets.posts),
+      target: targets.posts,
+      complete: week.posts >= targets.posts,
       hint:
-        week.posts >= WEEKLY_GOALS.posts
+        week.posts >= targets.posts
           ? "Weekly output done."
-          : `${WEEKLY_GOALS.posts - week.posts} more to go.`,
+          : `${targets.posts - week.posts} more to go.`,
     },
     {
       id: "replies",
-      label: "Earn 5 replies",
-      done: Math.min(week.commentsReceived, WEEKLY_GOALS.replies),
-      target: WEEKLY_GOALS.replies,
-      complete: week.commentsReceived >= WEEKLY_GOALS.replies,
+      label: `Earn ${targets.replies} replies`,
+      done: Math.min(week.commentsReceived, targets.replies),
+      target: targets.replies,
+      complete: week.commentsReceived >= targets.replies,
       hint:
-        week.commentsReceived >= WEEKLY_GOALS.replies
+        week.commentsReceived >= targets.replies
           ? "Conversation flowing."
           : "Ask a question or post a take.",
     },

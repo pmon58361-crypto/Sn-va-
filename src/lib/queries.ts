@@ -379,6 +379,8 @@ export type CreatorPostRow = {
   comments: number;
   applications: number;
   saves: number;
+  /** Distinct accounts engaged (likes/comments/saves/applications). */
+  reach: number;
 };
 
 export type CreatorDashboard = {
@@ -393,11 +395,27 @@ export type CreatorDashboard = {
   postsByCategory: { category: string; count: number }[];
   recentPosts: CreatorPostRow[];
   week: { posts: number; commentsReceived: number };
+  goals: { posts: number; replies: number };
 };
+
+// Stored weekly-goal overrides (Settings.goals JSON) sanitized into shape.
+// Mirrors dashboard-insights.resolveTargets without the import (keeps the
+// query layer dependency-free); both clamp to the same 1..50 range.
+function parseGoalTargets(stored: unknown): { posts: number; replies: number } {
+  const o =
+    stored !== null && typeof stored === "object" && !Array.isArray(stored)
+      ? (stored as Record<string, unknown>)
+      : {};
+  const num = (v: unknown, fallback: number) =>
+    typeof v === "number" && Number.isFinite(v) && v >= 1 && v <= 50
+      ? Math.trunc(v)
+      : fallback;
+  return { posts: num(o.posts, 3), replies: num(o.replies, 5) };
+}
 
 export async function getCreatorDashboard(meId: string): Promise<CreatorDashboard> {
   const weekAgo = new Date(Date.now() - 7 * 86_400_000);
-  const [posts, followers, likes, comments, bookmarks, applications, byCategory, recent, postsThisWeek, commentsThisWeek] =
+  const [posts, followers, likes, comments, bookmarks, applications, byCategory, recent, postsThisWeek, commentsThisWeek, goalSettings] =
     await Promise.all([
       prisma.post.count({ where: { authorId: meId, hidden: false } }),
       prisma.follow.count({ where: { followingId: meId } }),
@@ -418,8 +436,11 @@ export async function getCreatorDashboard(meId: string): Promise<CreatorDashboar
           category: true,
           status: true,
           createdAt: true,
-          reactions: { select: { type: true }, where: { type: "like" } },
+          reactions: { select: { type: true, userId: true }, where: { type: "like" } },
+          comments: { select: { authorId: true }, take: 250 },
           _count: { select: { comments: true, applications: true, bookmarks: true } },
+          bookmarks: { select: { userId: true } },
+          applications: { select: { userId: true } },
         },
         orderBy: { createdAt: "desc" as const },
         take: 10,
@@ -427,6 +448,7 @@ export async function getCreatorDashboard(meId: string): Promise<CreatorDashboar
       // Weekly-goals inputs (rolling 7 days): my output + replies earned.
       prisma.post.count({ where: { authorId: meId, hidden: false, createdAt: { gte: weekAgo } } }),
       prisma.comment.count({ where: { post: { authorId: meId }, createdAt: { gte: weekAgo } } }),
+      prisma.settings.findUnique({ where: { userId: meId }, select: { goals: true } }),
     ]);
 
   return {
@@ -440,17 +462,28 @@ export async function getCreatorDashboard(meId: string): Promise<CreatorDashboar
     },
     postsByCategory: byCategory.map((g) => ({ category: g.category, count: g._count._all })),
     week: { posts: postsThisWeek, commentsReceived: commentsThisWeek },
-    recentPosts: recent.map((p) => ({
-      id: p.id,
-      title: p.title,
-      category: p.category,
-      status: p.status,
-      createdAt: p.createdAt,
-      likes: p.reactions.length,
-      comments: p._count.comments,
-      applications: p._count.applications,
-      saves: p._count.bookmarks,
-    })),
+    goals: parseGoalTargets(goalSettings?.goals),
+    recentPosts: recent.map((p) => {
+      const likeUserIds = p.reactions.map((r) => r.userId);
+      const seen = new Set<string>([
+        ...likeUserIds,
+        ...p.comments.map((c) => c.authorId),
+        ...p.bookmarks.map((b) => b.userId),
+        ...p.applications.map((a) => a.userId),
+      ]);
+      return {
+        id: p.id,
+        title: p.title,
+        category: p.category,
+        status: p.status,
+        createdAt: p.createdAt,
+        likes: p.reactions.length,
+        comments: p._count.comments,
+        applications: p._count.applications,
+        saves: p._count.bookmarks,
+        reach: seen.size,
+      };
+    }),
   };
 }
 
