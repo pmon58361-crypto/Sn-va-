@@ -82,10 +82,21 @@ export function GroupCard({
       </div>
 
       {/* Overlapping icon tile — relative + z-10: the banner above is
-          positioned, so a static tile would paint UNDER it (the glitch). */}
+          positioned, so a static tile would paint UNDER it (the glitch).
+          Sized to the banner: featured banners are tall, so the tile goes
+          big (h-24); regular cards get h-20. */}
       <div className="px-4">
-        <div className="relative z-10 -mt-6 mb-1.5 flex items-end gap-3">
-          <span className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-2xl text-xl font-black text-white ring-4 ring-[var(--bg-surface,#1a1a1c)]"
+        <div
+          className={`relative z-10 mb-1.5 flex items-end gap-3 ${
+            featured ? "-mt-12" : "-mt-10"
+          }`}
+        >
+          <span
+            className={`grid shrink-0 place-items-center overflow-hidden font-black text-white ring-4 ring-[var(--bg-surface,#1a1a1c)] ${
+              featured
+                ? "h-24 w-24 rounded-3xl text-4xl"
+                : "h-20 w-20 rounded-3xl text-3xl"
+            }`}
             style={
               showCover
                 ? undefined
