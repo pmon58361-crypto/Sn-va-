@@ -124,6 +124,16 @@ function AreaChart({
         strokeLinejoin="round"
         strokeLinecap="round"
       />
+      {points.length > 0 && (
+        <circle
+          cx={x(points.length - 1)}
+          cy={y(points[points.length - 1].value)}
+          r="4"
+          fill="var(--accent)"
+          stroke="rgb(var(--bg-rgb))"
+          strokeWidth="2"
+        />
+      )}
     </svg>
   );
 }
@@ -162,7 +172,7 @@ export function CreatorAnalytics({
     <div className="grid gap-6 lg:grid-cols-[1fr_240px]">
       <section>
         {/* Metric tabs */}
-        <div role="tablist" aria-label="Metrics" className="flex gap-5 border-b border-line">
+        <div role="tablist" aria-label="Metrics" className="flex gap-5 overflow-x-auto border-b border-line">
           {TABS.map((t) => {
             const isActive = t.id === tab;
             return (
@@ -172,7 +182,7 @@ export function CreatorAnalytics({
                 role="tab"
                 aria-selected={isActive}
                 onClick={() => setTab(t.id)}
-                className={`-mb-px border-b-2 py-2.5 text-sm transition-colors ${
+                className={`-mb-px shrink-0 touch-manipulation border-b-2 py-3 text-sm transition-colors ${
                   isActive
                     ? "border-accent font-semibold text-ink"
                     : "border-transparent text-ink-muted hover:text-ink"

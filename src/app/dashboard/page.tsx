@@ -81,9 +81,9 @@ export default async function DashboardPage({
 
   return (
     <div className="mx-auto max-w-5xl px-5 py-10">
-      <div className="flex flex-wrap items-baseline justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-bold tracking-tight text-ink">Dashboard</h1>
-        <nav aria-label="Date range" className="flex gap-4 text-[13px]">
+        <nav aria-label="Date range" className="flex rounded-full border border-line bg-soft p-1 text-[13px]">
           {RANGES.map((r) => {
             const isActive = r.id === activeRange.id;
             return (
@@ -91,11 +91,11 @@ export default async function DashboardPage({
                 key={r.id}
                 href={`/dashboard?range=${r.id}`}
                 aria-current={isActive ? "true" : undefined}
-                className={
+                className={`rounded-full px-3.5 py-1.5 transition-colors touch-manipulation ${
                   isActive
-                    ? "font-semibold text-ink"
+                    ? "bg-surface font-semibold text-ink shadow-sm"
                     : "text-ink-muted hover:text-ink"
-                }
+                }`}
               >
                 {r.label}
               </Link>
@@ -104,14 +104,12 @@ export default async function DashboardPage({
         </nav>
       </div>
 
-      {/* Stat strip — plain numbers over hairlines */}
-      <div className="mt-6 grid grid-cols-2 border-y border-line sm:grid-cols-4">
-        {stats.map((c, i) => (
+      {/* Stat cards */}
+      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {stats.map((c) => (
           <div
             key={c.label}
-            className={`py-4 ${i > 0 ? "sm:border-l sm:border-line sm:pl-5" : ""} ${
-              i === 2 ? "max-sm:border-t max-sm:border-line" : ""
-            } ${i === 3 ? "max-sm:border-t max-sm:border-line max-sm:pl-5" : ""}`}
+            className="rounded-2xl border border-line bg-surface p-4"
           >
             <p className="text-[13px] text-ink-muted">{c.label}</p>
             <p className="mt-0.5 text-2xl font-bold tabular-nums tracking-tight text-ink">
@@ -125,7 +123,7 @@ export default async function DashboardPage({
       {memories.length > 0 && (
         <section className="mt-8 rounded-2xl border border-accent/30 bg-accent/5 p-5">
           <h2 className="text-sm font-semibold text-ink">
-            <span aria-hidden>🕰️</span> On this day
+            On this day
           </h2>
           <ul className="mt-3 space-y-2">
             {memories.map((m) => {
