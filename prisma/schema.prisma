@@ -107,6 +107,7 @@ model Group {
   members     GroupMember[]
   joinRequests GroupJoinRequest[]
   posts       Post[]
+  messages    Message[]
   createdAt   DateTime @default(now())
 
   @@index([category])
@@ -365,9 +366,13 @@ model Bookmark {
 
 // Direct message between two users. Thread = messages in both directions.
 model Message {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   senderId    String
-  recipientId String
+  // 1:1 DM target. Null for group-room messages (scoped by groupId instead).
+  recipientId String?
+  // Group room scope. Null for 1:1 DMs. Members-only enforced app-side.
+  groupId     String?
+  group       Group?   @relation(fields: [groupId], references: [id], onDelete: Cascade)
   content     String
   // Optional photo attachment (Cloudinary URL via /api/upload).
   imageUrl    String?
@@ -375,7 +380,7 @@ model Message {
   createdAt   DateTime  @default(now())
 
   sender    User @relation("sender", fields: [senderId], references: [id], onDelete: Cascade)
-  recipient User @relation("recipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  recipient User? @relation("recipient", fields: [recipientId], references: [id], onDelete: Cascade)
 
   reports Report[]
 
@@ -383,6 +388,7 @@ model Message {
 
   @@index([senderId, recipientId])
   @@index([recipientId, readAt])
+  @@index([groupId, createdAt])
 }
 
 // IG-style emoji reaction on a DM. One user may react with each emoji once;

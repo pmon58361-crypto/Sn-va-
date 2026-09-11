@@ -41,6 +41,10 @@ export async function getConversations(meId: string) {
       m.senderId === meId
         ? m.recipient
         : m.sender;
+    // Group-room rows have no 1:1 counterpart (and the query's nested
+    // relation filter already excludes them) — skip defensively so the
+    // conversation list stays strictly 1:1.
+    if (!other) continue;
     const existing = threads.get(other.id);
     if (existing) {
       if (!m.readAt && m.recipientId === meId) existing.unread += 1;

@@ -6,6 +6,7 @@ import { getMembership, canViewGroup } from "@/lib/groups";
 import { getPosts } from "@/lib/queries";
 import { getPresence } from "@/lib/presence";
 import { GroupPostRow } from "@/components/groups/GroupPostRow";
+import { GroupChat } from "@/components/groups/GroupChat";
 import { GroupCover, GroupAvatar } from "@/components/groups/GroupCover";
 import {
   GroupActions,
@@ -103,8 +104,10 @@ export default async function GroupPage({
     : [];
 
   // Discord-server anatomy: real slices of the feed as channels (no new
-  // schema — these are honest filters over what already exists).
-  const activeView = view === "media" || view === "polls" ? view : "all";
+  // schema — these are honest filters over what already exists), plus the
+  // member chat room.
+  const activeView =
+    view === "media" || view === "polls" || view === "chat" ? view : "all";
   const mediaPosts = feed.filter((p) => p.images.length > 0);
   const pollPosts = feed.filter(
     (p) => (p as { polls?: unknown[] }).polls?.length
@@ -149,6 +152,28 @@ export default async function GroupPage({
         },
       })
     : [];
+
+  // Initial chat history (members only, newest 50 shown oldest-first).
+  const initialChatRows =
+    activeView === "chat" && canView && isMember
+      ? await prisma.message.findMany({
+          where: { groupId: group.id },
+          orderBy: { createdAt: "desc" },
+          take: 50,
+          select: {
+            id: true,
+            senderId: true,
+            content: true,
+            imageUrl: true,
+            createdAt: true,
+            sender: { select: { id: true, name: true, image: true } },
+          },
+        })
+      : [];
+  const initialChat = initialChatRows
+    .slice()
+    .reverse()
+    .map((m) => ({ ...m, createdAt: m.createdAt.toISOString() }));
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-6 sm:px-5">
@@ -262,15 +287,17 @@ export default async function GroupPage({
           }))}
         />
       )}
-      {/* Channels — real slices of this group's feed. Hidden while the
-          group is completely empty: nothing to slice, nothing to sort. */}
-      {feed.length > 0 && (
+      {/* Channels — real slices of this group's feed, plus the member
+          chat room. Hidden while the group is completely empty and chatless:
+          nothing to slice, nothing to sort. */}
+      {(feed.length > 0 || isMember) && (
         <nav aria-label="Group channels" className="card mt-5 flex gap-1 overflow-x-auto p-2">
         {(
           [
             { v: "all", label: "# feed", count: feed.length },
             { v: "media", label: "# media", count: mediaPosts.length },
             { v: "polls", label: "# polls", count: pollPosts.length },
+            ...(isMember ? [{ v: "chat", label: "# chat", count: null } as const] : []),
           ] as const
         ).map((c) => (
           <Link
@@ -285,9 +312,11 @@ export default async function GroupPage({
           >
             <span className="text-ink-faint">#</span>
             <span className="truncate">{c.label.slice(2)}</span>
-            <span className="ml-auto font-mono text-[11px] text-ink-faint">
-              {c.count}
-            </span>
+            {c.count !== null && c.count !== undefined && (
+              <span className="ml-auto font-mono text-[11px] text-ink-faint">
+                {c.count}
+              </span>
+            )}
           </Link>
         ))}
       </nav>
@@ -321,7 +350,21 @@ export default async function GroupPage({
             </div>
           </section>
         )}
+        {/* ── Member chat room ── */}
+        {activeView === "chat" &&
+          (isMember && meId ? (
+            <GroupChat slug={slug} meId={meId} initial={initialChat} />
+          ) : (
+            <div className="card p-14 text-center">
+              <p className="text-lg font-semibold">Members only</p>
+              <p className="mt-1 text-sm text-ink-muted">
+                Join the group to chat with its members.
+              </p>
+            </div>
+          ))}
         {/* ── Feed (filtered by channel) ── */}
+        {activeView !== "chat" && (
+          <>
         {feed.length > 0 && (
           <div className="mb-3 flex items-center gap-1 text-sm">
             <span className="px-1 text-xs text-ink-faint">Sort:</span>
@@ -399,6 +442,8 @@ export default async function GroupPage({
           ))}
         </div>
       )}
+          </>
+        )}
         </div>
 
         {/* Right rail: about · rules · roster */}
