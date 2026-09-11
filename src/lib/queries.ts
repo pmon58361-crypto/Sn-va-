@@ -378,6 +378,7 @@ export type CreatorPostRow = {
   likes: number;
   comments: number;
   applications: number;
+  saves: number;
 };
 
 export type CreatorDashboard = {
@@ -416,7 +417,7 @@ export async function getCreatorDashboard(meId: string): Promise<CreatorDashboar
           status: true,
           createdAt: true,
           reactions: { select: { type: true }, where: { type: "like" } },
-          _count: { select: { comments: true, applications: true } },
+          _count: { select: { comments: true, applications: true, bookmarks: true } },
         },
         orderBy: { createdAt: "desc" as const },
         take: 10,
@@ -442,6 +443,7 @@ export async function getCreatorDashboard(meId: string): Promise<CreatorDashboar
       likes: p.reactions.length,
       comments: p._count.comments,
       applications: p._count.applications,
+      saves: p._count.bookmarks,
     })),
   };
 }
@@ -472,6 +474,14 @@ export type CreatorAnalytics = {
   totals: EventTotals;
   prevTotals: EventTotals;
   last48h: EventTotals;
+  // Best-time-to-post: content engagement (likes/comments/applications/
+  // bookmarks on my posts) aggregated by local hour and weekday, over the
+  // same window as the rest. Zero extra queries — folded from events.
+  byHour: number[];
+  byWeekday: number[];
+  // Top tags across ALL my posts: engagement per topic, for precise
+  // "what should I post more of" answers.
+  topTags: { tag: string; posts: number; likes: number; comments: number; saves: number }[];
 };
 
 function zeroTotals(): EventTotals {
@@ -496,7 +506,7 @@ export async function getCreatorAnalytics(
   const since = days > 0 ? new Date(now - days * DAY * 2) : null;
   const rangeWhere = since ? { createdAt: { gte: since } } : {};
 
-  const [likes, comments, applications, bookmarks, follows] = await Promise.all([
+  const [likes, comments, applications, bookmarks, follows, tagPosts] = await Promise.all([
     prisma.reaction.findMany({
       where: { type: "like", post: { authorId: meId }, ...rangeWhere },
       select: { createdAt: true },
@@ -521,6 +531,16 @@ export async function getCreatorAnalytics(
       where: { followingId: meId, ...rangeWhere },
       select: { createdAt: true },
       orderBy: { createdAt: "asc" },
+    }),
+    // Tag table source: my posts with topics + engagement. One extra read,
+    // small rows (no content bodies), same wave as everything else.
+    prisma.post.findMany({
+      where: { authorId: meId, hidden: false },
+      select: {
+        tags: true,
+        reactions: { select: { type: true }, where: { type: "like" } },
+        _count: { select: { comments: true, bookmarks: true } },
+      },
     }),
   ]);
 
@@ -561,16 +581,48 @@ export async function getCreatorAnalytics(
   const last48h = zeroTotals();
   const prevStart = days > 0 ? start - days * DAY : null;
 
+  // Best-time-to-post + top tags, folded from data already in hand.
+  const byHour = new Array<number>(24).fill(0);
+  const byWeekday = new Array<number>(7).fill(0);
+
   for (const e of events) {
     if (e.t >= now - 48 * 3600_000) addTo(last48h, e.kind);
     if (e.t >= start) {
       const idx = Math.min(bucketCount - 1, Math.floor((e.t - start) / (stepDays * DAY)));
       addTo(daily[idx], e.kind);
       addTo(totals, e.kind);
+      // Follows aren't content timing — only content engagement (likes,
+      // comments, applications, saves) teaches posting hours.
+      if (e.kind !== "followers") {
+        const d = new Date(e.t);
+        byHour[d.getHours()] += 1;
+        byWeekday[d.getDay()] += 1;
+      }
     } else if (prevStart !== null && e.t >= prevStart) {
       addTo(prevTotals, e.kind);
     }
   }
+
+  const tagMap = new Map<string, { posts: number; likes: number; comments: number; saves: number }>();
+  for (const p of tagPosts) {
+    const tags = (p.tags || "")
+      .split(",")
+      .map((t) => t.trim().toLowerCase())
+      .filter(Boolean);
+    if (!tags.length) continue;
+    for (const t of new Set(tags)) {
+      const row = tagMap.get(t) ?? { posts: 0, likes: 0, comments: 0, saves: 0 };
+      row.posts += 1;
+      row.likes += p.reactions.length;
+      row.comments += p._count.comments;
+      row.saves += p._count.bookmarks;
+      tagMap.set(t, row);
+    }
+  }
+  const topTags = [...tagMap.entries()]
+    .map(([tag, r]) => ({ tag, ...r }))
+    .sort((a, b) => b.likes + b.comments * 2 + b.saves * 2 - (a.likes + a.comments * 2 + a.saves * 2))
+    .slice(0, 8);
 
   return {
     rangeLabel: days > 0 ? `Last ${days} days` : "Since the beginning",
@@ -579,5 +631,8 @@ export async function getCreatorAnalytics(
     totals,
     prevTotals,
     last48h,
+    byHour,
+    byWeekday,
+    topTags,
   };
 }
