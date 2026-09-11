@@ -10,7 +10,7 @@ import {
   UsersIcon,
   BriefcaseIcon,
   ClipboardIcon,
-  MessageIcon,
+  CompassIcon,
   BellIcon,
   SearchIcon,
 } from "@/components/ui/Icons";
@@ -85,16 +85,26 @@ export function Navbar() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
           {status === "authenticated" ? (
             <>
-              {/* DMs + notifications — reachable on every screen size */}
-              <IconLink href="/explore" label="Explore">
-                <SearchIcon className="h-5 w-5" />
-              </IconLink>
-              <IconLink href="/dm" label="Messages">
-                <MessageIcon className="h-5 w-5" />
-              </IconLink>
+              {/* Search lives here now (was the Explore icon) — submits to
+                  community search. DMs moved into the More sheet. */}
+              <form
+                action="/community"
+                method="GET"
+                role="search"
+                className="relative min-w-0 max-w-56 flex-1 sm:max-w-64"
+              >
+                <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-faint" />
+                <input
+                  name="q"
+                  type="search"
+                  placeholder="Search…"
+                  aria-label="Search posts"
+                  className="h-11 w-full touch-manipulation rounded-full border border-transparent bg-soft pl-9 pr-3 text-sm text-ink outline-none transition placeholder:text-ink-faint focus:border-line-strong focus:bg-surface"
+                />
+              </form>
               <IconLink
                 href="/notifications"
                 label="Notifications"

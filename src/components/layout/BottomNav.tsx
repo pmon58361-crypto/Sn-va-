@@ -12,6 +12,7 @@ import {
   ClipboardIcon,
   PlusIcon,
   MenuIcon,
+  MessageIcon,
   BookIcon,
   CompassIcon,
   ChartIcon,
@@ -30,6 +31,7 @@ type Tab = {
 // Destinations that don't fit the five tabs live here — one tap away
 // instead of missing entirely on phones.
 const MORE_LINKS = [
+  { href: "/dm", label: "DM's", icon: MessageIcon },
   { href: "/bookmarks", label: "Bookmarks", icon: BookIcon },
   { href: "/people", label: "People", icon: CompassIcon },
   { href: "/dashboard", label: "Dashboard", icon: ChartIcon },
