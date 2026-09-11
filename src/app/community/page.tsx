@@ -7,6 +7,7 @@ import { RightSidebar } from "@/components/layout/RightSidebar";
 import { StoriesBar } from "@/components/stories/StoriesBar";
 import { InterestPickerModal } from "@/components/onboarding/InterestPickerModal";
 import { getActiveStories } from "@/lib/stories";
+import { currentBucket, hashStr } from "@/lib/feed";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getFeedAd } from "@/lib/ads";
@@ -68,16 +69,28 @@ export default async function CommunityPage({
       : Promise.resolve(null),
   ]);
 
-  // Sponsored feed card: only on substantial feeds, max one, after post #4.
+  // Sponsored feed card: max one per page, slotted 3–6 by the hourly seed
+  // (stable within the hour, drifts across visits — never a fixed billboard,
+  // never layout shift on reload). Small feeds (4+) still qualify; quieter
+  // than that, the ad would dominate and stays out.
   // "From the archives" — one quality old post, only on unfiltered default
   // views with a real feed beneath it. Hides itself when the archive is empty.
   // Tail fetches run in parallel (were sequential — saves 1 Neon RT when both fire).
   const [feedAd, archivePost] = await Promise.all([
-    posts.length >= 10 ? getFeedAd(meId) : Promise.resolve(null),
+    posts.length >= 4 ? getFeedAd(meId) : Promise.resolve(null),
     !q && !isFollowing && !validBefore && posts.length >= 6
       ? getArchivedCommunityPost(posts.map((p) => p.id))
       : Promise.resolve(null),
   ]);
+  const adSlot =
+    feedAd == null
+      ? -1
+      : // Clamped to the actual feed so short feeds always show it.
+        2 +
+        Math.floor(
+          hashStr(`feedad:${currentBucket()}`) *
+            Math.max(1, Math.min(4, posts.length - 2))
+        );
 
   // Once-per-user onboarding: interests === null means never asked.
   // Answering or skipping writes "" so it never resurfaces.
@@ -179,7 +192,7 @@ export default async function CommunityPage({
               {posts.map((p, idx) => (
                 <Fragment key={p.id}>
                   <PostCard post={p} viewerId={session?.user?.id} showFeedback />
-                  {idx === 3 && feedAd && (
+                  {idx === adSlot && feedAd && (
                     <AdCard ad={feedAd} variant="feed" viewerId={meId} />
                   )}
                   {idx === 8 && archivePost && (

@@ -585,7 +585,7 @@ export function rankFeed<T extends PostWithRelations>(
   return scored.sort((a, b) => b.s - a.s).map((x) => x.p);
 }
 
-function hashStr(s: string): number {
+export function hashStr(s: string): number {
   let h = 2166136261;
   for (let i = 0; i < s.length; i++) {
     h ^= s.charCodeAt(i);
