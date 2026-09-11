@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -67,6 +67,16 @@ export function SignInForm({
 }) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<string | null>(null);
+  // Hydration gate: every submit path on this card is a React handler
+  // (NextAuth client calls). Before hydration attaches, a native submit
+  // (Enter key, impatient tap) would GET-navigate to a dead ?code= URL with
+  // zero feedback. So the interactive card doesn't exist in the DOM until
+  // hydration — a skeleton holds the space instead. This kills the race by
+  // construction: no form, no dead submit.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   // "signin" = access code / email+password / OAuth · "create" = registration.
   // Landing CTAs deep-link with ?mode=create (worker F contract).
   const searchParams = useSearchParams();
@@ -235,6 +245,20 @@ export function SignInForm({
           </div>
 
           <div className="card p-6 sm:p-8">
+            {!mounted ? (
+              <div aria-hidden aria-label="Loading sign-in form">
+                <div className="mb-5 grid grid-cols-2 gap-1 rounded-xl border border-line bg-soft p-1">
+                  <div className="h-9 animate-pulse rounded-lg bg-surface" />
+                  <div className="h-9 animate-pulse rounded-lg bg-surface" />
+                </div>
+                <div className="space-y-3">
+                  <div className="h-12 animate-pulse rounded-xl bg-soft" />
+                  <div className="h-12 animate-pulse rounded-xl bg-soft" />
+                  <div className="h-12 animate-pulse rounded-xl bg-soft" />
+                </div>
+              </div>
+            ) : (
+              <>
             {shownError && (
               <div
                 role="alert"
@@ -510,6 +534,8 @@ export function SignInForm({
                     </button>
                   ))}
                 </div>
+              </>
+            )}
               </>
             )}
           </div>
