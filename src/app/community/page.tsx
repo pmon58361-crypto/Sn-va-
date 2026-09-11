@@ -116,7 +116,7 @@ export default async function CommunityPage({
     <div className="flex">
       {showInterestPicker && <InterestPickerModal suggestions={topTags.map(([t]) => t)} />}
       {/* Center feed */}
-      <div className="mx-auto w-full max-w-[640px] px-4 py-5">
+      <div className="mx-auto w-full max-w-[640px] px-4 pb-5 pt-2">
         {/* Stories rail */}
         <StoriesBar groups={storyGroups} meId={session?.user?.id} />
 
