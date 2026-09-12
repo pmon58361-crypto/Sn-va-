@@ -8,15 +8,15 @@ import { extractVideoEmbed } from "@/lib/embeds";
  * post content. YouTube gets a thumbnail facade (~30KB, zero iframe
  * weight): tap plays INLINE on Snívať (nocookie embed, autoplay on tap
  * only) with a small YouTube ↗ side door to the channel. Watching stays
- * home; discovery still flows outward. Instagram/X/TikTok keep lazy
- * iframes.
+ * home; discovery still flows outward. Instagram keeps its lazy iframe;
+ * X renders a link card enhanced by widgets.js when it loads; TikTok
+ * keeps blockquote + script.
  *
  * House rules honored: never auto-play (no autoplay params anywhere), the
- * TikTok embed script is injected ONLY when the embed scrolls near the
- * viewport, iframes use native lazy loading, and every embedded URL is
- * constructed from a validated ID — never raw user URLs. X renders through
- * Tweet.html with dnt=1 (no widgets.js tracking script) in the app's theme.
- * The TikTok/X fallback markup contains no anchors, so this component is
+ * TikTok/X embed scripts are injected ONLY when the embed scrolls near
+ * the viewport, iframes use native lazy loading, and every embedded URL
+ * is constructed from a validated ID — never raw user URLs.
+ * The TikTok fallback markup contains no anchors, so this component is
  * safe to render anywhere — nested <a> tags cause hydration errors.
  */
 
@@ -25,16 +25,44 @@ export function PostEmbeds({ content }: { content: string }) {
   const bqRef = useRef<HTMLQuoteElement | null>(null);
   // YouTube facade state: thumbnail until tap, inline player after.
   const [playingId, setPlayingId] = useState<string | null>(null);
-  // X iframe theme follows the app theme (light class = light, else dark).
-  const [xTheme] = useState(() =>
-    typeof document !== "undefined" &&
-    document.documentElement.classList.contains("light")
-      ? "light"
-      : "dark"
-  );
 
-  // TikTok needs their embed.js to turn the blockquote into an iframe.
-  // Load it on demand: only once, only when this embed approaches the viewport.
+  // X embeds render through widgets.js onto a plain blockquote (the
+  // official path) — NOT the Tweet.html iframe. Reason: the iframe shell
+  // loads but its inner fetch dies under third-party-cookie blocking or
+  // tracker blockers, leaving a dead white box (observed live). The
+  // blockquote is a clean link card on its own; widgets.js only enhances
+  // it when it loads. Same lazy-on-approach pattern as TikTok.
+  useEffect(() => {
+    if (embed?.platform !== "x") return;
+    let cancelled = false;
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry?.isIntersecting || cancelled) return;
+        io.disconnect();
+        const src = "https://platform.x.com/widgets.js";
+        if (!document.querySelector<HTMLScriptElement>(`script[src="${src}"]`)) {
+          const s = document.createElement("script");
+          s.src = src;
+          s.async = true;
+          s.charset = "utf-8";
+          document.head.appendChild(s);
+        } else {
+          const w = window as unknown as {
+            twttr?: { widgets?: { load?: () => void } };
+          };
+          w.twttr?.widgets?.load?.();
+        }
+      },
+      { rootMargin: "200px" }
+    );
+    // Observe the embed container when it mounts.
+    const el = document.querySelector("[data-x-embed]");
+    if (el) io.observe(el);
+    return () => {
+      cancelled = true;
+      io.disconnect();
+    };
+  }, [embed?.platform, embed?.id]);
   useEffect(() => {
     if (embed?.platform !== "tiktok") return;
     const bq = bqRef.current;
@@ -157,17 +185,28 @@ export function PostEmbeds({ content }: { content: string }) {
 
   if (embed.platform === "x") {
     return (
-      <div
-        className="mx-auto mt-3 w-full overflow-hidden rounded-xl border border-line bg-surface"
-        style={{ maxWidth: 550 }}
-      >
-        <iframe
-          src={`https://platform.twitter.com/embed/Tweet.html?id=${embed.id}&dnt=true&theme=${xTheme}`}
-          title="X post"
-          loading="lazy"
-          className="h-[420px] w-full"
-          referrerPolicy="strict-origin-when-cross-origin"
-        />
+      <div data-x-embed className="mx-auto mt-3 w-full" style={{ maxWidth: 550 }}>
+        <blockquote className="twitter-tweet" data-dnt="true" style={{ margin: 0 }}>
+          <a
+            href={embed.srcUrl}
+            rel="nofollow noopener"
+            target="_blank"
+            className="flex items-center gap-3 rounded-xl border border-line bg-surface px-4 py-3.5 transition hover:border-accent"
+          >
+            <span aria-hidden className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-ink text-lg font-black text-bg">
+              𝕏
+            </span>
+            <span className="min-w-0 flex-1 text-left">
+              <span className="block text-sm font-semibold text-ink">
+                View post on X
+              </span>
+              <span className="block truncate text-xs text-ink-muted">
+                {embed.srcUrl.replace(/^https?:\/\/(www\.)?/, "")}
+              </span>
+            </span>
+            <span aria-hidden className="shrink-0 text-ink-faint">↗</span>
+          </a>
+        </blockquote>
       </div>
     );
   }
