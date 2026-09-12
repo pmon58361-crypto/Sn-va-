@@ -56,11 +56,35 @@ export default function TermsPage() {
             <li>
               You give Snívať permission to store and display your content
               inside the app — that&apos;s the whole license, and it ends when
-              your content is deleted.
+              your content is deleted. Honest footnote: cached copies (share
+              cards, CDN copies) can linger briefly after deletion, then
+              they&apos;re gone too.
             </li>
             <li>
               Don&apos;t post anything you don&apos;t have the rights to, and
               don&apos;t post other people&apos;s private information.
+            </li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>AI-edited media</h2>
+          <p>
+            Before/after posts are manipulated media by design — that&apos;s
+            the craft, and honesty is what makes it worth looking at:
+          </p>
+          <ul className="list-disc space-y-1 pl-5">
+            <li>
+              Label AI-generated or heavily edited work as such. The process
+              notes exist for exactly this.
+            </li>
+            <li>
+              Passing someone else&apos;s work off as your own — AI or
+              otherwise — is a bannable offense.
+            </li>
+            <li>
+              Don&apos;t make edits that deceive (fake events, fake people,
+              fake quotes). Showcase skill, not fiction.
             </li>
           </ul>
         </section>
@@ -94,12 +118,65 @@ export default function TermsPage() {
         </section>
 
         <section>
+          <h2>Challenges</h2>
+          <ul className="list-disc space-y-1 pl-5">
+            <li>
+              Weekly challenges rank entries by community reactions unless a
+              challenge states otherwise. Leaderboards are computed live from
+              real votes — never edited by hand.
+            </li>
+            <li>
+              Prizes, if any, are stated on the challenge itself. No stated
+              prize means the reward is glory (and the entry badge on your
+              post).
+            </li>
+            <li>
+              By entering, you agree your entry may be featured on the
+              challenge page and leaderboard.
+            </li>
+          </ul>
+        </section>
+
+        <section>
           <h2>Ads</h2>
           <p>
             Snívať may show ads from independent advertisers in the feed and
             sidebar. Ads are clearly labeled, served by Snívať itself, and we
             do not sell your personal data to advertisers or anyone else.
           </p>
+        </section>
+
+        <section>
+          <h2>Advertising with us</h2>
+          <ul className="list-disc space-y-1 pl-5">
+            <li>
+              Ads must be truthful and must not impersonate people, brands,
+              or Snívať itself.
+            </li>
+            <li>
+              We can reject, pause, or remove any ad at our discretion, with
+              unspent budget returned.
+            </li>
+            <li>Spending is capped by the budget you set. No surprises.</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>Payments</h2>
+          <ul className="list-disc space-y-1 pl-5">
+            <li>
+              Payments are processed securely by Stripe. Snívať never sees
+              or stores your card details.
+            </li>
+            <li>
+              Ad spend is prepaid and generally non-refundable, except
+              unspent budget on ads we reject or remove.
+            </li>
+            <li>
+              If a payment fails or looks fraudulent, the related service
+              (ads, features) is paused until it&apos;s resolved.
+            </li>
+          </ul>
         </section>
 
         <section>
