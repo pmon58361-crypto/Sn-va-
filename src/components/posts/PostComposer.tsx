@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ImageUploader, type UploadedImage } from "@/components/posts/ImageUploader";
+import { BeforeAfterSlots, type BeforeAfterSlot } from "@/components/posts/BeforeAfterSlots";
 import { savePost, type PostInput } from "@/app/actions";
 import {
   POST_CATEGORIES,
@@ -62,6 +63,24 @@ export function PostComposer({
   const [images, setImages] = useState<UploadedImage[]>(
     (initial?.imageUrls || []).map((url) => ({ url, name: "existing" }))
   );
+  // Media mode — Text | Photo | Before/After. Edit mode locks to the
+  // post's kind (a comparison post stays a comparison post).
+  type MediaMode = "text" | "photo" | "before_after";
+  const [mode, setMode] = useState<MediaMode>(
+    initial?.kind === "before_after"
+      ? "before_after"
+      : (initial?.imageUrls?.length ? "photo" : "text")
+  );
+  const [before, setBefore] = useState<BeforeAfterSlot>(
+    initial?.kind === "before_after" && initial?.imageUrls?.[0]
+      ? { url: initial.imageUrls[0], alt: initial?.imageAlts?.[0] || "" }
+      : null
+  );
+  const [after, setAfter] = useState<BeforeAfterSlot>(
+    initial?.kind === "before_after" && initial?.imageUrls?.[1]
+      ? { url: initial.imageUrls[1], alt: initial?.imageAlts?.[1] || "" }
+      : null
+  );
 
   // Plain async submit — useActionState is React 19-only and this app
   // runs React 18.3.1.
@@ -84,6 +103,26 @@ export function PostComposer({
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (pending) return;
+    // Client-side before/after gate (server re-validates): both slots
+    // filled and both alt texts present, or the post doesn't go out.
+    let kind: "standard" | "before_after" = "standard";
+    let imageUrls: string[] = images.map((i) => i.url);
+    let imageAlts: string[] | undefined;
+    if (mode === "before_after") {
+      if (!before?.url || !after?.url) {
+        setError("Add both a Raw and a Result photo");
+        return;
+      }
+      if (!before.alt.trim() || !after.alt.trim()) {
+        setError("Describe both images for screen readers");
+        return;
+      }
+      kind = "before_after";
+      imageUrls = [before.url, after.url];
+      imageAlts = [before.alt.trim(), after.alt.trim()];
+    } else if (mode === "text") {
+      imageUrls = [];
+    }
     setPending(true);
     setError(null);
     try {
@@ -96,7 +135,9 @@ export function PostComposer({
         budget,
         location,
         type,
-        imageUrls: images.map((i) => i.url),
+        kind: postId ? undefined : kind,
+        imageUrls,
+        imageAlts,
         // Create-time only — edits keep the original group.
         groupId: postId ? undefined : groupId,
         // Create-time only — edits stay in (or out of) the challenge.
@@ -256,7 +297,57 @@ export function PostComposer({
         )}
       </div>
 
-      <ImageUploader images={images} onChange={setImages} postId={postId} />
+      {/* Media mode — Text | Photo | Before/After. Locks in edit mode. */}
+      {!postId && (
+        <div>
+          <div className="grid grid-cols-3 gap-2" role="group" aria-label="Post type">
+            {(
+              [
+                { id: "text", label: "Text" },
+                { id: "photo", label: "Photo" },
+                { id: "before_after", label: "Before/After" },
+              ] as const
+            ).map((m) => {
+              const active = mode === m.id;
+              return (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => setMode(m.id)}
+                  aria-pressed={active}
+                  className={`rounded-xl border px-3 py-2.5 text-xs font-semibold transition touch-manipulation ${
+                    active
+                      ? "border-accent bg-accent-tint text-accent"
+                      : "border-line bg-surface text-ink-muted hover:border-line-strong hover:text-ink"
+                  }`}
+                >
+                  {m.label}
+                </button>
+              );
+            })}
+          </div>
+          {mode === "before_after" && (
+            <p className="mt-2 text-xs text-ink-faint">
+              Raw footage | final result, one post. Both photos required.
+            </p>
+          )}
+        </div>
+      )}
+
+      {mode === "photo" && (
+        <ImageUploader images={images} onChange={setImages} postId={postId} />
+      )}
+
+      {mode === "before_after" && (
+        <BeforeAfterSlots
+          before={before}
+          after={after}
+          onChange={({ before: b, after: a }) => {
+            setBefore(b);
+            setAfter(a);
+          }}
+        />
+      )}
 
       {/* Poll builder — COMMUNITY posts, create-time only. */}
       {!postId && category === "COMMUNITY" && (

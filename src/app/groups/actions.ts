@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requireActiveUser } from "@/lib/session";
 import { assertClean } from "@/lib/filter";
 import { destroyAssets } from "@/lib/storage";
+import { claimUploads } from "@/lib/uploads";
 import { slugifyName, uniqueSlug } from "@/lib/groups";
 import { normalizeCategory } from "@/lib/group-categories";
 
@@ -473,6 +474,7 @@ export async function updateGroupCover(
   }
 
   await prisma.group.update({ where: { id: groupId }, data: { coverUrl: next } });
+  await claimUploads(me, [next], "group_cover");
   if (group.coverUrl && group.coverUrl !== next) {
     const shared = await prisma.group.count({
       where: { coverUrl: group.coverUrl, id: { not: groupId } },
@@ -508,6 +510,7 @@ export async function updateGroupAvatar(
   }
 
   await prisma.group.update({ where: { id: groupId }, data: { avatarUrl: next } });
+  await claimUploads(me, [next], "group_avatar");
   if (group.avatarUrl && group.avatarUrl !== next) {
     const shared = await prisma.group.count({
       where: { avatarUrl: group.avatarUrl, id: { not: groupId } },

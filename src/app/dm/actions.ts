@@ -7,6 +7,7 @@ import { sendPushToUser } from "@/lib/push";
 import { requireActiveUser, requireUserId } from "@/lib/session";
 import { assertClean } from "@/lib/filter";
 import { newAccountOverLimit, newAccountLimitMessage } from "@/lib/limits";
+import { claimUploads } from "@/lib/uploads";
 
 // Send a direct message. Creates the message and clears read state on the
 // recipient's side naturally (their unread count is computed per-thread).
@@ -59,6 +60,8 @@ export async function sendMessage(recipientId: string, content: string, imageUrl
     actorId: me.id,
     type: "message",
   });
+  // Claim the attachment (if any) in the same action.
+  await claimUploads(me.id, [image || null], "dm");
 
   // Push is best-effort: never blocks the send, honors the recipient's
   // notifyMessages switch inside sendPushToUser.

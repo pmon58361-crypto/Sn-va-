@@ -86,7 +86,7 @@ export default async function ProfilePage({
           orderBy: { createdAt: "desc" },
           include: {
             images: {
-              select: { id: true, url: true, order: true },
+              select: { id: true, url: true, alt: true, order: true },
               orderBy: { order: "asc" },
             },
             // Polls surface on grid cells as a compact strip (full voting
@@ -592,8 +592,9 @@ type GridPost = {
   id: string;
   title: string;
   category: string;
+  kind: string;
   createdAt: Date;
-  images: { id: string; url: string; order: number }[];
+  images: { id: string; url: string; alt: string | null; order: number }[];
   polls?: { id: string; question: string; _count: { votes: number } }[];
   _count?: { comments: number; reactions: number };
 };
@@ -622,7 +623,10 @@ function PostGrid({ posts }: { posts: GridPost[] }) {
     <div className="grid grid-cols-3 gap-1 sm:gap-2">
       {posts.map((p) => {
         const meta = CATEGORY_META[p.category as keyof typeof CATEGORY_META];
-        const img = p.images[0];
+        // Before/after cells show the AFTER (index 1) with a split badge
+        // so the grid stays clean; the comparison lives on detail.
+        const isBA = p.kind === "before_after" && p.images.length >= 2;
+        const img = isBA ? p.images[1] : p.images[0];
         return (
           <Link
             key={p.id}
@@ -634,10 +638,15 @@ function PostGrid({ posts }: { posts: GridPost[] }) {
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={cdnUrl(img.url, 480)}
-                  alt={p.title}
+                  alt={img.alt || p.title}
                   loading="lazy"
                   className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                 />
+                {isBA && (
+                  <span className="absolute right-1.5 top-1.5 z-10 rounded-full bg-black/65 px-2 py-0.5 text-[10px] font-bold tracking-wide text-white">
+                    ◐ B/A
+                  </span>
+                )}
                 {p.polls?.[0] && (
                   <span className="absolute bottom-1.5 left-1.5 z-10 rounded-full bg-black/65 px-2 py-0.5 text-[10px] font-semibold text-white">
                     📊 {p.polls[0]._count.votes}

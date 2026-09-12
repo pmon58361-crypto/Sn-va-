@@ -9,6 +9,7 @@ import {
 import { cloudinary } from "@/lib/cloudinary";
 import { incomingTransform } from "@/lib/storage";
 import { checkDailyUploadQuota, DAILY_UPLOAD_CAP } from "@/lib/quota";
+import { recordUpload, type UploadPurpose } from "@/lib/uploads";
 import type { UploadApiResponse } from "cloudinary";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
@@ -23,7 +24,12 @@ export const runtime = "nodejs";
 //  - CLOUDINARY_URL set  -> Cloudinary (required on Vercel; the serverless
 //    filesystem is ephemeral, so disk-written images would vanish).
 //  - otherwise           -> local /public/uploads (local development only).
-async function storeImage(file: File, maxEdge = 1600): Promise<string> {
+// Returns the stored URL plus the Cloudinary public_id — the ledger
+// needs the public_id because destruction is impossible without it.
+async function storeImage(
+  file: File,
+  maxEdge = 1600
+): Promise<{ url: string; publicId: string | null }> {
   const buffer = Buffer.from(await file.arrayBuffer());
 
   if (process.env.CLOUDINARY_URL) {
@@ -43,7 +49,7 @@ async function storeImage(file: File, maxEdge = 1600): Promise<string> {
       );
       stream.end(buffer);
     });
-    return res.secure_url;
+    return { url: res.secure_url, publicId: res.public_id ?? null };
   }
 
   const uploadDir = path.join(process.cwd(), "public", "uploads");
@@ -51,7 +57,7 @@ async function storeImage(file: File, maxEdge = 1600): Promise<string> {
   const ext = file.type.split("/")[1] || "jpg";
   const fname = `${randomUUID()}.${ext}`;
   await writeFile(path.join(uploadDir, fname), buffer);
-  return `/uploads/${fname}`;
+  return { url: `/uploads/${fname}`, publicId: null };
 }
 
 export async function POST(req: NextRequest) {
@@ -102,6 +108,9 @@ export async function POST(req: NextRequest) {
   // Avatars display tiny — cap them harder than post/story imagery.
   const kind = (form.get("kind") as string) || "post";
   const maxEdge = kind === "avatar" ? 800 : 1600;
+  // Provisional ledger purpose (finalized at claim time). Lets every
+  // surface that posts here land in the ledger with zero client changes.
+  const purpose = ((form.get("purpose") as string) || "post") as UploadPurpose;
 
   const postId = (form.get("postId") as string) || undefined;
 
@@ -140,7 +149,17 @@ export async function POST(req: NextRequest) {
       continue;
     }
     try {
-      urls.push(await storeImage(file, maxEdge));
+      const stored = await storeImage(file, maxEdge);
+      // Ledger write-path: every stored asset gets a row at upload time.
+      // Recorded BEFORE the URL is returned, so a record failure fails
+      // this file loudly instead of emitting an untracked URL.
+      await recordUpload({
+        url: stored.url,
+        publicId: stored.publicId,
+        uploaderId: me,
+        purpose,
+      });
+      urls.push(stored.url);
     } catch (err) {
       console.error("[upload] failed:", err);
       errors.push(`${file.name}: upload failed`);

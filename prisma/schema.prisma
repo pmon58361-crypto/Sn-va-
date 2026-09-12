@@ -56,6 +56,11 @@ model User {
   // Profile highlights (curated permanent collections)
   highlights Highlight[]
 
+  // Upload ledger — every stored asset is recorded at upload time and
+  // claimed by the create action that references it. Unclaimed rows are
+  // future orphan-sweep candidates (sweeper deferred by design).
+  uploads Upload[]
+
   // Moderation
   reports    Report[] @relation("reporter")
   modActions Report[] @relation("moderator")
@@ -220,6 +225,9 @@ model Post {
   hidden    Boolean     @default(false)
   // Owner/moderator highlight: pinned posts lead the group highlights row.
   isPinned  Boolean     @default(false)
+  // Post kind: "standard" (default, all existing rows) or "before_after"
+  // (exactly 2 images, order 0 = before, 1 = after). Validated in savePost.
+  kind      String      @default("standard")
   authorId  String
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
@@ -271,6 +279,8 @@ model PostImage {
   postId    String
   url       String
   caption   String?
+  // Alt text — required for before/after slots, optional elsewhere.
+  alt       String?
   order     Int      @default(0)
   createdAt DateTime @default(now()) // drives per-user daily upload caps
 
@@ -511,6 +521,32 @@ model Report {
 
   @@index([status])
   @@index([postId])
+}
+
+// Upload ledger (write-path only — no sweeper yet). One row per stored
+// asset, written at upload time; the create action that references the URL
+// claims it. Unclaimed rows = orphan candidates for the future cron.
+// Claim matching is by (uploaderId, url) and non-exclusive: surfaces that
+// legitimately share URLs (highlights reuse story/post URLs) each claim.
+model Upload {
+  id         String    @id @default(cuid())
+  url        String
+  // Cloudinary public_id — THE enabler: destruction is impossible without
+  // it. Null for local-dev disk uploads (nothing to destroy remotely).
+  publicId   String?
+  uploaderId String
+  // post | post:before_after | story | dm | group_chat | avatar |
+  // group_avatar | group_cover | highlight | ad. Provisional at record
+  // time, finalized at claim time.
+  purpose    String    @default("post")
+  createdAt  DateTime  @default(now())
+  claimedAt  DateTime?
+
+  uploader User @relation(fields: [uploaderId], references: [id], onDelete: Cascade)
+
+  @@index([uploaderId])
+  @@index([url])
+  @@index([claimedAt])
 }
 
 // In-app notification. `actor` did something that concerns `user`.

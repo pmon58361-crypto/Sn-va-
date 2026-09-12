@@ -4,6 +4,7 @@ import { ProfileHover } from "@/components/profile/ProfileHover";
 import { MapPinIcon, MessageIcon, BriefcaseIcon } from "@/components/ui/Icons";
 import { PostActions } from "@/components/posts/PostActions";
 import { ImageGrid } from "@/components/posts/ImageGrid";
+import { BeforeAfterSlider } from "@/components/posts/BeforeAfterSlider";
 import { PostEmbeds } from "@/components/posts/PostEmbeds";
 import { stripEmbedUrl } from "@/lib/embeds";
 import { PollBox, type PollData } from "@/components/posts/PollBox";
@@ -168,8 +169,18 @@ export async function PostCard({
       {/* Row 3: Image grid — Facebook-style. Separate from the link so
           individual tiles can navigate independently. Theater gets the
           same action state as the card row below (single source of truth).
-          The poll sits BELOW the photo, never above it. */}
-      {images.length > 0 && (
+          The poll sits BELOW the photo, never above it.
+          Before/after posts render the drag slider instead (order 0 =
+          before, 1 = after); anything malformed falls back to the grid. */}
+      {(post as { kind?: string }).kind === "before_after" && images.length >= 2 ? (
+        <div className="mt-2.5">
+          <BeforeAfterSlider
+            before={{ url: images[0].url, alt: images[0].alt }}
+            after={{ url: images[1].url, alt: images[1].alt }}
+          />
+        </div>
+      ) : (
+        images.length > 0 && (
         <div className="mt-2.5">
           <ImageGrid
             images={images}
@@ -202,6 +213,7 @@ export async function PostCard({
             }}
           />
         </div>
+        )
       )}
 
       {/* Attached poll — BELOW the photo. Interactive, so it lives OUTSIDE

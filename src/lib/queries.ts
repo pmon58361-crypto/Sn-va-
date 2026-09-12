@@ -17,7 +17,7 @@ export const postInclude = {
   author: {
     select: { id: true, name: true, image: true, location: true, createdAt: true },
   },
-  images: { select: { id: true, url: true, order: true }, orderBy: { order: "asc" } },
+  images: { select: { id: true, url: true, alt: true, order: true }, orderBy: { order: "asc" } },
   reactions: { select: { id: true, type: true, userId: true } },
   // Attached poll with its votes (optionId-light rows) so cards render real
   // tallies and the viewer's own choice without extra round trips.
@@ -80,7 +80,7 @@ export type PostWithRelations = Awaited<
     location: string | null;
     createdAt: Date;
   } | null;
-  images: { id: string; url: string; order: number }[];
+  images: { id: string; url: string; alt: string | null; order: number }[];
   reactions: { id: string; type: string; userId: string }[];
   _count: { comments: number; applications: number; images: number };
   bookmarks?: { userId: string }[];

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/session";
 import { destroyAssets, incomingTransform } from "@/lib/storage";
+import { recordUpload, claimUploads } from "@/lib/uploads";
 import { cloudinary } from "@/lib/cloudinary";
 import { assertClean } from "@/lib/filter";
 import { ALLOWED_IMAGE_TYPES, MAX_IMAGE_BYTES } from "@/lib/types";
@@ -279,7 +280,8 @@ function parseAdForm(form: FormData): AdInput {
   };
 }
 
-async function storeAdImage(file: File): Promise<string> {
+// Returns the stored URL plus the Cloudinary public_id for the ledger.
+async function storeAdImage(file: File): Promise<{ url: string; publicId: string | null }> {
   if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
     throw new Error(`Unsupported image type (${file.type}).`);
   }
@@ -306,7 +308,7 @@ async function storeAdImage(file: File): Promise<string> {
     );
     stream.end(buffer);
   });
-  return res.secure_url;
+  return { url: res.secure_url, publicId: res.public_id ?? null };
 }
 
 function dateOrNull(value?: string | null): Date | null {
@@ -318,12 +320,13 @@ function dateOrNull(value?: string | null): Date | null {
 export async function createAd(
   form: FormData
 ): Promise<{ ok: boolean; error?: string; ad?: SerializedAd }> {
-  await requireAdmin();
+  const admin = await requireAdmin();
   try {
     const input = parseAdForm(form);
     const image = form.get("image");
-    const imageUrl =
+    const stored =
       image instanceof File && image.size > 0 ? await storeAdImage(image) : null;
+    const imageUrl = stored?.url ?? null;
 
     const ad = await prisma.ad.create({
       data: {
@@ -341,6 +344,17 @@ export async function createAd(
       },
       include: { user: { select: { name: true } } },
     });
+    // Ledger write-path: ad creatives bypass /api/upload, so the row is
+    // recorded and claimed here, inline.
+    if (stored) {
+      await recordUpload({
+        url: stored.url,
+        publicId: stored.publicId,
+        uploaderId: admin.id,
+        purpose: "ad",
+      }).catch(() => {});
+      await claimUploads(admin.id, [stored.url], "ad");
+    }
     revalidatePath("/admin/ads");
     revalidatePath("/community");
     return { ok: true, ad: serializeAd({ ...ad, ownerName: ad.user?.name ?? null }) };
@@ -353,7 +367,7 @@ export async function updateAd(
   id: string,
   form: FormData
 ): Promise<{ ok: boolean; error?: string; ad?: SerializedAd }> {
-  await requireAdmin();
+  const admin = await requireAdmin();
   try {
     const input = parseAdForm(form);
     const existing = await prisma.ad.findUnique({
@@ -363,9 +377,19 @@ export async function updateAd(
     if (!existing) throw new Error("Ad not found");
 
     const image = form.get("image");
+    let stored: { url: string; publicId: string | null } | undefined;
     let imageUrl: string | undefined; // undefined = keep current
     if (image instanceof File && image.size > 0) {
-      imageUrl = await storeAdImage(image);
+      stored = await storeAdImage(image);
+      imageUrl = stored.url;
+      // Ledger write-path (same inline record+claim as createAd).
+      await recordUpload({
+        url: stored.url,
+        publicId: stored.publicId,
+        uploaderId: admin.id,
+        purpose: "ad",
+      }).catch(() => {});
+      await claimUploads(admin.id, [stored.url], "ad");
       // Replace asset only when nothing else references the old one.
       if (existing.imageUrl) {
         const shared = await prisma.ad.count({

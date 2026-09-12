@@ -9,6 +9,7 @@ import {
 import { PostActions } from "@/components/posts/PostActions";
 import { OwnerControls } from "@/components/posts/OwnerControls";
 import { PostEmbeds } from "@/components/posts/PostEmbeds";
+import { BeforeAfterSlider } from "@/components/posts/BeforeAfterSlider";
 import { stripEmbedUrl } from "@/lib/embeds";
 import { PollBox, type PollData } from "@/components/posts/PollBox";
 import { ReportMenu } from "@/components/moderation/ReportMenu";
@@ -176,30 +177,44 @@ export function PostDetail({
         </div>
 
         {/* Image gallery — natural aspect ratios, no forced crop.
-            Single image gets max width; multiple images grid side by side. */}
-        {post.images && post.images.length > 0 && (
-          <div
-            className={`border-t border-line p-4 ${
-              post.images.length === 1 ? "" : "grid gap-2 sm:grid-cols-2"
-            }`}
-          >
-            {post.images.map((img, i) => (
-              <div
-                key={img.id}
-                className="overflow-hidden rounded-lg border border-line bg-soft"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={cdnUrl(img.url, 1080)}
-                  alt={`image ${i + 1}`}
-                  className={`mx-auto w-full object-contain ${
-                    post.images.length === 1 ? "max-h-[700px]" : "max-h-[400px]"
-                  }`}
-                  loading={i > 0 ? "lazy" : "eager"}
-                />
-              </div>
-            ))}
+            Single image gets max width; multiple images grid side by side.
+            Before/after posts get the large drag slider instead. */}
+        {(post as { kind?: string }).kind === "before_after" &&
+        post.images &&
+        post.images.length >= 2 ? (
+          <div className="border-t border-line p-4">
+            <BeforeAfterSlider
+              before={{ url: post.images[0].url, alt: post.images[0].alt }}
+              after={{ url: post.images[1].url, alt: post.images[1].alt }}
+              large
+            />
           </div>
+        ) : (
+          post.images &&
+          post.images.length > 0 && (
+            <div
+              className={`border-t border-line p-4 ${
+                post.images.length === 1 ? "" : "grid gap-2 sm:grid-cols-2"
+              }`}
+            >
+              {post.images.map((img, i) => (
+                <div
+                  key={img.id}
+                  className="overflow-hidden rounded-lg border border-line bg-soft"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={cdnUrl(img.url, 1080)}
+                    alt={img.alt || `image ${i + 1}`}
+                    className={`mx-auto w-full object-contain ${
+                      post.images.length === 1 ? "max-h-[700px]" : "max-h-[400px]"
+                    }`}
+                    loading={i > 0 ? "lazy" : "eager"}
+                  />
+                </div>
+              ))}
+            </div>
+          )
         )}
 
         {/* Attached poll - BELOW the photo. */}

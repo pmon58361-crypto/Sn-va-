@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireActiveUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { destroyAssets } from "@/lib/storage";
+import { claimUploads } from "@/lib/uploads";
 
 // Create a highlight from a set of uploaded image URLs. Cover = first image.
 export async function createHighlight(input: {
@@ -32,6 +33,10 @@ export async function createHighlight(input: {
     },
     select: { id: true },
   });
+
+  // Claim every referenced URL (covers + items; shared URLs claim
+  // non-exclusively — reuse across surfaces is legitimate).
+  await claimUploads(me, urls, "highlight");
 
   revalidatePath("/profile/" + me);
   return { ok: true, id: highlight.id };

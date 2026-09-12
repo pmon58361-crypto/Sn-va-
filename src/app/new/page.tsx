@@ -62,13 +62,14 @@ export default async function NewPostPage({
         id: true,
         authorId: true,
         category: true,
+        kind: true,
         title: true,
         content: true,
         tags: true,
         budget: true,
         location: true,
         type: true,
-        images: { select: { url: true }, orderBy: { order: "asc" } },
+        images: { select: { url: true, alt: true }, orderBy: { order: "asc" } },
       },
     });
     if (!post || post.authorId !== session.user.id) {
@@ -77,6 +78,7 @@ export default async function NewPostPage({
     postId = post.id;
     initial = {
       category: post.category as PostCategory,
+      kind: (post.kind === "before_after" ? "before_after" : "standard") as PostInput["kind"],
       title: post.title,
       content: post.content,
       tags: post.tags || "",
@@ -84,6 +86,7 @@ export default async function NewPostPage({
       location: post.location || "",
       type: post.type || "",
       imageUrls: post.images.map((i) => i.url),
+      imageAlts: post.images.map((i) => i.alt || ""),
     };
   }
 

@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getMembership } from "@/lib/groups";
 import { notifyGroupMessage } from "@/lib/notify";
+import { claimUploads } from "@/lib/uploads";
 
 export const dynamic = "force-dynamic";
 
@@ -97,5 +98,7 @@ export async function POST(
   });
   // Fan-out runs after the send resolves and never fails it.
   notifyGroupMessage({ groupId, senderId: session.user.id, content }).catch(() => {});
+  // Claim the attachment (if any) in the same request.
+  await claimUploads(session.user.id, [imageUrl], "group_chat");
   return NextResponse.json({ message });
 }

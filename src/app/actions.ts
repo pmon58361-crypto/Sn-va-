@@ -9,6 +9,7 @@ import { createNotification } from "@/lib/notify";
 import { sendPushToUser } from "@/lib/push";
 import { requireActiveUser } from "@/lib/session";
 import { destroyAssets } from "@/lib/storage";
+import { claimUploads } from "@/lib/uploads";
 import { assertClean } from "@/lib/filter";
 import { invalidateSessionCache } from "@/lib/session-cache";
 import { normalizeInterests } from "@/lib/utils";
@@ -88,6 +89,12 @@ export type PostInput = {
   location?: string;
   type?: string;
   imageUrls: string[];
+  /** Alt text per image (same order as imageUrls). Required for
+   *  before/after slots, optional elsewhere. */
+  imageAlts?: (string | null | undefined)[];
+  /** Post kind: "standard" (default) or "before_after" (exactly 2 images,
+   *  order 0 = before, 1 = after). Create-time only. */
+  kind?: "standard" | "before_after";
   /** Post into a group (members only; create-time only, never moved). */
   groupId?: string;
   /** Enter a weekly challenge (must be live; create-time only, never moved). */
@@ -118,6 +125,22 @@ export async function savePost(input: PostInput) {
   }
   if (input.imageUrls.length > MAX_IMAGES_PER_POST) {
     throw new Error(`Max ${MAX_IMAGES_PER_POST} images per post`);
+  }
+  // Before/after validation: exactly 2 media refs, ordered (0 = before,
+  // 1 = after), with alt text on both. Anything else is rejected — a
+  // half-filled comparison post must never exist.
+  const kind = input.kind === "before_after" ? "before_after" : "standard";
+  const alts = input.imageAlts ?? [];
+  if (kind === "before_after") {
+    if (input.imageUrls.length !== 2) {
+      throw new Error("Before/after posts need exactly two images");
+    }
+    const [beforeAlt, afterAlt] = [alts[0]?.trim(), alts[1]?.trim()];
+    if (!beforeAlt || !afterAlt) {
+      throw new Error("Describe both images for screen readers");
+    }
+    assertClean(beforeAlt, "Before alt text");
+    assertClean(afterAlt, "After alt text");
   }
   // Hard-block list only — everything else goes through the report queue.
   assertClean(input.title, "Title");
@@ -163,11 +186,19 @@ export async function savePost(input: PostInput) {
           data: input.imageUrls.map((url, i) => ({
             postId,
             url,
+            alt: alts[i]?.trim() || null,
             order: i,
           })),
         });
       }
     });
+    // Claim the (possibly new) uploads in the same action, right after
+    // the state is committed. Best-effort: never fails the edit.
+    await claimUploads(
+      me.id,
+      input.imageUrls,
+      kind === "before_after" ? "post:before_after" : "post"
+    );
     await destroyAssets(
       old.map((o) => o.url).filter((url) => !input.imageUrls.includes(url))
     );
@@ -210,6 +241,7 @@ export async function savePost(input: PostInput) {
     const post = await prisma.post.create({
       data: {
         ...data,
+        kind,
         authorId: me.id,
         groupId,
         challengeId,
@@ -221,9 +253,16 @@ export async function savePost(input: PostInput) {
         data: input.imageUrls.map((url, i) => ({
           postId: post.id,
           url,
+          alt: alts[i]?.trim() || null,
           order: i,
         })),
       });
+      // Claim in the same action, immediately after creation.
+      await claimUploads(
+        me.id,
+        input.imageUrls,
+        kind === "before_after" ? "post:before_after" : "post"
+      );
     }
     revalidatePath(sectionPath(input.category));
     redirect(`${sectionPath(input.category)}/${post.id}`);

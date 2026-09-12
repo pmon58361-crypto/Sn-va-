@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { cloudinary } from "@/lib/cloudinary";
 import { destroyAssets, incomingTransform } from "@/lib/storage";
 import { checkDailyUploadQuota, DAILY_UPLOAD_CAP } from "@/lib/quota";
+import { recordUpload, claimUploads } from "@/lib/uploads";
 import type { UploadApiResponse } from "cloudinary";
 import { MAX_IMAGE_BYTES, ALLOWED_IMAGE_TYPES } from "@/lib/types";
 
@@ -61,6 +62,14 @@ export async function createStory(
         stream.end(buffer);
       });
       imageUrl = res.secure_url;
+      // Ledger write-path: story uploads bypass /api/upload, so the row
+      // is recorded here, inline, with the public_id.
+      await recordUpload({
+        url: imageUrl,
+        publicId: res.public_id ?? null,
+        uploaderId: me,
+        purpose: "story",
+      });
     } catch (err) {
       console.error("[createStory] upload failed:", err);
       return { ok: false, error: "Upload failed" };
@@ -129,6 +138,8 @@ export async function createStory(
       expiresAt: new Date(Date.now() + STORY_TTL_HOURS * 3600 * 1000),
     },
   });
+  // Claim in the same action, immediately after creation.
+  await claimUploads(me, [imageUrl], "story");
 
   // Opportunistic storage reclaim — no cron at this scale. Bounded sweep;
   // never blocks or fails the user's own story.
