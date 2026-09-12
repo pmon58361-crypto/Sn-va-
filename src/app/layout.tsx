@@ -90,6 +90,12 @@ export default function RootLayout({
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: noFlashScript }} />
+        {/* Explicit install plumbing: Next does not reliably inject these,
+            and without a discoverable manifest + icon Chrome NEVER offers
+            install (no event, no ⋮ menu entry) on any browser. */}
+        <link rel="manifest" href="/manifest.webmanifest" />
+        <link rel="icon" href="/icon-192.png" sizes="192x192" type="image/png" />
+        <link rel="apple-touch-icon" href="/icon-192.png" />
         {/* Earliest possible install-prompt capture: Chrome fires
             beforeinstallprompt ONCE per load, possibly before the bundle even
             evaluates. This inline head script (runs at parse time) stores it
