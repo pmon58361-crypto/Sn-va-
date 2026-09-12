@@ -207,11 +207,13 @@ export function PostEmbeds({ content, postId }: { content: string; postId?: stri
 
 type XPreview = { author: string; authorUrl: string; text: string; url: string };
 
-// X card with server-fetched words: the tweet reads inline (author +
-// text), tap goes to X for replies/video. A failed preview degrades to
-// the plain link card — never a blank hole.
+// X card with server-fetched words: tap opens an in-app mini page with
+// the full text (reading stays home); the X thread link is a secondary
+// action inside. A failed preview degrades to the plain link card —
+// never a blank hole.
 function XCard({ srcUrl, postId }: { srcUrl: string; postId?: string }) {
   const [preview, setPreview] = useState<XPreview | null>(null);
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -241,42 +243,94 @@ function XCard({ srcUrl, postId }: { srcUrl: string; postId?: string }) {
   }, [srcUrl, postId]);
 
   return (
-    <div
-      data-x-src={srcUrl}
-      className="mx-auto mt-3 w-full"
-      style={{ maxWidth: 550 }}
-    >
-      <a
-        href={srcUrl}
-        rel="nofollow noopener"
-        target="_blank"
-        className="block rounded-xl border border-line bg-surface px-4 py-3.5 transition hover:border-accent"
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        data-x-src={srcUrl}
+        className="mx-auto mt-3 block w-full text-left"
+        style={{ maxWidth: 550 }}
+        aria-label={preview ? "Read post" : "View post on X"}
       >
-        <span className="flex items-center gap-3">
-          <span
-            aria-hidden
-            className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-ink text-lg font-black text-bg"
-          >
-            𝕏
-          </span>
-          <span className="min-w-0 flex-1 text-left">
-            <span className="block truncate text-sm font-semibold text-ink">
-              {preview ? preview.author : "Post on X"}
+        <span className="block rounded-xl border border-line bg-surface px-4 py-3.5 transition hover:border-accent">
+          <span className="flex items-center gap-3">
+            <span
+              aria-hidden
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-ink text-lg font-black text-bg"
+            >
+              𝕏
             </span>
-            <span className="block truncate text-xs text-ink-muted">
-              {srcUrl.replace(/^https?:\/\/(www\.)?/, "")}
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm font-semibold text-ink">
+                {preview ? preview.author : "Post on X"}
+              </span>
+              <span className="block truncate text-xs text-ink-muted">
+                {srcUrl.replace(/^https?:\/\/(www\.)?/, "")}
+              </span>
+            </span>
+            <span aria-hidden className="shrink-0 text-ink-faint">
+              ↗
             </span>
           </span>
-          <span aria-hidden className="shrink-0 text-ink-faint">
-            ↗
-          </span>
+          {preview && (
+            <span className="mt-2.5 line-clamp-4 block whitespace-pre-wrap break-words text-sm leading-relaxed text-ink-soft">
+              {preview.text}
+            </span>
+          )}
         </span>
-        {preview && (
-          <span className="mt-2.5 block whitespace-pre-wrap break-words text-sm leading-relaxed text-ink-soft">
-            {preview.text}
-          </span>
-        )}
-      </a>
-    </div>
+      </button>
+
+      {open && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Post preview"
+          className="fixed inset-0 z-[90] flex items-end justify-center bg-black/60 p-4 sm:items-center"
+          onClick={() => setOpen(false)}
+        >
+          <div
+            className="max-h-[80vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-line bg-surface p-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3">
+              <span
+                aria-hidden
+                className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-ink text-lg font-black text-bg"
+              >
+                𝕏
+              </span>
+              <p className="min-w-0 flex-1 truncate text-sm font-semibold text-ink">
+                {preview ? preview.author : "Post on X"}
+              </p>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                aria-label="Close preview"
+                className="grid h-10 w-10 shrink-0 touch-manipulation place-items-center rounded-full text-lg text-ink-muted transition hover:bg-surface-hover hover:text-ink"
+              >
+                ×
+              </button>
+            </div>
+            {preview ? (
+              <p className="mt-3 whitespace-pre-wrap break-words text-[15px] leading-relaxed text-ink">
+                {preview.text}
+              </p>
+            ) : (
+              <p className="mt-3 text-sm text-ink-muted">
+                Preview didn&apos;t load — the full post is on X.
+              </p>
+            )}
+            <a
+              href={srcUrl}
+              rel="nofollow noopener"
+              target="_blank"
+              className="btn-outline mt-4 block w-full py-2.5 text-center text-sm"
+            >
+              Open thread on X ↗
+            </a>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
