@@ -147,7 +147,9 @@ export function ImageUploader({
                 <button
                   type="button"
                   onClick={() => removeImage(i)}
-                  className="absolute right-1 top-1 rounded-md bg-black/60 p-1 text-white opacity-0 transition group-hover:opacity-100 focus:opacity-100"
+                  // 32px hit area (was 14px icon + 4px pad); always visible
+                  // on touch devices where hover doesn't exist.
+                  className="absolute right-1 top-1 grid h-8 w-8 place-items-center rounded-md bg-black/60 text-white opacity-0 transition group-hover:opacity-100 focus:opacity-100 max-sm:opacity-100"
                   aria-label="Remove image"
                 >
                   <TrashIcon className="h-3.5 w-3.5" />

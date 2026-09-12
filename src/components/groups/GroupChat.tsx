@@ -187,7 +187,8 @@ export function GroupChat({
               type="button"
               onClick={() => setAttached(null)}
               aria-label="Remove photo"
-              className="grid h-7 w-7 place-items-center rounded-full text-ink-faint transition hover:bg-surface-hover hover:text-ink"
+              // 32px hit area (was 28px) — reachable on touch.
+              className="grid h-8 w-8 place-items-center rounded-full text-ink-faint transition hover:bg-surface-hover hover:text-ink"
             >
               ✕
             </button>
@@ -199,6 +200,9 @@ export function GroupChat({
             ref={fileRef}
             type="file"
             accept="image/*"
+            // Camera-first on phones (desktop ignores it). Single-file
+            // input so the attribute actually takes effect on mobile.
+            capture="environment"
             className="hidden"
             onChange={(e) => attachFile(e.target.files)}
           />

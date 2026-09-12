@@ -844,7 +844,10 @@ export function DmThread({
           <input
             ref={fileRef}
             type="file"
-            accept="image/*"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            // Camera-first on phones (desktop ignores it). Single-file
+            // input so the attribute actually takes effect on mobile.
+            capture="environment"
             className="hidden"
             onChange={(e) => attachFile(e.target.files)}
           />
@@ -907,7 +910,8 @@ export function DmThread({
                   type="button"
                   onClick={() => setAttached(null)}
                   aria-label="Remove attachment"
-                  className="absolute -right-2 -top-2 grid h-6 w-6 place-items-center rounded-full bg-warm text-xs text-white"
+                  // 32px hit area (was 24px) — reachable on touch.
+                  className="absolute -right-2 -top-2 grid h-8 w-8 place-items-center rounded-full bg-warm text-xs text-white"
                 >
                   ×
                 </button>

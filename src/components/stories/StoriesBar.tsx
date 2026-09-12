@@ -403,6 +403,10 @@ function StoryComposer({ onClose }: { onClose: () => void }) {
               ref={fileRef}
               type="file"
               accept="image/jpeg,image/png,image/webp,image/gif"
+              // Camera-first on phones (desktop ignores it): stories are
+              // captured moments, not library picks. Single-file input so
+              // the attribute actually takes effect on mobile browsers.
+              capture="environment"
               className="hidden"
               onChange={(e) => {
                 const f = e.target.files?.[0];
