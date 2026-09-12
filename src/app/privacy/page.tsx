@@ -36,7 +36,25 @@ export default function PrivacyPage() {
               Basic activity needed for features to work (who viewed a story,
               who liked a post).
             </li>
+            <li>
+              One first-touch cookie (<span className="font-mono">snv_ref</span>,
+              30 days): remembers which link brought you here (a YouTube
+              description, a bio…) so we know which channels work. It stores
+              the channel name, nothing about you.
+            </li>
           </ul>
+        </section>
+
+        <section>
+          <h2>Measurement, not extraction</h2>
+          <p>
+            As feeds get smarter, Snívať may measure how posts perform (which
+            comparisons get studied, what gets finished) — to serve better
+            content, never to farm longer sessions. Behavior data answers
+            &ldquo;did they find what they came for,&rdquo; never
+            &ldquo;how do we keep them scrolling.&rdquo; No measurement exists
+            to sell, and none ever will.
+          </p>
         </section>
 
         <section>

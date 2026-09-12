@@ -90,6 +90,9 @@ export function SignInForm({
   const [suPass, setSuPass] = useState("");
   const [suConfirm, setSuConfirm] = useState("");
   const [suInterests, setSuInterests] = useState<string[]>([]);
+  // Terms acceptance: required to create an account (either path). The
+  // server re-checks for credentials; OAuth is gated here pre-redirect.
+  const [agree, setAgree] = useState(false);
   // Shared show/hide for every password field on the card.
   const [showPw, setShowPw] = useState(false);
 
@@ -129,6 +132,10 @@ export function SignInForm({
 
   async function handleOAuth(provider: string) {
     setError(null);
+    if (mode === "create" && !agree) {
+      setError("Please accept the Terms and Privacy Policy first.");
+      return;
+    }
     setLoading(provider);
     try {
       await signIn(provider, { callbackUrl: "/community", redirect: true });
@@ -183,6 +190,10 @@ export function SignInForm({
       setError("Passwords don't match.");
       return;
     }
+    if (!agree) {
+      setError("Please accept the Terms and Privacy Policy first.");
+      return;
+    }
     setError(null);
     setLoading("create");
     try {
@@ -192,6 +203,7 @@ export function SignInForm({
         password: suPass,
         // Explicit ref from the page URL — preferred over the cookie.
         ref: searchParams.get("ref"),
+        agree,
       });
       if (!res.ok) {
         setError(res.error || "Couldn't create your account.");
@@ -456,6 +468,25 @@ export function SignInForm({
                     >
                       {loading === "create" ? "Creating…" : "Create account"}
                     </button>
+                    <label className="flex cursor-pointer items-start gap-2.5 text-xs leading-relaxed text-ink-muted">
+                      <input
+                        type="checkbox"
+                        checked={agree}
+                        onChange={(e) => setAgree(e.target.checked)}
+                        className="mt-0.5 h-4 w-4 shrink-0 touch-manipulation accent-[#e8a33d]"
+                      />
+                      <span>
+                        I agree to the{" "}
+                        <a href="/terms" target="_blank" rel="noopener" className="font-medium text-ink underline decoration-line-strong underline-offset-2 hover:text-accent">
+                          Terms of Service
+                        </a>{" "}
+                        and{" "}
+                        <a href="/privacy" target="_blank" rel="noopener" className="font-medium text-ink underline decoration-line-strong underline-offset-2 hover:text-accent">
+                          Privacy Policy
+                        </a>
+                        .
+                      </span>
+                    </label>
                     <button
                       type="button"
                       onClick={() => { setStep(1); setError(null); }}

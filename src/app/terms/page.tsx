@@ -40,6 +40,11 @@ export default function TermsPage() {
               under your login.
             </li>
             <li>
+              No impersonating other people, and no selling or transferring
+              accounts — badges and status stay with the human who earned
+              them.
+            </li>
+            <li>
               Accounts can be suspended or banned for breaking these rules.
               You can also deactivate your own account anytime from Settings.
             </li>
@@ -48,21 +53,29 @@ export default function TermsPage() {
 
         <section>
           <h2>Your content</h2>
+          <p className="mb-3 rounded-xl border border-accent/40 bg-accent-tint px-4 py-3 font-semibold text-ink">
+            You own your work. Snívať doesn&apos;t — not your renders, not
+            your workflows, not your words.
+          </p>
           <ul className="list-disc space-y-1 pl-5">
             <li>
-              You own what you post. We don&apos;t claim ownership of your
-              words, photos or stories.
+              You grant Snívať a worldwide, royalty-free, non-exclusive
+              license to host, store, reproduce, resize, format, display and
+              distribute your content, strictly as needed to operate the
+              service: rendering posts, thumbnails, share cards and feeds.
+              That&apos;s the whole license, and it ends when your content is
+              deleted.
             </li>
             <li>
-              You give Snívať permission to store and display your content
-              inside the app — that&apos;s the whole license, and it ends when
-              your content is deleted. Honest footnote: cached copies (share
-              cards, CDN copies) can linger briefly after deletion, then
-              they&apos;re gone too.
+              Honest footnote: cached copies (share cards, CDN copies) can
+              linger briefly after deletion, then they&apos;re gone too.
+              Backup copies may persist a short while for safety and are
+              never served.
             </li>
             <li>
               Don&apos;t post anything you don&apos;t have the rights to, and
               don&apos;t post other people&apos;s private information.
+              Repeat copyright infringers lose their accounts.
             </li>
           </ul>
         </section>
@@ -94,6 +107,10 @@ export default function TermsPage() {
           <ul className="list-disc space-y-1 pl-5">
             <li>No harassment, hate speech, spam, scams or illegal content.</li>
             <li>
+              Zero tolerance for sexual content involving minors. It is
+              removed, reported, and the account is gone.
+            </li>
+            <li>
               No impersonating people, scraping, or automated abuse of the
               service.
             </li>
@@ -115,6 +132,50 @@ export default function TermsPage() {
             reports, and ban accounts. If we action something by mistake,
             contact us — humans make mistakes in both directions.
           </p>
+        </section>
+
+        <section>
+          <h2>Jobs &amp; hiring</h2>
+          <p>
+            Snívať is the venue, not a party: hirers and freelancers contract
+            with each other, at their own risk. Nobody here is anyone&apos;s
+            employee, agent, or partner because of Snívať, and Snívať is not
+            liable for payment disputes, fraud, or a hire gone wrong. Check
+            references, use contracts, never pay upfront to strangers.
+          </p>
+        </section>
+
+        <section>
+          <h2>Badges, streaks &amp; status</h2>
+          <ul className="list-disc space-y-1 pl-5">
+            <li>
+              Founding badges, streaks, and status markers are promotional:
+              no cash value, non-transferable, and revocable for abuse.
+            </li>
+            <li>
+              Leaderboard position reflects community reactions, not an
+              objective measure of artistic quality.
+            </li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>Storage &amp; availability</h2>
+          <ul className="list-disc space-y-1 pl-5">
+            <li>
+              Media storage isn&apos;t guaranteed forever, and upload quotas
+              apply. Keep your own copies of anything you&apos;d hate to lose.
+            </li>
+            <li>
+              Unclaimed uploads (files uploaded but never attached to a post)
+              may be deleted after a grace period.
+            </li>
+            <li>
+              Snívať runs on third-party infrastructure (hosting, database,
+              image storage). Outages on their side are out of our hands, and
+              features may change or retire.
+            </li>
+          </ul>
         </section>
 
         <section>
@@ -183,9 +244,22 @@ export default function TermsPage() {
           <h2>No guarantee of service</h2>
           <p>
             Snívať is provided as-is, free of charge. We work hard on uptime,
-            but the service may change, break temporarily, or shut down. Your
-            data matters to us (see the Privacy Policy), but always keep your
-            own copies of anything you&apos;d hate to lose.
+            but the service may change, break temporarily, or shut down. We
+            don&apos;t promise your content will reach an audience, or that it
+            will never be lost. Your data matters to us (see the Privacy
+            Policy), but always keep your own copies of anything you&apos;d
+            hate to lose.
+          </p>
+        </section>
+
+        <section>
+          <h2>Leaving &amp; deletion</h2>
+          <p>
+            Deactivate anytime from Settings; request full deletion by email
+            and your account and content are permanently removed, except
+            minimal records we must retain for safety and legal reasons
+            (abuse logs, transaction receipts). Deleted content stops being
+            served immediately; cached copies fade as described above.
           </p>
         </section>
 

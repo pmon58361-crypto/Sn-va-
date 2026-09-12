@@ -85,6 +85,9 @@ export async function createAccount(input: {
   /** Explicit ?ref= from the signup page URL — preferred over the cookie
    *  (covers cookie jars the middleware never saw, e.g. iOS standalone). */
   ref?: unknown;
+  /** Terms + Privacy acceptance — required. The trust boundary: the
+   *  client gates too, but only this check is enforceable. */
+  agree?: unknown;
 }): Promise<SignupResult> {
   const name = String(input?.name ?? "").trim().slice(0, 60);
   const email = String(input?.email ?? "")
@@ -95,6 +98,12 @@ export async function createAccount(input: {
 
   if (!email || !EMAIL_RE.test(email)) {
     return { ok: false, error: "That email address doesn't look right." };
+  }
+  if (input?.agree !== true) {
+    return {
+      ok: false,
+      error: "Please accept the Terms and Privacy Policy first.",
+    };
   }
   if (await ipOverLimit()) {
     return {
