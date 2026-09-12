@@ -37,7 +37,12 @@ export async function GET(req: NextRequest) {
       .replace(/&gt;/g, ">")
       .replace(/&quot;/g, '"')
       .replace(/&#39;/g, "'")
+      .replace(/&mdash;/g, "—")
       .replace(/\n{3,}/g, "\n\n")
+      .trim()
+      // oEmbed appends an attribution tail ("— Author (@handle) Date") —
+      // the card already shows the author, so cut it.
+      .replace(/\n?— [^\n]*\(@[^)]*\) [A-Z][a-z]+ \d{1,2}, \d{4}$/, "")
       .trim()
       .slice(0, 560);
     if (!text) {
