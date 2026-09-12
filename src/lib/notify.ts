@@ -69,8 +69,10 @@ export async function notifyGroupMessage(input: {
   groupId: string;
   senderId: string;
   content: string;
+  /** Anonymous send: notifications carry no actor (inbox reads "Someone"). */
+  anonymous?: boolean;
 }): Promise<void> {
-  const { groupId, senderId, content } = input;
+  const { groupId, senderId, content, anonymous } = input;
   const members = await prisma.groupMember.findMany({
     where: { groupId },
     select: { userId: true, user: { select: { name: true } } },
@@ -100,12 +102,12 @@ export async function notifyGroupMessage(input: {
 
   await Promise.all([
     ...[...mentioned].map((userId) =>
-      createNotification({ userId, actorId: senderId, type: "group_mention", groupId })
+      createNotification({ userId, actorId: anonymous ? null : senderId, type: "group_mention", groupId })
     ),
     ...others
       .filter((m) => !mentioned.has(m.userId))
       .map((m) =>
-        createNotification({ userId: m.userId, actorId: senderId, type: "group_message", groupId })
+        createNotification({ userId: m.userId, actorId: anonymous ? null : senderId, type: "group_message", groupId })
       ),
   ]);
 }

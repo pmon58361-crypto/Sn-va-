@@ -165,6 +165,7 @@ export default async function GroupPage({
             senderId: true,
             content: true,
             imageUrl: true,
+            anonymous: true,
             createdAt: true,
             sender: { select: { id: true, name: true, image: true } },
           },

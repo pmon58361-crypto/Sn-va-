@@ -394,6 +394,9 @@ model Message {
   content     String
   // Optional photo attachment (Cloudinary URL via /api/upload).
   imageUrl    String?
+  // Anonymous room message: rendered as "Anonymous" for everyone.
+  // senderId is still stored (moderation can trace abuse) but never shown.
+  anonymous   Boolean  @default(false)
   readAt      DateTime?
   createdAt   DateTime  @default(now())
 

@@ -12,6 +12,7 @@ const messageSelect = {
   senderId: true,
   content: true,
   imageUrl: true,
+  anonymous: true,
   createdAt: true,
   sender: { select: { id: true, name: true, image: true } },
 };
@@ -67,7 +68,7 @@ export async function POST(
   const groupId = await groupIdFor(slug, session.user.id);
   if (!groupId) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  let body: { content?: unknown; imageUrl?: unknown };
+  let body: { content?: unknown; imageUrl?: unknown; anonymous?: unknown };
   try {
     body = await req.json();
   } catch {
@@ -76,6 +77,9 @@ export async function POST(
   const content = typeof body.content === "string" ? body.content.trim() : "";
   const imageUrl =
     typeof body.imageUrl === "string" && body.imageUrl.trim() ? body.imageUrl.trim() : null;
+  // Per-message mask: any member may send anonymously. Stored with the
+  // real senderId (moderation trace) but rendered sender-free.
+  const anonymous = body.anonymous === true;
   if (!content && !imageUrl) {
     return NextResponse.json({ error: "Empty message" }, { status: 400 });
   }
@@ -93,11 +97,13 @@ export async function POST(
       groupId,
       content: content.slice(0, 2000),
       imageUrl,
+      anonymous,
     },
     select: messageSelect,
   });
-  // Fan-out runs after the send resolves and never fails it.
-  notifyGroupMessage({ groupId, senderId: session.user.id, content }).catch(() => {});
+  // Fan-out runs after the send resolves and never fails it. Anonymous
+  // sends carry no actor — the inbox reads "Someone", never a name.
+  notifyGroupMessage({ groupId, senderId: session.user.id, content, anonymous }).catch(() => {});
   // Claim the attachment (if any) in the same request.
   await claimUploads(session.user.id, [imageUrl], "group_chat");
   return NextResponse.json({ message });

@@ -10,6 +10,7 @@ export type ChatMessage = {
   senderId: string;
   content: string;
   imageUrl: string | null;
+  anonymous: boolean;
   createdAt: string;
   sender: { id: string; name: string | null; image: string | null } | null;
 };
@@ -34,6 +35,9 @@ export function GroupChat({
   const [uploading, setUploading] = useState(false);
   const [attached, setAttached] = useState<string | null>(null);
   const [attachError, setAttachError] = useState<string | null>(null);
+  // Per-message mask: sent as Anonymous, rendered sender-free for
+  // everyone. The real senderId stays stored for moderation.
+  const [anon, setAnon] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const cursorRef = useRef<string | null>(
@@ -113,7 +117,7 @@ export function GroupChat({
       const res = await fetch(`/api/groups/${slug}/chat`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ content, imageUrl: attached }),
+        body: JSON.stringify({ content, imageUrl: attached, anonymous: anon }),
       });
       if (!res.ok) return;
       const data = (await res.json()) as { message?: ChatMessage };
@@ -141,14 +145,21 @@ export function GroupChat({
         ) : (
           messages.map((m) => {
             const mine = m.senderId === meId;
+            const masked = m.anonymous;
             return (
               <div key={m.id} className={`flex gap-2.5 ${mine ? "flex-row-reverse" : ""}`}>
-                <Link href={`/profile/${m.sender?.id ?? m.senderId}`} className="shrink-0">
-                  <Avatar name={m.sender?.name} image={m.sender?.image} size={32} />
-                </Link>
+                {masked ? (
+                  <span className="shrink-0" aria-hidden>
+                    <Avatar name="Anonymous" image={null} size={32} />
+                  </span>
+                ) : (
+                  <Link href={`/profile/${m.sender?.id ?? m.senderId}`} className="shrink-0">
+                    <Avatar name={m.sender?.name} image={m.sender?.image} size={32} />
+                  </Link>
+                )}
                 <div className={`min-w-0 max-w-[80%] ${mine ? "items-end" : "items-start"} flex flex-col`}>
                   <span className="mb-0.5 text-[11px] text-ink-faint">
-                    {mine ? "You" : m.sender?.name || "Someone"}
+                    {masked ? (mine ? "Anonymous (you)" : "Anonymous") : mine ? "You" : m.sender?.name || "Someone"}
                   </span>
                   <div
                     className={`rounded-2xl px-3 py-2 text-sm leading-relaxed break-words ${
@@ -215,6 +226,20 @@ export function GroupChat({
             className="grid h-10 w-10 shrink-0 touch-manipulation place-items-center rounded-full text-xl leading-none text-ink-muted transition hover:bg-surface-hover hover:text-ink disabled:opacity-40"
           >
             {uploading ? "…" : "+"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setAnon((v) => !v)}
+            aria-pressed={anon}
+            aria-label={anon ? "Send as yourself" : "Send anonymously"}
+            title={anon ? "Anonymous on — tap to reveal yourself" : "Send anonymously"}
+            className={`grid h-10 w-10 shrink-0 touch-manipulation place-items-center rounded-full text-lg leading-none transition disabled:opacity-40 ${
+              anon
+                ? "bg-accent-tint text-accent"
+                : "text-ink-muted hover:bg-surface-hover hover:text-ink"
+            }`}
+          >
+            <span aria-hidden>🎭</span>
           </button>
           <textarea
             value={draft}
