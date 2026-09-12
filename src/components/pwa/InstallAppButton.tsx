@@ -26,6 +26,7 @@ export function InstallAppButton() {
   const [ready, setReady] = useState(false);
   const [hint, setHint] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  const [ios, setIos] = useState(false);
 
   useEffect(() => {
     if (isStandalone()) {
@@ -33,6 +34,7 @@ export function InstallAppButton() {
       return;
     }
     if (isIos()) {
+      setIos(true);
       setHint("On iPhone: Share menu → Add to Home Screen.");
       return;
     }
@@ -50,21 +52,23 @@ export function InstallAppButton() {
 
   return (
     <span className="inline-flex flex-col items-start gap-2">
-      <button
-        type="button"
-        disabled={!ready && !isIos()}
-        onClick={async () => {
-          const outcome = await promptInstall();
-          if (outcome === "accepted") {
-            setDone(true);
-          } else if (outcome === null) {
-            setHint("Use your browser menu → Install app (or Add to Home Screen).");
-          }
-        }}
-        className="btn-primary shrink-0 px-5 py-2 text-sm disabled:opacity-50"
-      >
-        Install app
-      </button>
+      {!ios && (
+        <button
+          type="button"
+          disabled={!ready}
+          onClick={async () => {
+            const outcome = await promptInstall();
+            if (outcome === "accepted") {
+              setDone(true);
+            } else if (outcome === null) {
+              setHint("Use your browser menu → Install app (or Add to Home Screen).");
+            }
+          }}
+          className="btn-primary shrink-0 px-5 py-2 text-sm disabled:opacity-50"
+        >
+          Install app
+        </button>
+      )}
       {hint && <span className="text-xs text-ink-muted">{hint}</span>}
     </span>
   );

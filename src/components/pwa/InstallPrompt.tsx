@@ -55,6 +55,22 @@ export async function promptInstall(): Promise<"accepted" | "dismissed" | null> 
 
 export { isStandalone, isIos };
 
+// Early capture, attached at bundle-eval time (module scope): Chrome fires
+// beforeinstallprompt ONCE per page load, possibly before React hydrates.
+// A listener added in useEffect can miss it forever, leaving every install
+// button dead. Capturing here closes that race; components subscribe below.
+if (typeof window !== "undefined") {
+  window.addEventListener("beforeinstallprompt", (e: Event) => {
+    e.preventDefault();
+    capturedPrompt = e as BeforeInstallPromptEvent;
+    promptListeners.forEach((fn) => fn(capturedPrompt));
+  });
+  window.addEventListener("appinstalled", () => {
+    capturedPrompt = null;
+    promptListeners.forEach((fn) => fn(null));
+  });
+}
+
 export function InstallPrompt() {
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
   const [iosHint, setIosHint] = useState(false);
@@ -73,25 +89,12 @@ export function InstallPrompt() {
       return;
     }
 
-    const onPrompt = (e: Event) => {
-      e.preventDefault();
-      capturedPrompt = e as BeforeInstallPromptEvent;
-      promptListeners.forEach((fn) => fn(capturedPrompt));
-      setDeferred(e as BeforeInstallPromptEvent);
-      setVisible(true);
-    };
-    const onInstalled = () => {
-      capturedPrompt = null;
-      promptListeners.forEach((fn) => fn(null));
-      setVisible(false);
-    };
-
-    window.addEventListener("beforeinstallprompt", onPrompt);
-    window.addEventListener("appinstalled", onInstalled);
-    return () => {
-      window.removeEventListener("beforeinstallprompt", onPrompt);
-      window.removeEventListener("appinstalled", onInstalled);
-    };
+    // Prompt itself is captured at module scope (see above) so slow
+    // hydration can never miss it — subscribe and reflect current state.
+    return onInstallPromptAvailable((p) => {
+      setDeferred(p);
+      setVisible(!!p);
+    });
   }, []);
 
   if (!visible) return null;
