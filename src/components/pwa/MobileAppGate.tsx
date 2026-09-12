@@ -14,6 +14,12 @@ import { isMobileWeb } from "@/components/pwa/InstallAppButton";
 // rebuild to flip anyway, and this keeps the gate visible in review.
 const MOBILE_WEB_GATE = true;
 
+// Crawlers see the app, never the wall: mobile-first indexing means the
+// bot's render IS the indexed content, and app-install interstitials are
+// explicitly penalized in mobile search.
+const BOT_RE =
+  /Googlebot|Bingbot|DuckDuckBot|YandexBot|Baiduspider|Applebot|facebookexternalhit|Twitterbot|LinkedInBot|WhatsApp/i;
+
 // Mobile-web hard gate: phones/tablets in a browser get the download
 // screen INSTEAD of the app — no browsing, no dismiss. Installed app
 // (standalone display mode) and every desktop browser pass straight
@@ -22,11 +28,18 @@ export function MobileAppGate() {
   const [gated, setGated] = useState(false);
   const [manualHint, setManualHint] = useState(false);
   const [diag, setDiag] = useState<string | null>(null);
+  const [installed, setInstalled] = useState(false);
   const mountedAt = useRef(0);
+  const panelRef = useRef<HTMLDivElement>(null);
   const ios = typeof window !== "undefined" && isIos();
 
   useEffect(() => {
     if (!MOBILE_WEB_GATE) return;
+    // Belt and suspenders: the render trusts isMobileWeb() to exclude
+    // standalone, but an installed user must NEVER see the wall even if
+    // that helper ever misfires.
+    if (isStandalone()) return;
+    if (BOT_RE.test(window.navigator.userAgent)) return;
     if (!isMobileWeb()) return;
     mountedAt.current = Date.now();
     setGated(true);
@@ -36,16 +49,26 @@ export function MobileAppGate() {
     };
   }, []);
 
+  // Focus the panel once it exists — aria-modal without focus still lets
+  // screen readers wander the background.
   useEffect(() => {
-    if (gated && !isStandalone()) {
-      document.body.style.overflow = "hidden";
-    }
+    if (gated) panelRef.current?.focus();
   }, [gated]);
 
   if (!gated) return null;
 
   const install = async () => {
-    const outcome = await promptInstall();
+    let outcome: "accepted" | "dismissed" | null;
+    try {
+      outcome = await promptInstall();
+    } catch {
+      outcome = null;
+    }
+    if (outcome === "accepted") {
+      // Success looks identical to nothing happening otherwise — say so.
+      setInstalled(true);
+      return;
+    }
     if (outcome !== null) return;
     // No captured prompt — diagnose WHY, on-device, in plain words.
     // (1) First-ever visit: no service-worker controller yet, and Chrome
@@ -68,10 +91,12 @@ export function MobileAppGate() {
 
   return (
     <div
+      ref={panelRef}
+      tabIndex={-1}
       role="dialog"
       aria-modal="true"
       aria-label="Download Snívať"
-      className="fixed inset-0 z-[100] flex flex-col items-center justify-center overflow-y-auto bg-bg px-6 py-10 text-center"
+      className="fixed inset-0 z-[100] flex flex-col items-center justify-center overflow-y-auto bg-bg px-6 py-10 text-center outline-none"
     >
       <Logo size={64} />
       <p className="mt-4 text-xs font-semibold uppercase tracking-[0.2em] text-accent">
@@ -107,7 +132,7 @@ export function MobileAppGate() {
       </ul>
 
       <div className="mt-6 w-full max-w-xs space-y-3">
-        {!ios && (
+        {!ios && !installed && (
           <button
             type="button"
             onClick={install}
@@ -115,6 +140,11 @@ export function MobileAppGate() {
           >
             Download app
           </button>
+        )}
+        {installed && (
+          <p role="status" className="rounded-2xl border border-accent/40 bg-accent-tint p-4 text-sm font-semibold text-accent">
+            Installed — open Snívať from your home screen.
+          </p>
         )}
         {/* Manual steps ALWAYS visible — the one-tap button depends on a
             browser event that doesn't always fire, so this path must work
@@ -128,7 +158,7 @@ export function MobileAppGate() {
             </p>
           ) : (
             <p>
-              Open Chrome&apos;s <span className="font-semibold text-ink">⋮ menu</span>,
+              Open your browser&apos;s <span className="font-semibold text-ink">menu</span>,
               tap <span className="font-semibold text-ink">Install app</span>{" "}
               (or Add to Home screen), then open it from there.
             </p>
