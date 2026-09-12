@@ -9,6 +9,8 @@ export type VideoEmbed = {
   id: string;
   /** The matched URL, trailing punctuation stripped — used for cite/fallback. */
   srcUrl: string;
+  /** YouTube Shorts (portrait) — the player renders tall, not letterboxed. */
+  vertical?: boolean;
 };
 
 const URL_RE = /https?:\/\/[^\s<>"')\]]+/gi;
@@ -31,6 +33,7 @@ export function extractVideoEmbed(content: string): VideoEmbed | null {
     // YouTube — watch?v=, youtu.be, shorts, live, embed
     if (host === "youtube.com" || host === "m.youtube.com" || host === "youtu.be") {
       let id = "";
+      let vertical = false;
       if (host === "youtu.be") {
         id = url.pathname.slice(1);
       } else if (url.pathname === "/watch") {
@@ -38,9 +41,10 @@ export function extractVideoEmbed(content: string): VideoEmbed | null {
       } else {
         const m = url.pathname.match(/^\/(?:shorts|embed|live)\/([A-Za-z0-9_-]+)/);
         if (m) id = m[1];
+        vertical = url.pathname.startsWith("/shorts/");
       }
       id = id.split("/")[0];
-      if (/^[A-Za-z0-9_-]{6,20}$/.test(id)) return { platform: "youtube", id, srcUrl };
+      if (/^[A-Za-z0-9_-]{6,20}$/.test(id)) return { platform: "youtube", id, srcUrl, vertical };
       continue;
     }
 

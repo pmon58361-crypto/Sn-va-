@@ -112,27 +112,44 @@ export function PostEmbeds({ content, postId }: { content: string; postId?: stri
   }
 
   if (embed.platform === "youtube") {
+    // Shorts are portrait — a 16/9 box pillarboxes them into black bars.
+    // Chromeless playback (no title strip, no progress bar popping):
+    // tap the facade to play, tap the video to stop (back to facade).
+    const tall = !!embed.vertical;
     if (playingId === embed.id) {
       return (
-        <div className="relative mt-3">
+        <div
+          className={`relative mt-3 ${tall ? "mx-auto" : ""}`}
+          style={tall ? { maxWidth: 360 } : undefined}
+        >
           <div
             className="overflow-hidden rounded-xl border border-line bg-black"
-            style={{ aspectRatio: "16 / 9" }}
+            style={{ aspectRatio: tall ? "9 / 16" : "16 / 9" }}
           >
             <iframe
-              src={`https://www.youtube-nocookie.com/embed/${embed.id}?rel=0&autoplay=1`}
+              src={`https://www.youtube-nocookie.com/embed/${embed.id}?rel=0&autoplay=1&controls=0&modestbranding=1`}
               title="YouTube video"
               className="h-full w-full"
-              allow="autoplay; fullscreen; picture-in-picture; encrypted-media; web-share"
+              allow="autoplay; fullscreen; encrypted-media; web-share"
               referrerPolicy="strict-origin-when-cross-origin"
               allowFullScreen
             />
           </div>
+          {/* Tap-to-stop: with controls off the iframe swallows taps, so
+              this overlay catches them back to the facade. The channel
+              link sits above it. */}
+          <button
+            type="button"
+            onClick={() => setPlayingId(null)}
+            aria-label="Stop video"
+            className="absolute inset-0 cursor-pointer"
+          />
           <a
             href={`https://www.youtube.com/watch?v=${embed.id}`}
             target="_blank"
             rel="nofollow noopener"
-            className="absolute right-2 top-2 rounded-md bg-black/65 px-2 py-0.5 text-[11px] font-semibold text-white transition hover:bg-black/85"
+            onClick={(e) => e.stopPropagation()}
+            className="absolute right-2 top-2 z-10 rounded-md bg-black/65 px-2 py-0.5 text-[11px] font-semibold text-white transition hover:bg-black/85"
           >
             YouTube ↗
           </a>
@@ -143,8 +160,12 @@ export function PostEmbeds({ content, postId }: { content: string; postId?: stri
       <button
         type="button"
         onClick={() => setPlayingId(embed.id)}
-        className="group relative mt-3 block w-full overflow-hidden rounded-xl border border-line bg-black"
-        style={{ aspectRatio: "16 / 9" }}
+        className={`group relative mt-3 block w-full overflow-hidden rounded-xl border border-line bg-black ${tall ? "mx-auto" : ""}`}
+        style={
+          tall
+            ? { aspectRatio: "9 / 16", maxWidth: 360 }
+            : { aspectRatio: "16 / 9" }
+        }
         aria-label="Play video on Snívať"
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}

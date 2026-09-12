@@ -6,6 +6,7 @@ import { hueGradient } from "@/lib/hue";
 import { Avatar } from "@/components/ui/Avatar";
 import { FollowButton } from "@/components/profile/FollowButton";
 import { ProfileHover } from "@/components/profile/ProfileHover";
+import { excludeTestAccounts } from "@/lib/discovery";
 
 export const metadata = { title: "People",
   description: "Meet everyone building on Snívať — find collaborators and follow their work." };
@@ -26,6 +27,7 @@ export default async function PeoplePage({
     where: {
       ...(meId ? { id: { not: meId } } : {}),
       deactivatedAt: null,
+      ...excludeTestAccounts,
       OR: [
         { settings: { publicProfile: true } },
         { settings: null },

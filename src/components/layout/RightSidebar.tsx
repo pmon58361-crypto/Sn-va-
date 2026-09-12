@@ -7,6 +7,7 @@ import { getSidebarAd } from "@/lib/ads";
 import { AdCard } from "@/components/ads/AdCard";
 import { getStreak, nextMilestone } from "@/lib/streak";
 import { FOUNDING_LIMIT } from "@/lib/founding";
+import { excludeTestAccounts } from "@/lib/discovery";
 
 // Right sidebar for the community page. Shows ONLY real data —
 // suggestions, trends, rankings and stats computed from the DB.
@@ -44,6 +45,7 @@ export async function RightSidebar({ viewerId }: { viewerId?: string | null }) {
       where: {
         ...(viewerId ? { id: { notIn: [viewerId] } } : {}),
         deactivatedAt: null,
+        ...excludeTestAccounts,
         OR: [{ settings: { publicProfile: true } }, { settings: null }],
       },
       orderBy: [{ followers: { _count: "desc" } }, { createdAt: "desc" }],
@@ -57,7 +59,7 @@ export async function RightSidebar({ viewerId }: { viewerId?: string | null }) {
       },
     }),
     prisma.user.findMany({
-      where: { deactivatedAt: null },
+      where: { deactivatedAt: null, ...excludeTestAccounts },
       orderBy: [{ followers: { _count: "desc" } }],
       take: 5,
       select: {
