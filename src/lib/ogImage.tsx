@@ -28,24 +28,6 @@ async function imageDataUri(url: string): Promise<string | null> {
   }
 }
 
-function Badge({ label }: { label: string }) {
-  return (
-    <div
-      style={{
-        background: "rgba(0,0,0,0.65)",
-        color: "#fff",
-        fontSize: 28,
-        fontWeight: 800,
-        letterSpacing: 2,
-        padding: "10px 22px",
-        borderRadius: 999,
-      }}
-    >
-      {label}
-    </div>
-  );
-}
-
 function BrandBar({ tagline }: { tagline: string }) {
   return (
     <div
@@ -70,6 +52,10 @@ function BrandBar({ tagline }: { tagline: string }) {
   );
 }
 
+// Satori (next/og) rule: any <div> with more than one child node needs
+// an explicit display:flex (or none), or render throws. Every multi-child
+// div below carries it — that's load-bearing, not style.
+
 export type OgPost = {
   title: string | null;
   content: string | null;
@@ -89,12 +75,12 @@ export async function renderPostOg(post: OgPost | null): Promise<ImageResponse> 
         <div
           style={{
             display: "flex",
+            flexDirection: "column",
             width: "100%",
             height: "100%",
             background: BG,
             alignItems: "center",
             justifyContent: "center",
-            flexDirection: "column",
           }}
         >
           <div style={{ display: "flex", alignItems: "baseline" }}>
@@ -121,18 +107,18 @@ export async function renderPostOg(post: OgPost | null): Promise<ImageResponse> 
       return new ImageResponse(
         (
           <div style={{ display: "flex", width: "100%", height: "100%", background: BG }}>
-            <div style={{ position: "relative", width: 600, height: 630 }}>
+            <div style={{ display: "flex", position: "relative", width: 600, height: 630 }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={before} width={600} height={630} style={{ objectFit: "cover" }} />
-              <div style={{ position: "absolute", top: 28, left: 28 }}>
-                <Badge label="RAW" />
+              <div style={{ display: "flex", position: "absolute", top: 28, left: 28, background: "rgba(0,0,0,0.65)", borderRadius: 999, padding: "10px 22px" }}>
+                <span style={{ color: "#fff", fontSize: 28, fontWeight: 800, letterSpacing: "2px" }}>RAW</span>
               </div>
             </div>
-            <div style={{ position: "relative", width: 600, height: 630 }}>
+            <div style={{ display: "flex", position: "relative", width: 600, height: 630 }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={after} width={600} height={630} style={{ objectFit: "cover" }} />
-              <div style={{ position: "absolute", top: 28, right: 28 }}>
-                <Badge label="FINAL" />
+              <div style={{ display: "flex", position: "absolute", top: 28, right: 28, background: "rgba(0,0,0,0.65)", borderRadius: 999, padding: "10px 22px" }}>
+                <span style={{ color: "#fff", fontSize: 28, fontWeight: 800, letterSpacing: "2px" }}>FINAL</span>
               </div>
             </div>
             <BrandBar tagline={tagline} />
@@ -149,7 +135,7 @@ export async function renderPostOg(post: OgPost | null): Promise<ImageResponse> 
     : null;
   return new ImageResponse(
     (
-      <div style={{ position: "relative", width: "100%", height: "100%", background: BG }}>
+      <div style={{ display: "flex", position: "relative", width: "100%", height: "100%", background: BG }}>
         {single ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={single} width={1200} height={630} style={{ objectFit: "cover" }} />
