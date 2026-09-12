@@ -4,9 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import { extractVideoEmbed } from "@/lib/embeds";
 
 /**
- * PostEmbeds — renders ONE embedded player for the first recognized video
- * link in post content (YouTube nocookie iframe, Instagram embed iframe,
- * X Tweet iframe, or TikTok blockquote + their script).
+ * PostEmbeds — renders ONE embed for the first recognized video link in
+ * post content. YouTube gets a thumbnail facade (~30KB, zero iframe
+ * weight): tap opens the YouTube watch page in a new tab — the goal is
+ * sending humans to the channel (discovery there, depth here), not
+ * farming embed renders. Instagram/X/TikTok keep their lazy iframes.
  *
  * House rules honored: never auto-play (no autoplay params anywhere), the
  * TikTok embed script is injected ONLY when the embed scrolls near the
@@ -79,19 +81,30 @@ export function PostEmbeds({ content }: { content: string }) {
 
   if (embed.platform === "youtube") {
     return (
-      <div
-        className="mt-3 overflow-hidden rounded-xl border border-line bg-black"
+      <a
+        href={`https://www.youtube.com/watch?v=${embed.id}`}
+        target="_blank"
+        rel="nofollow noopener"
+        className="group relative mt-3 block overflow-hidden rounded-xl border border-line bg-black"
         style={{ aspectRatio: "16 / 9" }}
+        aria-label="Watch on YouTube (opens in a new tab)"
       >
-        <iframe
-          src={`https://www.youtube-nocookie.com/embed/${embed.id}?rel=0`}
-          title="YouTube video"
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={`https://i.ytimg.com/vi/${embed.id}/hqdefault.jpg`}
+          alt="YouTube video thumbnail"
           loading="lazy"
-          className="h-full w-full"
-          allow="fullscreen; picture-in-picture; encrypted-media; web-share"
-          referrerPolicy="strict-origin-when-cross-origin"
+          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
         />
-      </div>
+        <span className="absolute inset-0 grid place-items-center bg-black/20 transition group-hover:bg-black/10">
+          <span className="grid h-14 w-14 place-items-center rounded-full bg-black/65 text-2xl text-white transition group-hover:scale-110 group-hover:bg-accent">
+            <span aria-hidden className="ml-1">▶</span>
+          </span>
+        </span>
+        <span className="absolute bottom-2 right-2 rounded-md bg-black/65 px-2 py-0.5 text-[11px] font-semibold text-white">
+          YouTube ↗
+        </span>
+      </a>
     );
   }
 
