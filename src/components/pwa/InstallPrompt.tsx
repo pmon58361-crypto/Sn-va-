@@ -44,9 +44,22 @@ export function onInstallPromptAvailable(fn: PromptListener): () => void {
 /** Fire the native install prompt; null when no deferred prompt exists. */
 export async function promptInstall(): Promise<"accepted" | "dismissed" | null> {
   if (!capturedPrompt) return null;
-  await capturedPrompt.prompt();
+  try {
+    await capturedPrompt.prompt();
+  } catch {
+    // A captured prompt is single-use (and Chrome can invalidate it on
+    // navigation): a second tap must fall through to manual steps, never
+    // throw into the click handler.
+    capturedPrompt = null;
+    promptListeners.forEach((fn) => fn(null));
+    return null;
+  }
   const { outcome } = await capturedPrompt.userChoice;
   if (outcome === "accepted") {
+    capturedPrompt = null;
+    promptListeners.forEach((fn) => fn(null));
+  } else {
+    // Dismissed prompts are spent — clear so the next tap goes manual.
     capturedPrompt = null;
     promptListeners.forEach((fn) => fn(null));
   }
