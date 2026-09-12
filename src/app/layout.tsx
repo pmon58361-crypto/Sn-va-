@@ -9,6 +9,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { InstallPrompt } from "@/components/pwa/InstallPrompt";
+import { MobileAppGate } from "@/components/pwa/MobileAppGate";
 import { ServiceWorkerRegister } from "@/components/pwa/ServiceWorkerRegister";
 
 const SITE_URL =
@@ -119,6 +120,7 @@ export default function RootLayout({
             </main>
           </div>
           <BottomNav />
+          <MobileAppGate />
           <InstallPrompt />
           <ServiceWorkerRegister />
           <PresenceBeat />

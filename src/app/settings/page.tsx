@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { Avatar } from "@/components/ui/Avatar";
 import { CalendarIcon } from "@/components/ui/Icons";
 import { SettingsForm } from "./SettingsForm";
+import { InstallAppButton } from "@/components/pwa/InstallAppButton";
 import { LegalLinks } from "@/components/legal/LegalLinks";
 import { getTopTags } from "@/lib/queries";
 import { parseTags } from "@/lib/utils";
@@ -112,6 +113,17 @@ export default async function SettingsPage() {
         interests={parseTags(s?.interests)}
         suggestions={topTags.map(([t]) => t)}
       />
+
+      {/* Get the app — install on this device. */}
+      <section className="card mt-8 flex flex-wrap items-center justify-between gap-3 px-5 py-4">
+        <div>
+          <h2 className="text-sm font-bold text-ink">Get the app</h2>
+          <p className="text-xs text-ink-muted">
+            Faster, full-screen, with notifications.
+          </p>
+        </div>
+        <InstallAppButton />
+      </section>
 
       {/* Admin-only — ad management moved here from the Moderation header.
           Hidden for every non-admin session. */}
