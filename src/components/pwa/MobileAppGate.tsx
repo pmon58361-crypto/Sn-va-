@@ -54,13 +54,37 @@ export function MobileAppGate() {
       className="fixed inset-0 z-[100] flex flex-col items-center justify-center overflow-y-auto bg-bg px-6 py-10 text-center"
     >
       <Logo size={64} />
-      <h1 className="mt-5 text-2xl font-extrabold tracking-tight text-ink">
+      <p className="mt-4 text-xs font-semibold uppercase tracking-[0.2em] text-accent">
+        Dream. Grow. Connect.
+      </p>
+      <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-ink">
         Get the Snívať app
       </h1>
       <p className="mt-2 max-w-xs text-sm leading-relaxed text-ink-muted">
         Snívať lives on your home screen now — faster, full-screen, with
         notifications. The mobile website has retired.
       </p>
+
+      <ul className="mt-5 w-full max-w-xs space-y-2 text-left">
+        {[
+          { t: "Community feed", d: "Builders posting proof, daily." },
+          { t: "Jobs without theater", d: "Hire or get hired, no résumés." },
+          { t: "DMs and groups", d: "Your people, one tap away." },
+        ].map((f) => (
+          <li
+            key={f.t}
+            className="flex items-center gap-3 rounded-2xl border border-line bg-surface px-4 py-3"
+          >
+            <span aria-hidden className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-accent-tint text-sm font-bold text-accent">
+              ✓
+            </span>
+            <span>
+              <span className="block text-sm font-semibold text-ink">{f.t}</span>
+              <span className="block text-xs text-ink-muted">{f.d}</span>
+            </span>
+          </li>
+        ))}
+      </ul>
 
       <div className="mt-6 w-full max-w-xs space-y-3">
         {!ios && (
