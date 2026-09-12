@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getMembership } from "@/lib/groups";
+import { notifyGroupMessage } from "@/lib/notify";
 
 export const dynamic = "force-dynamic";
 
@@ -94,5 +95,7 @@ export async function POST(
     },
     select: messageSelect,
   });
+  // Fan-out runs after the send resolves and never fails it.
+  notifyGroupMessage({ groupId, senderId: session.user.id, content }).catch(() => {});
   return NextResponse.json({ message });
 }

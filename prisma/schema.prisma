@@ -521,6 +521,9 @@ model Notification {
   actorId   String?
   type      String
   postId    String?
+  // Group-room scope for chat notifications (no relation: resolved in batch
+  // at render; keeps the Group model untouched).
+  groupId   String?
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
 

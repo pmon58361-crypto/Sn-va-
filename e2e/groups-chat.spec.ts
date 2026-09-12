@@ -47,6 +47,52 @@ test("group members chat, outsiders are gated", async ({ browser }) => {
     await member.page.goto(`/groups/${group.slug}?view=chat`);
     await expect(member.page.getByText(body)).toBeVisible({ timeout: 60_000 });
 
+    // 3. Mentions + room activity fan out as notification rows (asserted in
+    //    the DB: deterministic, no inbox-UI coupling). Clear step-1 rows
+    //    first so each assertion observes exactly one send.
+    await prisma.notification.deleteMany({ where: { groupId: group.id } });
+    const handleOf = (name: string | null) =>
+      (name || "").trim().toLowerCase().replace(/[^a-z0-9_]+/g, "").slice(0, 24) || "member";
+    const mentionBody = `${E2E_PREFIX} ping @${handleOf(demo2.name)} ${stamp}`;
+    await owner.page.getByLabel("Message the room").fill(mentionBody);
+    await owner.page.keyboard.press("Enter");
+    await expect
+      .poll(
+        async () =>
+          prisma.notification.findFirst({
+            where: { userId: demo2.id, type: "group_mention", groupId: group.id },
+          }),
+        { timeout: 60_000 }
+      )
+      .not.toBeNull();
+    // Mentioned members get the mention row INSTEAD of a generic room row.
+    await expect(
+      prisma.notification.findFirst({
+        where: { userId: demo2.id, type: "group_message", groupId: group.id },
+      })
+    ).resolves.toBeNull();
+    // Plain room chatter notifies unmentioned members; never the sender.
+    const plainBody = `${E2E_PREFIX} room talk ${stamp}`;
+    await owner.page.getByLabel("Message the room").fill(plainBody);
+    await owner.page.keyboard.press("Enter");
+    await expect(
+      owner.page.getByText(plainBody)
+    ).toBeVisible({ timeout: 60_000 });
+    await expect
+      .poll(
+        async () =>
+          prisma.notification.findFirst({
+            where: { userId: demo2.id, type: "group_message", groupId: group.id },
+          }),
+        { timeout: 60_000 }
+      )
+      .not.toBeNull();
+    await expect(
+      prisma.notification.findFirst({
+        where: { userId: demo.id, groupId: group.id },
+      })
+    ).resolves.toBeNull();
+
     // 3. Outsider: API 404s, page shows the gate.
     const { user, email, password } = await createThrowawayAccount();
     void user;

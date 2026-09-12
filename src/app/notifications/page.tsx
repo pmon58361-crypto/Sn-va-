@@ -34,6 +34,10 @@ function textFor(type: string) {
       return "rejected your application";
     case "message":
       return "sent you a message";
+    case "group_mention":
+      return "mentioned you in";
+    case "group_message":
+      return "posted in";
     default:
       return type;
   }
@@ -62,6 +66,18 @@ export default async function NotificationsPage() {
     });
   }
 
+  // Group-room rows link into the room (batch-resolved slugs; groups the
+  // viewer has left still link to the directory rather than 404ing).
+  const groupIds = [...new Set(items.map((n) => n.groupId).filter((g): g is string => !!g))];
+  const groupRows =
+    groupIds.length > 0
+      ? await prisma.group.findMany({
+          where: { id: { in: groupIds } },
+          select: { id: true, name: true, slug: true },
+        })
+      : [];
+  const groupById = new Map(groupRows.map((g) => [g.id, g]));
+
   return (
     <div className="mx-auto max-w-2xl px-4 py-8">
       <h1 className="mb-6 text-2xl font-extrabold">Notifications</h1>
@@ -77,6 +93,7 @@ export default async function NotificationsPage() {
       ) : (
         <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface">
           {items.map((n) => {
+            const group = n.groupId ? groupById.get(n.groupId) : undefined;
             const href =
               n.type === "follow"
                 ? n.actorId
@@ -86,6 +103,10 @@ export default async function NotificationsPage() {
                 ? n.actorId
                   ? `/dm/${n.actorId}`
                   : "/dm"
+                : n.type === "group_mention" || n.type === "group_message"
+                ? group
+                  ? `/groups/${group.slug}?view=chat`
+                  : "/groups"
                 : n.post
                 ? postHref(n.post.category, n.post.id)
                 : "/notifications";
@@ -106,6 +127,9 @@ export default async function NotificationsPage() {
                       <span className="text-ink-muted">{textFor(n.type)}</span>
                       {n.post && (
                         <span className="text-ink-muted"> — {n.post.title}</span>
+                      )}
+                      {group && (
+                        <span className="text-ink-muted"> {group.name}</span>
                       )}
                     </p>
                     <p className="mt-0.5 text-xs text-ink-faint">
