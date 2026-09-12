@@ -218,7 +218,7 @@ export default async function JobsPage({
         </button>
       </form>
 
-      <FilterBar base="/jobs" current={current} groups={filterGroups} dense />
+      <FilterBar base="/jobs" current={current} groups={filterGroups} dense resultCount={posts.length} />
 
       {posts.length === 0 ? (
         <EmptyState

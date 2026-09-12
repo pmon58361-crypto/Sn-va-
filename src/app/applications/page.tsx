@@ -105,14 +105,14 @@ export default async function ApplicationsPage({
           name="q"
           defaultValue={q || ""}
           placeholder="Search jobs by title, tag, or keyword…"
-          className="input"
+          className="input min-w-0 flex-1"
         />
         <button type="submit" className="btn-outline shrink-0">
           Search
         </button>
       </form>
 
-      <FilterBar base="/applications" current={current} groups={filterGroups} />
+      <FilterBar base="/applications" current={current} groups={filterGroups} resultCount={posts.length} />
 
       {posts.length === 0 ? (
         <EmptyState
