@@ -25,7 +25,6 @@ export async function generateMetadata({
   return buildPostMetadata({
     title: post.title,
     content: post.content,
-    imageUrl: post.images[0]?.url,
     hidden: post.hidden,
   }, `/applications/${id}`);
 }

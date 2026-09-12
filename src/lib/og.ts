@@ -17,13 +17,14 @@ export function absoluteUrl(url?: string | null): string | undefined {
 const FALLBACK_IMAGE = { url: "/og-image.png", width: 1200, height: 630 };
 
 /** OG metadata for a post detail page. Hidden posts get nothing.
-    `path` is the page route (e.g. "/community/abc123") so each post
-    canonicalizes to itself instead of the homepage. */
+ *  `path` is the page route (e.g. "/community/abc123") so each post
+ *  canonicalizes to itself instead of the homepage. The share image is
+ *  the dynamic per-post card (`…/opengraph-image`, cached ≥1h) — every
+ *  share unfurls as a visual ad, before/after posts as split RAW/FINAL. */
 export function buildPostMetadata(
   post: {
     title?: string | null;
     content?: string | null;
-    imageUrl?: string | null;
     hidden?: boolean | null;
   },
   path?: string
@@ -34,8 +35,11 @@ export function buildPostMetadata(
     (post.content ?? "").replace(/\s+/g, " ").trim().slice(0, 160) ||
     "Shared on Snívať";
 
-  const image = absoluteUrl(post.imageUrl);
-  const images = image ? [{ url: image }] : [FALLBACK_IMAGE];
+  // Dynamic card when the route exists, static brand card otherwise
+  // (path always passed by the three detail pages today).
+  const images = path
+    ? [{ url: `${BASE}${path}/opengraph-image`, width: 1200, height: 630 }]
+    : [FALLBACK_IMAGE];
 
   return {
     // Root layout appends "· Snívať" via the title template — don't repeat it here.
