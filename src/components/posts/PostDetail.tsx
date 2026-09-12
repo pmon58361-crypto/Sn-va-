@@ -160,7 +160,7 @@ export function PostDetail({
           )}
 
           {/* Video link embed — first recognized YouTube/TikTok/Reels URL */}
-          <PostEmbeds content={post.content} />
+          <PostEmbeds content={post.content} postId={post.id} />
 
           {tags.length > 0 && (
             <div className="mt-5 flex flex-wrap gap-1.5">

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { extractVideoEmbed } from "@/lib/embeds";
+import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 
@@ -47,6 +48,21 @@ export async function GET(req: NextRequest) {
       .slice(0, 560);
     if (!text) {
       return NextResponse.json({ error: "Unavailable" }, { status: 502 });
+    }
+    // Lazy search-index write: persist the words onto the post (first
+    // fetch wins, only when empty) so search reaches phrases that live
+    // behind the link. Fire-and-forget — preview must never wait on it.
+    const postId = req.nextUrl.searchParams.get("postId");
+    if (postId) {
+      prisma.post
+        .updateMany({
+          where: { id: postId, linkPreviewText: null },
+          data: {
+            linkPreviewAuthor: (data.author_name || "Post on X").slice(0, 120),
+            linkPreviewText: text,
+          },
+        })
+        .catch(() => {});
     }
     return NextResponse.json({
       author: data.author_name || "Post on X",

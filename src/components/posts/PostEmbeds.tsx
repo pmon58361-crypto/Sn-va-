@@ -20,7 +20,7 @@ import { extractVideoEmbed, extractFacebookLink } from "@/lib/embeds";
  * safe to render anywhere — nested <a> tags cause hydration errors.
  */
 
-export function PostEmbeds({ content }: { content: string }) {
+export function PostEmbeds({ content, postId }: { content: string; postId?: string }) {
   const embed = extractVideoEmbed(content);
   // Facebook has no player and no preview API — a clean outbound card so
   // FB links never render as bare URLs. Checked only when no video embed
@@ -185,7 +185,7 @@ export function PostEmbeds({ content }: { content: string }) {
   }
 
   if (embed.platform === "x") {
-    return <XCard srcUrl={embed.srcUrl} />;
+    return <XCard srcUrl={embed.srcUrl} postId={postId} />;
   }
 
   return (
@@ -210,7 +210,7 @@ type XPreview = { author: string; authorUrl: string; text: string; url: string }
 // X card with server-fetched words: the tweet reads inline (author +
 // text), tap goes to X for replies/video. A failed preview degrades to
 // the plain link card — never a blank hole.
-function XCard({ srcUrl }: { srcUrl: string }) {
+function XCard({ srcUrl, postId }: { srcUrl: string; postId?: string }) {
   const [preview, setPreview] = useState<XPreview | null>(null);
 
   useEffect(() => {
@@ -219,7 +219,11 @@ function XCard({ srcUrl }: { srcUrl: string }) {
       ([entry]) => {
         if (!entry?.isIntersecting || cancelled) return;
         io.disconnect();
-        fetch(`/api/embeds/oembed?url=${encodeURIComponent(srcUrl)}`)
+        const params = new URLSearchParams({ url: srcUrl });
+        // Tells the preview route which post to file the words under
+        // (lazy search-index write, first fetch wins).
+        if (postId) params.set("postId", postId);
+        fetch(`/api/embeds/oembed?${params.toString()}`)
           .then((r) => (r.ok ? r.json() : null))
           .then((d) => {
             if (!cancelled && d && d.text) setPreview(d as XPreview);
@@ -234,7 +238,7 @@ function XCard({ srcUrl }: { srcUrl: string }) {
       cancelled = true;
       io.disconnect();
     };
-  }, [srcUrl]);
+  }, [srcUrl, postId]);
 
   return (
     <div

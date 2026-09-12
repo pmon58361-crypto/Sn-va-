@@ -193,6 +193,10 @@ export async function getPosts({
       { title: { contains: search, mode: "insensitive" } },
       { content: { contains: search, mode: "insensitive" } },
       { tags: { contains: search, mode: "insensitive" } },
+      // Link-preview words: phrases living behind an embedded URL
+      // (persisted lazily on first preview fetch).
+      { linkPreviewText: { contains: search, mode: "insensitive" } },
+      { linkPreviewAuthor: { contains: search, mode: "insensitive" } },
     ];
   }
 

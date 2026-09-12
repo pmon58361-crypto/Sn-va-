@@ -176,7 +176,7 @@ export async function PostCard({
       {/* Video link embed — interactive (iframes + third-party scripts), so
           it lives OUTSIDE the card Link like the poll and image grid.
           Nested anchors caused hydration errors and killed viewer state. */}
-      <PostEmbeds content={post.content} />
+      <PostEmbeds content={post.content} postId={post.id} />
 
       {/* Row 3: Image grid — Facebook-style. Separate from the link so
           individual tiles can navigate independently. Theater gets the

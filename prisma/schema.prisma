@@ -231,6 +231,11 @@ model Post {
   // Post kind: "standard" (default, all existing rows) or "before_after"
   // (exactly 2 images, order 0 = before, 1 = after). Validated in savePost.
   kind      String      @default("standard")
+  // Link-preview cache: words fetched from embedded links (X oEmbed)
+  // so search reaches phrases that live behind a URL, not in the post
+  // body. Written lazily on first preview fetch, only when empty.
+  linkPreviewAuthor String?
+  linkPreviewText   String?
   authorId  String
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
