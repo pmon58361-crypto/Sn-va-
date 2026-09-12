@@ -84,6 +84,25 @@ export function MobileAppGate() {
       return;
     }
     if (outcome !== null) return;
+    // No captured prompt — but before blaming Chrome, ask it outright
+    // whether the app is already installed. Browsing-while-installed is the
+    // classic silent killer: no event ever fires, the button looks dead,
+    // and the fix is "open it from the home screen", not code.
+    try {
+      const getInstalled = (
+        navigator as unknown as {
+          getInstalledRelatedApps?: () => Promise<{ platform: string }[]>;
+        }
+      ).getInstalledRelatedApps;
+      if (typeof getInstalled === "function") {
+        const related = await getInstalled.call(navigator);
+        if (Array.isArray(related) && related.length > 0) {
+          setDiag("Already on your phone — open Snívať from your home screen.");
+          setManualHint(true);
+          return;
+        }
+      }
+    } catch {}
     // No captured prompt — diagnose WHY, on-device, in plain words.
     // (1) First-ever visit: no service-worker controller yet, and Chrome
     // won't offer install until one controls the page — reload fixes it.
