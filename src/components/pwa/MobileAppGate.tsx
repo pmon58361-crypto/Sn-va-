@@ -15,7 +15,9 @@ import { isMobileWeb } from "@/components/pwa/InstallAppButton";
 // Kill-switch: set false to restore the mobile website instantly, no other
 // changes needed. Deliberately a constant, not env — env would need a
 // rebuild to flip anyway, and this keeps the gate visible in review.
-const MOBILE_WEB_GATE = true;
+// LIFTED 2026-09-12 (owner call): install hiccup was locking testers out
+// entirely. Re-harden once install is proven on real devices.
+const MOBILE_WEB_GATE = false;
 
 // Crawlers see the app, never the wall: mobile-first indexing means the
 // bot's render IS the indexed content, and app-install interstitials are
