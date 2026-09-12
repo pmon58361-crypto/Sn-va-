@@ -320,6 +320,9 @@ export function SignInForm({
                 type="password"
                 required
                 autoComplete="off"
+                autoCapitalize="off"
+                autoCorrect="off"
+                spellCheck={false}
                 placeholder="access code"
                 className="input text-center"
               />

@@ -94,7 +94,9 @@ async function verifyCredentials(
 
   // --- Access-code paths: each valid code signs into its demo account.
   // Codes live only server-side, so they never ship to the client.
-  const code = (credentials?.code as string | undefined)?.trim();
+  // Lowercased before compare: phone keyboards capitalize the first
+  // letter, and a code is not a password — case carries no security.
+  const code = (credentials?.code as string | undefined)?.trim().toLowerCase();
   if (code) {
     const demoPaths = [
       {
