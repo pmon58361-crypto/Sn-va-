@@ -42,9 +42,9 @@ function clearHref(base: string, current: CurrentParams, groups: FilterGroup[]) 
 const chipBase =
   "rounded-full border px-4 py-2 text-xs font-semibold whitespace-nowrap touch-manipulation transition-colors sm:py-1.5";
 const chipIdle =
-  "border-line bg-surface text-ink-muted hover:border-line-strong hover:text-ink";
+  "border-line bg-soft text-ink-muted hover:border-line-strong hover:text-ink";
 const chipActive =
-  "border-accent/50 bg-accent-tint text-accent shadow-sm";
+  "border-accent bg-accent text-white shadow-sm hover:bg-accent-hover";
 const groupLabel =
   "shrink-0 text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-faint";
 
