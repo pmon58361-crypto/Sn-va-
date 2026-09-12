@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { Logo } from "@/components/ui/Logo";
 import {
-  onInstallPromptAvailable,
   promptInstall,
   isIos,
   isStandalone,
@@ -21,7 +20,6 @@ const MOBILE_WEB_GATE = true;
 // through. Owner's explicit call: mobile acquisition goes through install.
 export function MobileAppGate() {
   const [gated, setGated] = useState(false);
-  const [canPrompt, setCanPrompt] = useState(false);
   const [manualHint, setManualHint] = useState(false);
   const ios = typeof window !== "undefined" && isIos();
 
@@ -30,10 +28,8 @@ export function MobileAppGate() {
     if (!isMobileWeb()) return;
     setGated(true);
     document.body.style.overflow = "hidden";
-    const off = onInstallPromptAvailable(() => setCanPrompt(true));
     return () => {
       document.body.style.overflow = "";
-      off();
     };
   }, []);
 
@@ -66,31 +62,39 @@ export function MobileAppGate() {
         notifications. The mobile website has retired.
       </p>
 
-      <div className="mt-6 w-full max-w-xs">
-        {ios ? (
-          <p className="rounded-2xl border border-line bg-surface p-4 text-sm leading-relaxed text-ink-soft">
-            Tap <span className="font-semibold text-ink">Share</span>, then{" "}
-            <span className="font-semibold text-ink">Add to Home Screen</span>,
-            then open Snívať from your home screen.
-          </p>
-        ) : (
-          <>
-            <button
-              type="button"
-              onClick={install}
-              className="btn-primary w-full py-3 text-base"
-            >
-              Download app
-            </button>
-            {(manualHint || !canPrompt) && (
-              <p className="mt-3 text-xs leading-relaxed text-ink-muted">
-                {canPrompt
-                  ? "If nothing pops up, use your browser menu → Install app."
-                  : "Use your browser menu → Install app (or Add to Home Screen), then open it from there."}
-              </p>
-            )}
-          </>
+      <div className="mt-6 w-full max-w-xs space-y-3">
+        {!ios && (
+          <button
+            type="button"
+            onClick={install}
+            className="btn-primary w-full py-3 text-base"
+          >
+            Download app
+          </button>
         )}
+        {/* Manual steps ALWAYS visible — the one-tap button depends on a
+            browser event that doesn't always fire, so this path must work
+            with zero JavaScript luck involved. */}
+        <div className="rounded-2xl border border-line bg-surface p-4 text-left text-sm leading-relaxed text-ink-soft">
+          {ios ? (
+            <p>
+              Tap <span className="font-semibold text-ink">Share</span>, then{" "}
+              <span className="font-semibold text-ink">Add to Home Screen</span>,
+              then open Snívať from your home screen.
+            </p>
+          ) : (
+            <p>
+              Open Chrome&apos;s <span className="font-semibold text-ink">⋮ menu</span>,
+              tap <span className="font-semibold text-ink">Install app</span>{" "}
+              (or Add to Home screen), then open it from there.
+            </p>
+          )}
+          {manualHint && !ios && (
+            <p className="mt-2 text-xs text-ink-muted">
+              No Install entry? Update Chrome, then reload this page once.
+            </p>
+          )}
+        </div>
       </div>
 
       <p className="mt-8 text-[11px] text-ink-faint">
