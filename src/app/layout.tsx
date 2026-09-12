@@ -90,6 +90,15 @@ export default function RootLayout({
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: noFlashScript }} />
+        {/* Earliest possible install-prompt capture: Chrome fires
+            beforeinstallprompt ONCE per load, possibly before the bundle even
+            evaluates. This inline head script (runs at parse time) stores it
+            on window.__bip; promptInstall() consumes it first. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `window.__bip=null;window.addEventListener("beforeinstallprompt",function(e){e.preventDefault();window.__bip=e;});`,
+          }}
+        />
       </head>
       <body className="min-h-screen">
         <ThemeProvider>

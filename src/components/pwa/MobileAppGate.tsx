@@ -28,6 +28,9 @@ export function MobileAppGate() {
   const [gated, setGated] = useState(false);
   const [manualHint, setManualHint] = useState(false);
   const [diag, setDiag] = useState<string | null>(null);
+  // TEMP debug readout (remove after the device verdict): proves on-device
+  // whether the offer, the worker, and standalone state are what we think.
+  const [debug, setDebug] = useState<string | null>(null);
   const [installed, setInstalled] = useState(false);
   const mountedAt = useRef(0);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -64,6 +67,17 @@ export function MobileAppGate() {
     } catch {
       outcome = null;
     }
+    // TEMP debug readout (remove after the device verdict): proves on-device
+    // whether the offer, the worker, and standalone state are what we think.
+    try {
+      const w = window as unknown as { __bip?: unknown };
+      const standalone =
+        window.matchMedia("(display-mode: standalone)").matches ||
+        window.matchMedia("(display-mode: fullscreen)").matches;
+      setDebug(
+        `bip:${w.__bip ? "yes" : "no"} sw:${navigator.serviceWorker?.controller ? "yes" : "no"} standalone:${standalone ? "yes" : "no"}`
+      );
+    } catch {}
     if (outcome === "accepted") {
       // Success looks identical to nothing happening otherwise — say so.
       setInstalled(true);
@@ -172,6 +186,10 @@ export function MobileAppGate() {
             <p role="status" className="mt-2 rounded-xl border border-line bg-surface px-3 py-2 text-xs font-medium text-ink-soft">
               {diag}
             </p>
+          )}
+          {/* TEMP debug readout (remove after the device verdict). */}
+          {debug && !ios && (
+            <p className="mt-2 font-mono text-[11px] text-ink-faint">{debug}</p>
           )}
         </div>
       </div>

@@ -43,26 +43,33 @@ export function onInstallPromptAvailable(fn: PromptListener): () => void {
 
 /** Fire the native install prompt; null when no deferred prompt exists. */
 export async function promptInstall(): Promise<"accepted" | "dismissed" | null> {
-  if (!capturedPrompt) return null;
+  // Inline head capture first (earliest), module listener second.
+  const inline =
+    typeof window !== "undefined"
+      ? ((window as unknown as { __bip?: BeforeInstallPromptEvent | null }).__bip ?? null)
+      : null;
+  const source = inline ?? capturedPrompt;
+  if (!source) return null;
+  const clearInline = () => {
+    if (typeof window !== "undefined") {
+      (window as unknown as { __bip?: BeforeInstallPromptEvent | null }).__bip = null;
+    }
+    capturedPrompt = null;
+    promptListeners.forEach((fn) => fn(null));
+  };
   try {
-    await capturedPrompt.prompt();
+    await source.prompt();
   } catch {
     // A captured prompt is single-use (and Chrome can invalidate it on
     // navigation): a second tap must fall through to manual steps, never
     // throw into the click handler.
-    capturedPrompt = null;
-    promptListeners.forEach((fn) => fn(null));
+    clearInline();
     return null;
   }
-  const { outcome } = await capturedPrompt.userChoice;
-  if (outcome === "accepted") {
-    capturedPrompt = null;
-    promptListeners.forEach((fn) => fn(null));
-  } else {
-    // Dismissed prompts are spent — clear so the next tap goes manual.
-    capturedPrompt = null;
-    promptListeners.forEach((fn) => fn(null));
-  }
+  const { outcome } = await source.userChoice;
+  // Resolved prompts are spent either way — clear so the next tap goes
+  // manual instead of throwing on a dead event.
+  clearInline();
   return outcome;
 }
 
