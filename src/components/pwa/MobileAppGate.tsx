@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Logo } from "@/components/ui/Logo";
 import {
   promptInstall,
@@ -21,11 +21,14 @@ const MOBILE_WEB_GATE = true;
 export function MobileAppGate() {
   const [gated, setGated] = useState(false);
   const [manualHint, setManualHint] = useState(false);
+  const [diag, setDiag] = useState<string | null>(null);
+  const mountedAt = useRef(0);
   const ios = typeof window !== "undefined" && isIos();
 
   useEffect(() => {
     if (!MOBILE_WEB_GATE) return;
     if (!isMobileWeb()) return;
+    mountedAt.current = Date.now();
     setGated(true);
     document.body.style.overflow = "hidden";
     return () => {
@@ -43,7 +46,24 @@ export function MobileAppGate() {
 
   const install = async () => {
     const outcome = await promptInstall();
-    if (outcome === null) setManualHint(true);
+    if (outcome !== null) return;
+    // No captured prompt — diagnose WHY, on-device, in plain words.
+    // (1) First-ever visit: no service-worker controller yet, and Chrome
+    // won't offer install until one controls the page — reload fixes it.
+    // (2) Slow device: the offer can arrive seconds after paint.
+    // (3) Otherwise Chrome refused — the ⋮ menu path below still applies.
+    let controlled = true;
+    try {
+      controlled = !!navigator.serviceWorker?.controller;
+    } catch {}
+    if (!controlled) {
+      setDiag("First load — reload this page once, then tap Download again.");
+    } else if (Date.now() - mountedAt.current < 15000) {
+      setDiag("Still preparing — wait a few seconds and tap again.");
+    } else {
+      setDiag("Chrome didn't offer install — use the ⋮ menu steps below.");
+    }
+    setManualHint(true);
   };
 
   return (
@@ -116,6 +136,11 @@ export function MobileAppGate() {
           {manualHint && !ios && (
             <p className="mt-2 text-xs text-ink-muted">
               No Install entry? Update Chrome, then reload this page once.
+            </p>
+          )}
+          {diag && !ios && (
+            <p role="status" className="mt-2 rounded-xl border border-line bg-surface px-3 py-2 text-xs font-medium text-ink-soft">
+              {diag}
             </p>
           )}
         </div>
