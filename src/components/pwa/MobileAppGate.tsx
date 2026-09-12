@@ -8,6 +8,7 @@ import {
   isStandalone,
   isInAppBrowser,
   openInChromeUrl,
+  wasInstalledHere,
 } from "@/components/pwa/InstallPrompt";
 import { isMobileWeb } from "@/components/pwa/InstallAppButton";
 
@@ -93,6 +94,16 @@ export function MobileAppGate() {
       return;
     }
     if (outcome !== null) return;
+    // Installed from this browser before? The prompt never re-fires for
+    // an installed app — the button isn't broken, the app is already on
+    // the home screen. Say exactly that.
+    try {
+      if (wasInstalledHere()) {
+        setDiag("Already installed from here — open Snívať from your home screen.");
+        setManualHint(true);
+        return;
+      }
+    } catch {}
     // No captured prompt — but before blaming Chrome, ask it outright
     // whether the app is already installed. Browsing-while-installed is the
     // classic silent killer: no event ever fires, the button looks dead,

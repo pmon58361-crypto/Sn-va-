@@ -8,6 +8,7 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 const DISMISS_KEY = "xpwa-dismiss";
+const INSTALLED_KEY = "xpwa-installed";
 
 function isStandalone() {
   return (
@@ -75,6 +76,20 @@ export async function promptInstall(): Promise<"accepted" | "dismissed" | null> 
 
 export { isStandalone, isIos };
 
+/** True when this browser previously completed an install (appinstalled
+ *  fired here). The native prompt never re-fires for an installed app,
+ *  so callers should route to "open from home screen" copy. */
+export function wasInstalledHere(): boolean {
+  try {
+    return (
+      typeof window !== "undefined" &&
+      window.localStorage?.getItem(INSTALLED_KEY) === "1"
+    );
+  } catch {
+    return false;
+  }
+}
+
 /** In-app browsers (WhatsApp, Instagram, Facebook, TikTok, …) render pages
  *  in a crippled WebView: no install prompt can EVER fire there, and most
  *  have no "install" menu either. The only fix is leaving for a real
@@ -126,6 +141,13 @@ if (typeof window !== "undefined") {
   window.addEventListener("appinstalled", () => {
     capturedPrompt = null;
     promptListeners.forEach((fn) => fn(null));
+    // Remember in THIS browser that the install completed: if the user
+    // later opens the site in the browser again, no prompt will ever fire
+    // (already installed) — surfaces can say "open from home screen"
+    // instead of showing a dead button.
+    try {
+      localStorage.setItem(INSTALLED_KEY, "1");
+    } catch {}
   });
 }
 
