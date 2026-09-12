@@ -78,14 +78,43 @@ export function extractVideoEmbed(content: string): VideoEmbed | null {
 export function stripEmbedUrl(content: string): string {
   if (!content) return content;
   const embed = extractVideoEmbed(content);
-  if (!embed) return content;
-  const idx = content.indexOf(embed.srcUrl);
+  const fb = !embed ? extractFacebookLink(content) : null;
+  const srcUrl = embed?.srcUrl ?? fb?.srcUrl;
+  if (!srcUrl) return content;
+  const idx = content.indexOf(srcUrl);
   if (idx === -1) return content;
-  const stripped = (content.slice(0, idx) + content.slice(idx + embed.srcUrl.length))
+  const stripped = (content.slice(0, idx) + content.slice(idx + srcUrl.length))
     .replace(/[ \t]+/g, " ")
     .split("\n")
     .map((l) => l.trimEnd())
     .join("\n")
     .trim();
   return stripped;
+}
+
+/**
+ * Facebook link detection — card-only, deliberately NOT a player.
+ * Facebook's embed iframe is tracker-laden (same death as X's was), and
+ * Facebook offers no public preview API (oEmbed needs an app token), so
+ * there are no words to fetch. The card keeps the feed clean; the tap
+ * goes to Facebook. Handles posts, reels, watch, and /share/ links.
+ */
+export function extractFacebookLink(content: string): { srcUrl: string } | null {
+  if (!content) return null;
+  const urls = content.match(URL_RE);
+  if (!urls) return null;
+  for (const raw of urls) {
+    const srcUrl = raw.replace(/[.,;:!?)\]]+$/, "");
+    let url: URL;
+    try {
+      url = new URL(srcUrl);
+    } catch {
+      continue;
+    }
+    const host = url.hostname.replace(/^www\.|^m\.|^web\./, "").toLowerCase();
+    if (host === "facebook.com" || host === "fb.watch" || host === "fb.com") {
+      return { srcUrl };
+    }
+  }
+  return null;
 }

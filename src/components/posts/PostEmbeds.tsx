@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { extractVideoEmbed } from "@/lib/embeds";
+import { extractVideoEmbed, extractFacebookLink } from "@/lib/embeds";
 
 /**
  * PostEmbeds — renders ONE embed for the first recognized video link in
@@ -22,6 +22,10 @@ import { extractVideoEmbed } from "@/lib/embeds";
 
 export function PostEmbeds({ content }: { content: string }) {
   const embed = extractVideoEmbed(content);
+  // Facebook has no player and no preview API — a clean outbound card so
+  // FB links never render as bare URLs. Checked only when no video embed
+  // matched (one embed per post, first signal wins).
+  const fb = !embed ? extractFacebookLink(content) : null;
   const bqRef = useRef<HTMLQuoteElement | null>(null);
   // YouTube facade state: thumbnail until tap, inline player after.
   const [playingId, setPlayingId] = useState<string | null>(null);
@@ -76,7 +80,36 @@ export function PostEmbeds({ content }: { content: string }) {
     };
   }, []);
 
-  if (!embed) return null;
+  if (!embed) {
+    if (!fb) return null;
+    return (
+      <a
+        href={fb.srcUrl}
+        rel="nofollow noopener"
+        target="_blank"
+        className="mx-auto mt-3 flex w-full items-center gap-3 rounded-xl border border-line bg-surface px-4 py-3.5 transition hover:border-accent"
+        style={{ maxWidth: 550 }}
+      >
+        <span
+          aria-hidden
+          className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#1877f2] text-lg font-black text-white"
+        >
+          f
+        </span>
+        <span className="min-w-0 flex-1 text-left">
+          <span className="block text-sm font-semibold text-ink">
+            View post on Facebook
+          </span>
+          <span className="block truncate text-xs text-ink-muted">
+            {fb.srcUrl.replace(/^https?:\/\/(www\.|m\.|web\.)?/, "")}
+          </span>
+        </span>
+        <span aria-hidden className="shrink-0 text-ink-faint">
+          ↗
+        </span>
+      </a>
+    );
+  }
 
   if (embed.platform === "youtube") {
     if (playingId === embed.id) {
