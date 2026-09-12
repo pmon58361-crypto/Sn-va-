@@ -6,6 +6,8 @@ import {
   promptInstall,
   isIos,
   isStandalone,
+  isInAppBrowser,
+  openInChromeUrl,
 } from "@/components/pwa/InstallPrompt";
 import { isMobileWeb } from "@/components/pwa/InstallAppButton";
 
@@ -32,6 +34,7 @@ export function MobileAppGate() {
   // whether the offer, the worker, and standalone state are what we think.
   const [debug, setDebug] = useState<string | null>(null);
   const [installed, setInstalled] = useState(false);
+  const [inApp, setInApp] = useState(false);
   const mountedAt = useRef(0);
   const panelRef = useRef<HTMLDivElement>(null);
   const ios = typeof window !== "undefined" && isIos();
@@ -45,6 +48,12 @@ export function MobileAppGate() {
     if (BOT_RE.test(window.navigator.userAgent)) return;
     if (!isMobileWeb()) return;
     mountedAt.current = Date.now();
+    // In-app WebViews can never install (no prompt event exists there) —
+    // flag it now so the wall offers the Chrome escape hatch instead of
+    // a dead Download button.
+    try {
+      setInApp(isInAppBrowser());
+    } catch {}
     setGated(true);
     document.body.style.overflow = "hidden";
     return () => {
@@ -165,7 +174,29 @@ export function MobileAppGate() {
       </ul>
 
       <div className="mt-6 w-full max-w-xs space-y-3">
-        {!ios && !installed && (
+        {/* In-app browser escape hatch: no install prompt can ever fire
+            inside WhatsApp/Instagram/etc. — send them to real Chrome
+            (intent URL preserves path + ?ref=) instead of a dead button.
+            iOS has no breakout URL: spell out the manual open-in-Safari. */}
+        {inApp && !ios && (
+          <a
+            href={openInChromeUrl()}
+            className="btn-primary block w-full py-3 text-center text-base"
+          >
+            Open in Chrome to download
+          </a>
+        )}
+        {inApp && ios && (
+          <div className="rounded-2xl border border-accent/40 bg-accent-tint p-4 text-left text-sm leading-relaxed text-ink">
+            <p className="font-semibold text-accent">You&apos;re in an in-app browser</p>
+            <p className="mt-1 text-ink-soft">
+              Tap <span className="font-semibold text-ink">···</span> (top
+              right) → <span className="font-semibold text-ink">Open in Safari</span>,
+              then download from there.
+            </p>
+          </div>
+        )}
+        {!ios && !installed && !inApp && (
           <button
             type="button"
             onClick={install}

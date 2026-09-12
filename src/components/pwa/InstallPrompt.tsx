@@ -75,6 +75,44 @@ export async function promptInstall(): Promise<"accepted" | "dismissed" | null> 
 
 export { isStandalone, isIos };
 
+/** In-app browsers (WhatsApp, Instagram, Facebook, TikTok, …) render pages
+ *  in a crippled WebView: no install prompt can EVER fire there, and most
+ *  have no "install" menu either. The only fix is leaving for a real
+ *  browser — detect it so surfaces can offer the escape hatch instead of
+ *  a dead button. */
+export function isInAppBrowser(): boolean {
+  if (typeof window === "undefined" || typeof navigator === "undefined") {
+    return false;
+  }
+  const ua = window.navigator.userAgent || "";
+  // App markers first (some embed full Chrome UAs alongside these).
+  if (/WhatsApp|FBAN|FBAV|FB_IAB|Instagram|Twitter|LinkedIn|Snapchat|TikTok|Pinterest|Line\/|Viber|Telegram/i.test(ua)) {
+    return true;
+  }
+  // Generic Android WebView (Chrome without the browser chrome): version
+  // token + `wv` marker, and no `Chrome/... Safari` full-browser tail…
+  // in practice `; wv)` is the reliable signal.
+  if (/; wv\)/i.test(ua)) return true;
+  return false;
+}
+
+/** Android intent URL that breaks out of a WebView into real Chrome,
+ *  preserving path + query (including ?ref= attribution). No-op shape on
+ *  desktop — callers only render this for in-app Android. */
+export function openInChromeUrl(): string {
+  const host = "snivat.vercel.app";
+  const path =
+    typeof window !== "undefined"
+      ? window.location.pathname + window.location.search
+      : "/auth/signin?mode=create";
+  const https = `https://${host}${path}`;
+  return (
+    `intent://${host}${path}` +
+    `#Intent;scheme=https;package=com.android.chrome` +
+    `;S.browser_fallback_url=${encodeURIComponent(https)};end`
+  );
+}
+
 // Early capture, attached at bundle-eval time (module scope): Chrome fires
 // beforeinstallprompt ONCE per page load, possibly before React hydrates.
 // A listener added in useEffect can miss it forever, leaving every install
@@ -95,6 +133,7 @@ export function InstallPrompt() {
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
   const [iosHint, setIosHint] = useState(false);
   const [visible, setVisible] = useState(false);
+  const [manual, setManual] = useState(false);
 
   useEffect(() => {
     let dismissed = false;
@@ -127,7 +166,19 @@ export function InstallPrompt() {
   };
 
   const install = async () => {
-    if (!deferred) return;
+    // In-app WebView: no prompt will ever exist — say so instead of dying.
+    try {
+      if (isInAppBrowser()) {
+        setManual(true);
+        return;
+      }
+    } catch {}
+    if (!deferred) {
+      const outcome = await promptInstall();
+      if (outcome === null) setManual(true);
+      else if (outcome === "accepted") dismiss();
+      return;
+    }
     await deferred.prompt();
     const { outcome } = await deferred.userChoice;
     if (outcome === "accepted") dismiss();
@@ -147,7 +198,11 @@ export function InstallPrompt() {
         <div className="min-w-0 flex-1 text-[13px] leading-tight">
           <p className="font-bold text-ink">Install Snívať</p>
           <p className="truncate text-ink-muted">
-            {iosHint ? "Share menu → Add to Home Screen" : "Add to your home screen"}
+            {iosHint
+              ? "Share menu → Add to Home Screen"
+              : manual
+                ? "Browser menu → Install app"
+                : "Add to your home screen"}
           </p>
         </div>
         {!iosHint && (
