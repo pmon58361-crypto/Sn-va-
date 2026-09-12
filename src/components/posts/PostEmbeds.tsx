@@ -26,43 +26,11 @@ export function PostEmbeds({ content }: { content: string }) {
   // YouTube facade state: thumbnail until tap, inline player after.
   const [playingId, setPlayingId] = useState<string | null>(null);
 
-  // X embeds render through widgets.js onto a plain blockquote (the
-  // official path) — NOT the Tweet.html iframe. Reason: the iframe shell
-  // loads but its inner fetch dies under third-party-cookie blocking or
-  // tracker blockers, leaving a dead white box (observed live). The
-  // blockquote is a clean link card on its own; widgets.js only enhances
-  // it when it loads. Same lazy-on-approach pattern as TikTok.
-  useEffect(() => {
-    if (embed?.platform !== "x") return;
-    let cancelled = false;
-    const io = new IntersectionObserver(
-      ([entry]) => {
-        if (!entry?.isIntersecting || cancelled) return;
-        io.disconnect();
-        const src = "https://platform.x.com/widgets.js";
-        if (!document.querySelector<HTMLScriptElement>(`script[src="${src}"]`)) {
-          const s = document.createElement("script");
-          s.src = src;
-          s.async = true;
-          s.charset = "utf-8";
-          document.head.appendChild(s);
-        } else {
-          const w = window as unknown as {
-            twttr?: { widgets?: { load?: () => void } };
-          };
-          w.twttr?.widgets?.load?.();
-        }
-      },
-      { rootMargin: "200px" }
-    );
-    // Observe the embed container when it mounts.
-    const el = document.querySelector("[data-x-embed]");
-    if (el) io.observe(el);
-    return () => {
-      cancelled = true;
-      io.disconnect();
-    };
-  }, [embed?.platform, embed?.id]);
+  // X embeds NEVER use X JavaScript (Tweet.html iframe or widgets.js):
+  // both phone home with trackers, so tracker blockers (Edge's is on by
+  // default) kill them into dead white boxes (observed live). Instead the
+  // XCard below renders the tweet's real words via our own server preview
+  // route — readable inline, nothing to block, tap goes to X for replies.
   useEffect(() => {
     if (embed?.platform !== "tiktok") return;
     const bq = bqRef.current;
@@ -184,31 +152,7 @@ export function PostEmbeds({ content }: { content: string }) {
   }
 
   if (embed.platform === "x") {
-    return (
-      <div data-x-embed className="mx-auto mt-3 w-full" style={{ maxWidth: 550 }}>
-        <blockquote className="twitter-tweet" data-dnt="true" style={{ margin: 0 }}>
-          <a
-            href={embed.srcUrl}
-            rel="nofollow noopener"
-            target="_blank"
-            className="flex items-center gap-3 rounded-xl border border-line bg-surface px-4 py-3.5 transition hover:border-accent"
-          >
-            <span aria-hidden className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-ink text-lg font-black text-bg">
-              𝕏
-            </span>
-            <span className="min-w-0 flex-1 text-left">
-              <span className="block text-sm font-semibold text-ink">
-                View post on X
-              </span>
-              <span className="block truncate text-xs text-ink-muted">
-                {embed.srcUrl.replace(/^https?:\/\/(www\.)?/, "")}
-              </span>
-            </span>
-            <span aria-hidden className="shrink-0 text-ink-faint">↗</span>
-          </a>
-        </blockquote>
-      </div>
-    );
+    return <XCard srcUrl={embed.srcUrl} />;
   }
 
   return (
@@ -224,6 +168,78 @@ export function PostEmbeds({ content }: { content: string }) {
           Watch on TikTok
         </a>
       </blockquote>
+    </div>
+  );
+}
+
+type XPreview = { author: string; authorUrl: string; text: string; url: string };
+
+// X card with server-fetched words: the tweet reads inline (author +
+// text), tap goes to X for replies/video. A failed preview degrades to
+// the plain link card — never a blank hole.
+function XCard({ srcUrl }: { srcUrl: string }) {
+  const [preview, setPreview] = useState<XPreview | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry?.isIntersecting || cancelled) return;
+        io.disconnect();
+        fetch(`/api/embeds/oembed?url=${encodeURIComponent(srcUrl)}`)
+          .then((r) => (r.ok ? r.json() : null))
+          .then((d) => {
+            if (!cancelled && d && d.text) setPreview(d as XPreview);
+          })
+          .catch(() => {});
+      },
+      { rootMargin: "200px" }
+    );
+    const el = document.querySelector(`[data-x-src="${CSS.escape(srcUrl)}"]`);
+    if (el) io.observe(el);
+    return () => {
+      cancelled = true;
+      io.disconnect();
+    };
+  }, [srcUrl]);
+
+  return (
+    <div
+      data-x-src={srcUrl}
+      className="mx-auto mt-3 w-full"
+      style={{ maxWidth: 550 }}
+    >
+      <a
+        href={srcUrl}
+        rel="nofollow noopener"
+        target="_blank"
+        className="block rounded-xl border border-line bg-surface px-4 py-3.5 transition hover:border-accent"
+      >
+        <span className="flex items-center gap-3">
+          <span
+            aria-hidden
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-ink text-lg font-black text-bg"
+          >
+            𝕏
+          </span>
+          <span className="min-w-0 flex-1 text-left">
+            <span className="block truncate text-sm font-semibold text-ink">
+              {preview ? preview.author : "Post on X"}
+            </span>
+            <span className="block truncate text-xs text-ink-muted">
+              {srcUrl.replace(/^https?:\/\/(www\.)?/, "")}
+            </span>
+          </span>
+          <span aria-hidden className="shrink-0 text-ink-faint">
+            ↗
+          </span>
+        </span>
+        {preview && (
+          <span className="mt-2.5 block whitespace-pre-wrap break-words text-sm leading-relaxed text-ink-soft">
+            {preview.text}
+          </span>
+        )}
+      </a>
     </div>
   );
 }
