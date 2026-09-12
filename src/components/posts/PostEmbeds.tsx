@@ -6,9 +6,10 @@ import { extractVideoEmbed } from "@/lib/embeds";
 /**
  * PostEmbeds — renders ONE embed for the first recognized video link in
  * post content. YouTube gets a thumbnail facade (~30KB, zero iframe
- * weight): tap opens the YouTube watch page in a new tab — the goal is
- * sending humans to the channel (discovery there, depth here), not
- * farming embed renders. Instagram/X/TikTok keep their lazy iframes.
+ * weight): tap plays INLINE on Snívať (nocookie embed, autoplay on tap
+ * only) with a small YouTube ↗ side door to the channel. Watching stays
+ * home; discovery still flows outward. Instagram/X/TikTok keep lazy
+ * iframes.
  *
  * House rules honored: never auto-play (no autoplay params anywhere), the
  * TikTok embed script is injected ONLY when the embed scrolls near the
@@ -22,6 +23,8 @@ import { extractVideoEmbed } from "@/lib/embeds";
 export function PostEmbeds({ content }: { content: string }) {
   const embed = extractVideoEmbed(content);
   const bqRef = useRef<HTMLQuoteElement | null>(null);
+  // YouTube facade state: thumbnail until tap, inline player after.
+  const [playingId, setPlayingId] = useState<string | null>(null);
   // X iframe theme follows the app theme (light class = light, else dark).
   const [xTheme] = useState(() =>
     typeof document !== "undefined" &&
@@ -80,14 +83,40 @@ export function PostEmbeds({ content }: { content: string }) {
   if (!embed) return null;
 
   if (embed.platform === "youtube") {
+    if (playingId === embed.id) {
+      return (
+        <div className="relative mt-3">
+          <div
+            className="overflow-hidden rounded-xl border border-line bg-black"
+            style={{ aspectRatio: "16 / 9" }}
+          >
+            <iframe
+              src={`https://www.youtube-nocookie.com/embed/${embed.id}?rel=0&autoplay=1`}
+              title="YouTube video"
+              className="h-full w-full"
+              allow="autoplay; fullscreen; picture-in-picture; encrypted-media; web-share"
+              referrerPolicy="strict-origin-when-cross-origin"
+              allowFullScreen
+            />
+          </div>
+          <a
+            href={`https://www.youtube.com/watch?v=${embed.id}`}
+            target="_blank"
+            rel="nofollow noopener"
+            className="absolute right-2 top-2 rounded-md bg-black/65 px-2 py-0.5 text-[11px] font-semibold text-white transition hover:bg-black/85"
+          >
+            YouTube ↗
+          </a>
+        </div>
+      );
+    }
     return (
-      <a
-        href={`https://www.youtube.com/watch?v=${embed.id}`}
-        target="_blank"
-        rel="nofollow noopener"
-        className="group relative mt-3 block overflow-hidden rounded-xl border border-line bg-black"
+      <button
+        type="button"
+        onClick={() => setPlayingId(embed.id)}
+        className="group relative mt-3 block w-full overflow-hidden rounded-xl border border-line bg-black"
         style={{ aspectRatio: "16 / 9" }}
-        aria-label="Watch on YouTube (opens in a new tab)"
+        aria-label="Play video on Snívať"
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
@@ -102,9 +131,9 @@ export function PostEmbeds({ content }: { content: string }) {
           </span>
         </span>
         <span className="absolute bottom-2 right-2 rounded-md bg-black/65 px-2 py-0.5 text-[11px] font-semibold text-white">
-          YouTube ↗
+          ▶ Watch here
         </span>
-      </a>
+      </button>
     );
   }
 
