@@ -233,13 +233,20 @@ export function GroupChat({
             aria-pressed={anon}
             aria-label={anon ? "Send as yourself" : "Send anonymously"}
             title={anon ? "Anonymous on — tap to reveal yourself" : "Send anonymously"}
-            className={`grid h-10 w-10 shrink-0 touch-manipulation place-items-center rounded-full text-lg leading-none transition disabled:opacity-40 ${
+            className={`grid h-10 w-10 shrink-0 touch-manipulation place-items-center rounded-full leading-none transition disabled:opacity-40 ${
               anon
                 ? "bg-accent-tint text-accent"
                 : "text-ink-muted hover:bg-surface-hover hover:text-ink"
             }`}
           >
-            <span aria-hidden>🎭</span>
+            {/* Domino mask — anonymous sends. Stroked to match the
+                outline-icon set (no emoji). */}
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+              <path d="M3 8c2.5-1.6 5.5-2.4 9-2.4S18.5 6.4 21 8c.6 2.8-.3 5.6-2.4 7.2-1.5 1.1-3.2 1-4.4-.2-.9-.9-1.4-2-1.7-3.2h-1c-.3 1.2-.8 2.3-1.7 3.2-1.2 1.2-2.9 1.3-4.4.2C3.3 13.6 2.4 10.8 3 8Z" strokeLinejoin="round" />
+              <path d="M2 7.5 1 5.8M22 7.5l1-1.7" strokeLinecap="round" />
+              <ellipse cx="8.6" cy="10.4" rx="1.5" ry="1.1" fill="currentColor" stroke="none" />
+              <ellipse cx="15.4" cy="10.4" rx="1.5" ry="1.1" fill="currentColor" stroke="none" />
+            </svg>
           </button>
           <textarea
             value={draft}

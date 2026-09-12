@@ -9,6 +9,7 @@ import { isFollowing } from "@/lib/social";
 import { absoluteUrl } from "@/lib/og";
 import { Avatar } from "@/components/ui/Avatar";
 import { FollowButton } from "@/components/profile/FollowButton";
+import { FollowLists } from "@/components/profile/FollowLists";
 import {
   MapPinIcon,
   MailIcon,
@@ -282,18 +283,11 @@ export default async function ProfilePage({
                 <b className="font-bold text-ink">{visiblePosts.length}</b>{" "}
                 {visiblePosts.length === 1 ? "post" : "posts"}
               </span>
-              <span className="whitespace-nowrap">
-                <b className="font-bold text-ink">
-                  {user._count.followers}
-                </b>{" "}
-                {user._count.followers === 1 ? "follower" : "followers"}
-              </span>
-              <span className="whitespace-nowrap">
-                <b className="font-bold text-ink">
-                  {user._count.following}
-                </b>{" "}
-                following
-              </span>
+              <FollowLists
+                userId={user.id}
+                followers={user._count.followers}
+                following={user._count.following}
+              />
             </p>
           </div>
         </div>
