@@ -112,10 +112,20 @@ async function verifyCredentials(
           "demo2@snivat.local",
         name: "Demo 2",
       },
+      {
+        expected: process.env.DEMO_CODE_3,
+        email:
+          process.env.DEMO_EMAIL_3?.toLowerCase() ||
+          "verify.1787750016566@snivat.test",
+        name: "Verify Walker",
+      },
     ];
-    // Constant-time compare: the demo code is a bearer secret.
+    // Constant-time compare: the demo code is a bearer secret. Both sides
+    // lowercased — codes are owner-set, and case carries no security.
     const match = demoPaths.find(
-      (p) => !!p.expected?.trim() && constantTimeEqual(code, p.expected.trim())
+      (p) =>
+        !!p.expected?.trim() &&
+        constantTimeEqual(code, p.expected.trim().toLowerCase())
     );
     if (!match) return null;
 
