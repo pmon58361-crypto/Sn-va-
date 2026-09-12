@@ -135,7 +135,7 @@ export default async function SettingsPage() {
               Manage ad campaigns, weekly challenges, and acquisition.
             </p>
           </div>
-          <div className="flex shrink-0 flex-wrap justify-end gap-2">
+          <div className="flex flex-wrap justify-end gap-2">
             <Link href="/admin/challenges" className="btn-outline">
               Challenges →
             </Link>

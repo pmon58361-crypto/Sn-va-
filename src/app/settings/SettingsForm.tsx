@@ -186,7 +186,7 @@ export function SettingsForm({
   return (
     <form onSubmit={onSubmit} className="pb-28">
       {/* ── Tab bar ─────────────────────────────────────────────── */}
-      <div role="tablist" aria-label="Settings sections" className="mb-6 flex gap-1 border-b border-line">
+      <div role="tablist" aria-label="Settings sections" className="mb-6 flex gap-1 overflow-x-auto border-b border-line">
         {TABS.map(({ id, label, icon: Icon }) => {
           const active = tab === id;
           return (
@@ -196,7 +196,7 @@ export function SettingsForm({
               role="tab"
               aria-selected={active}
               onClick={() => setTab(id)}
-              className={`relative flex items-center gap-2 px-4 py-3 text-[15px] transition-colors first:pl-0 ${
+              className={`relative flex shrink-0 items-center gap-2 px-4 py-3 text-[15px] transition-colors first:pl-0 ${
                 active
                   ? "font-semibold text-ink"
                   : "font-medium text-ink-muted hover:text-ink"

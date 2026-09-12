@@ -13,16 +13,16 @@ export function LegalLinks({
       : "text-xs text-ink-faint transition-colors hover:text-accent";
   const sep = variant === "dark" ? "text-white/15" : "text-line-strong";
   return (
-    <nav aria-label="Legal" className={`flex items-center justify-center gap-2 ${cls}`}>
-      <Link href="/terms">Terms</Link>
+    <nav aria-label="Legal" className={`flex items-center justify-center gap-1 ${cls}`}>
+      <Link href="/terms" className="px-1.5 py-2">Terms</Link>
       <span aria-hidden className={sep}>
         ·
       </span>
-      <Link href="/privacy">Privacy</Link>
+      <Link href="/privacy" className="px-1.5 py-2">Privacy</Link>
       <span aria-hidden className={sep}>
         ·
       </span>
-      <Link href="/copyright">Copyright</Link>
+      <Link href="/copyright" className="px-1.5 py-2">Copyright</Link>
     </nav>
   );
 }
