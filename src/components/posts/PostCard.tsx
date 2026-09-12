@@ -100,6 +100,18 @@ export async function PostCard({
                 · <span aria-hidden>👥</span> {post.group.name}
               </span>
             )}
+            {/* Challenge entry chip — same no-nested-link rule as the
+                group chip (this row lives inside the card link): the
+                banner and detail page carry the actual links. */}
+            {post.challenge && (
+              <span
+                className="inline-flex max-w-[180px] items-center gap-0.5 font-medium text-accent"
+                title={`Competing in ${post.challenge.title}`}
+              >
+                · <span aria-hidden>🏆</span>{" "}
+                <span className="truncate">{post.challenge.title}</span>
+              </span>
+            )}
           </div>
         </div>
         <span

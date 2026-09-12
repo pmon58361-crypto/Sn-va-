@@ -25,6 +25,9 @@ export const postInclude = {
     include: { votes: { select: { optionId: true, userId: true } } },
   },
   _count: { select: { comments: true, applications: true, images: true } },
+  // Challenge entry context — powers the entry chip on cards (the loop
+  // made visible: entries read as competing, not ordinary posts).
+  challenge: { select: { id: true, title: true } },
 } as const;
 
 // "From the archives" — one quality COMMUNITY post older than 30 days that
@@ -86,6 +89,7 @@ export type PostWithRelations = Awaited<
   bookmarks?: { userId: string }[];
   feedback?: { value: string }[];
   group?: { slug: string; name: string; visibility: string } | null;
+  challenge?: { id: string; title: string } | null;
 };
 
 export async function getPost(id: string, viewerId?: string) {

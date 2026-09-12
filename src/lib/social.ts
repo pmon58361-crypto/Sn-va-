@@ -68,6 +68,7 @@ export async function getBookmarkedPosts(meId: string) {
           images: { select: { id: true, url: true, alt: true, order: true }, orderBy: { order: "asc" } },
           reactions: { select: { id: true, type: true, userId: true } },
           _count: { select: { comments: true, applications: true, images: true } },
+          challenge: { select: { id: true, title: true } },
         },
       },
     },
