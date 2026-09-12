@@ -166,10 +166,13 @@ async function verifyCredentials(
   // Demo account password check (only credentials-provider users store a password hash
   // by convention — we keep it on a dedicated Account row's token).
   const demoEmail = (process.env.DEMO_EMAIL || "demo@snivat.local").toLowerCase();
-  const demoPass = process.env.DEMO_PASSWORD || "demo1234";
+  // Fail closed: no weak default in production. Without an explicit
+  // DEMO_PASSWORD, the demo-password path rejects everything (access codes
+  // and OAuth are unaffected) instead of falling back to a guessable secret.
+  const demoPass = process.env.DEMO_PASSWORD ?? (process.env.NODE_ENV === "production" ? null : "demo1234");
 
   if (email.toLowerCase() === demoEmail) {
-    if (constantTimeEqual(password, demoPass)) {
+    if (demoPass && constantTimeEqual(password, demoPass)) {
       await reactivateIfNeeded(user.id, user.deactivatedAt);
       return { id: user.id, name: user.name, email: user.email, image: user.image };
     }
@@ -180,16 +183,9 @@ async function verifyCredentials(
   const acc = await prisma.account.findFirst({
     where: { userId: user.id, provider: "credentials" },
   });
-  // TEMP DEBUG (email sign-in incident): reason codes only — no secrets.
-  console.warn(
-    `[auth-debug] email path: userFound=true accFound=${!!acc} hashLen=${
-      acc?.refresh_token ? acc.refresh_token.length : 0
-    } emailLen=${(email || "").length}`
-  );
   if (acc?.refresh_token) {
     // We reuse refresh_token to store the bcrypt hash (cheap reuse, avoids schema churn).
     const ok = await bcrypt.compare(password, acc.refresh_token);
-    console.warn(`[auth-debug] bcrypt.compare result: ${ok}`);
     if (ok) {
       await reactivateIfNeeded(user.id, user.deactivatedAt);
       return { id: user.id, name: user.name, email: user.email, image: user.image };
@@ -355,6 +351,29 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
       }
       return session;
+    },
+  },
+  events: {
+    // OAuth signup attribution: the adapter creates the user with the
+    // schema default ("direct"); stamp the first-touch source here, once.
+    // Cookie-only (no param survives the OAuth round-trip) — the iOS
+    // standalone gap is documented and accepted for OAuth.
+    async createUser({ user }) {
+      if (!user?.id) return;
+      try {
+        const { cookies } = await import("next/headers");
+        const { REF_COOKIE, sanitizeRef } = await import("@/lib/referral");
+        const jar = await cookies();
+        const ref = sanitizeRef(jar.get(REF_COOKIE)?.value);
+        if (ref) {
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { refSource: ref },
+          });
+        }
+      } catch {
+        // Attribution must never fail a signup.
+      }
     },
   },
 });

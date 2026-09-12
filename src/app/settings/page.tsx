@@ -132,15 +132,18 @@ export default async function SettingsPage() {
           <div>
             <h2 className="text-sm font-bold text-ink">Admin</h2>
             <p className="text-xs text-ink-muted">
-              Manage ad campaigns and weekly challenges.
+              Manage ad campaigns, weekly challenges, and acquisition.
             </p>
           </div>
-          <div className="flex shrink-0 gap-2">
+          <div className="flex shrink-0 flex-wrap justify-end gap-2">
             <Link href="/admin/challenges" className="btn-outline">
               Challenges →
             </Link>
             <Link href="/admin/ads" className="btn-outline">
               Manage ads →
+            </Link>
+            <Link href="/admin/referrals" className="btn-outline">
+              Referrals →
             </Link>
           </div>
         </section>

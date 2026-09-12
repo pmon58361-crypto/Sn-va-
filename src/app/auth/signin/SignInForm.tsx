@@ -186,7 +186,13 @@ export function SignInForm({
     setError(null);
     setLoading("create");
     try {
-      const res = await createAccount({ name: suName, email: suEmail, password: suPass });
+      const res = await createAccount({
+        name: suName,
+        email: suEmail,
+        password: suPass,
+        // Explicit ref from the page URL — preferred over the cookie.
+        ref: searchParams.get("ref"),
+      });
       if (!res.ok) {
         setError(res.error || "Couldn't create your account.");
         setLoading(null);

@@ -1,8 +1,10 @@
 "use server";
 
 import bcrypt from "bcryptjs";
+import { cookies, headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { findBlockedTerm } from "@/lib/filter";
+import { REF_COOKIE, resolveRef } from "@/lib/referral";
 
 // ── Open registration (launch-critical) ──────────────────────────────────────
 //
@@ -23,6 +25,37 @@ const attempts =
 
 const BASE_LOCK_MS = 30_000;
 const MAX_LOCK_MS = 15 * 60_000;
+
+// ── Mass-signup friction ─────────────────────────────────────────────────────
+// The per-email lockout above only counts FAILURES — successes are unlimited,
+// so a script could mint accounts all day. This per-IP hourly budget
+// (generous: 30) raises that bar. Best-effort by design: in-memory means
+// per-instance on serverless, and it fails OPEN (email checks still apply)
+// so no legit user is ever locked out by it.
+const ipCreations =
+  ((globalThis as unknown as { __snivatSignupIp?: Map<string, number[]> })
+    .__snivatSignupIp ??= new Map<string, number[]>());
+
+const IP_WINDOW_MS = 60 * 60_000;
+const IP_MAX = 30;
+
+async function ipOverLimit(): Promise<boolean> {
+  try {
+    const h = await headers();
+    const fwd = h.get("x-forwarded-for") || "";
+    const ip = fwd.split(",")[0].trim() || (h.get("x-real-ip") || "").trim();
+    if (!ip) return false;
+    const now = Date.now();
+    const recent = (ipCreations.get(ip) ?? []).filter((t) => now - t < IP_WINDOW_MS);
+    if (recent.length >= IP_MAX) return true;
+    recent.push(now);
+    ipCreations.set(ip, recent);
+    if (ipCreations.size > 10_000) ipCreations.clear();
+    return false;
+  } catch {
+    return false;
+  }
+}
 
 function isLockedOut(email: string): boolean {
   const rec = attempts.get(email);
@@ -49,6 +82,9 @@ export async function createAccount(input: {
   name: unknown;
   email: unknown;
   password: unknown;
+  /** Explicit ?ref= from the signup page URL — preferred over the cookie
+   *  (covers cookie jars the middleware never saw, e.g. iOS standalone). */
+  ref?: unknown;
 }): Promise<SignupResult> {
   const name = String(input?.name ?? "").trim().slice(0, 60);
   const email = String(input?.email ?? "")
@@ -59,6 +95,12 @@ export async function createAccount(input: {
 
   if (!email || !EMAIL_RE.test(email)) {
     return { ok: false, error: "That email address doesn't look right." };
+  }
+  if (await ipOverLimit()) {
+    return {
+      ok: false,
+      error: "Too many accounts created from your network. Try again later.",
+    };
   }
   if (isLockedOut(email)) {
     return {
@@ -100,6 +142,15 @@ export async function createAccount(input: {
 
   const hash = await bcrypt.hash(password, 10);
 
+  // First-touch attribution, resolved once at creation and never again.
+  let refSource = "direct";
+  try {
+    const jar = await cookies();
+    refSource = resolveRef(input?.ref, jar.get(REF_COOKIE)?.value);
+  } catch {
+    // Cookie jar unreadable — "direct", never a failure.
+  }
+
   try {
     await prisma.user.create({
       data: {
@@ -107,6 +158,7 @@ export async function createAccount(input: {
         name,
         provider: "credentials",
         role: "member",
+        refSource,
         accounts: {
           create: {
             type: "credentials",
