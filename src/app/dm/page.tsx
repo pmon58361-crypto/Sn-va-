@@ -70,7 +70,11 @@ export default async function DmPage({
               ? "Try a shorter name."
               : "Direct messages are private. Start one from a person's profile or from the list below."}
           </p>
-          {!q && (
+          {q ? (
+            <Link href="/dm" className="btn-outline mt-6 inline-block">
+              Clear search
+            </Link>
+          ) : (
             <Link href="/people" className="btn-primary mt-6 inline-block">
               Find people
             </Link>

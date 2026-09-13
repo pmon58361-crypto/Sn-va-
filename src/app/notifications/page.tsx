@@ -85,10 +85,19 @@ export default async function NotificationsPage() {
       {items.length === 0 ? (
         <div className="rounded-2xl border border-line bg-surface px-6 py-14 text-center">
           <p className="text-lg font-semibold">All caught up</p>
-          <p className="mt-1 text-sm text-ink-muted">
+          <p className="mx-auto mt-1 max-w-sm text-sm text-ink-muted">
             Likes, comments, follows, applications and messages will land
-            here.
+            here. New here? Post something or find your people — that&apos;s
+            what fills this inbox.
           </p>
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
+            <Link href="/new" className="btn-primary px-4 py-2 text-sm">
+              Share a post
+            </Link>
+            <Link href="/people" className="btn-outline px-4 py-2 text-sm">
+              Find people
+            </Link>
+          </div>
         </div>
       ) : (
         <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface">

@@ -168,16 +168,51 @@ export default async function CommunityPage({
               }
               description={
                 q
-                  ? "Try a different keyword."
+                  ? `Nothing for “${q}” yet — try a tag below, or be the first to post about it.`
                   : isFollowing
                   ? "Follow people whose work you want to see — try the Who to follow panel."
                   : "This feed is quiet for now. Share something — a win, a question, a work-in-progress."
               }
               action={
-                !q && isFollowing ? (
-                  <Link href="/people" className="btn-primary">
-                    Find people
-                  </Link>
+                q ? (
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="flex flex-wrap justify-center gap-2">
+                      <Link href="/community" className="btn-outline px-4 py-2 text-sm">
+                        Clear search
+                      </Link>
+                      <Link
+                        href={`/new`}
+                        className="btn-primary px-4 py-2 text-sm"
+                      >
+                        Post about “{q.length > 24 ? `${q.slice(0, 24)}…` : q}”
+                      </Link>
+                    </div>
+                    {topTags.length > 0 && (
+                      <div className="flex max-w-sm flex-wrap justify-center gap-1.5">
+                        {topTags.slice(0, 6).map(([t]) => (
+                          <Link
+                            key={t}
+                            href={`/community?${new URLSearchParams({ q: t })}`}
+                            className="badge bg-soft text-ink-muted transition hover:border-accent hover:text-accent"
+                          >
+                            #{t}
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : isFollowing ? (
+                  <div className="flex flex-wrap items-center justify-center gap-3">
+                    <Link href="/people" className="btn-primary px-4 py-2 text-sm">
+                      Find people
+                    </Link>
+                    <Link
+                      href={q ? `/community?${new URLSearchParams({ q })}` : "/community"}
+                      className="text-sm font-semibold text-accent hover:underline"
+                    >
+                      Browse For you instead →
+                    </Link>
+                  </div>
                 ) : !q ? (
                   <Link href="/new" className="btn-primary">
                     Share a post
