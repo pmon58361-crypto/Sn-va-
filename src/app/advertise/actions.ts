@@ -44,8 +44,11 @@ export async function createAdvertiserAd(formData: FormData): Promise<void> {
 
   const me = await prisma.user.findUnique({
     where: { id: meId },
-    select: { name: true },
+    select: { name: true, businessVerifiedAt: true },
   });
+  // Business gate: self-serve ads spend money as a business voice, so the
+  // advertiser must be verified first (admin-created rows bypass this).
+  if (!me?.businessVerifiedAt) redirect("/verify-business?error=ads");
   await prisma.ad.create({
     data: {
       advertiser: me?.name || "Someone",

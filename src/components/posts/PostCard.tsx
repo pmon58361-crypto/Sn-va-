@@ -86,6 +86,14 @@ export async function PostCard({
                 ★ Founding
               </span>
             )}
+            {post.author?.businessVerifiedAt && (
+              <span
+                className="ml-1.5 align-middle badge bg-accent-tint text-[10px] font-semibold uppercase tracking-wide text-accent"
+                title={`Verified business${post.author?.businessName ? ` — ${post.author.businessName}` : ""}`}
+              >
+                ✓ Business
+              </span>
+            )}
           </p>
           <div className="flex flex-wrap items-center gap-x-2 text-xs text-ink-faint">
             <span>{timeAgo(post.createdAt)}</span>

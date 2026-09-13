@@ -258,8 +258,16 @@ export default async function ProfilePage({
                 </>
               )}
             </p>
-            {(founding || streak.current > 0) && (
+            {(founding || streak.current > 0 || user.businessVerifiedAt) && (
               <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                {user.businessVerifiedAt && (
+                  <span
+                    title={`Verified business${user.businessName ? ` — ${user.businessName}` : ""}`}
+                    className="badge bg-accent-tint px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-accent"
+                  >
+                    ✓ {user.businessName || "Business"}
+                  </span>
+                )}
                 {founding && (
                   <span
                     title="Founding Member — first 500 accounts"

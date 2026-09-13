@@ -63,6 +63,8 @@ export async function getBookmarkedPosts(meId: string) {
               image: true,
               location: true,
               createdAt: true,
+              businessName: true,
+              businessVerifiedAt: true,
             },
           },
           images: { select: { id: true, url: true, alt: true, order: true }, orderBy: { order: "asc" } },

@@ -125,6 +125,19 @@ export default async function SettingsPage() {
         <InstallAppButton />
       </section>
 
+      {/* Business verification — badge + jobs/ads unlock. */}
+      <section className="card mt-8 flex items-center justify-between gap-3 px-5 py-4">
+        <div>
+          <h2 className="text-sm font-bold text-ink">Business</h2>
+          <p className="text-xs text-ink-muted">
+            Verify ownership to get the ✓ badge and post jobs + ads.
+          </p>
+        </div>
+        <Link href="/verify-business" className="btn-outline">
+          Verify business →
+        </Link>
+      </section>
+
       {/* Admin-only — ad management moved here from the Moderation header.
           Hidden for every non-admin session. */}
       {session.user.role === "admin" && (
@@ -144,6 +157,9 @@ export default async function SettingsPage() {
             </Link>
             <Link href="/admin/referrals" className="btn-outline">
               Referrals →
+            </Link>
+            <Link href="/admin/business" className="btn-outline">
+              Businesses →
             </Link>
           </div>
         </section>

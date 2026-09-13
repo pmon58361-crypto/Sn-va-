@@ -73,9 +73,17 @@ export default async function AdvertisePage({
         </p>
       )}
 
-      {/* Create — native form, zero client JS */}
+      {/* Create — native form, zero client JS. Gated server-side on a
+          verified business; the form stays visible so the offer reads. */}
       <section className="card mt-6 p-5" aria-label="Create an ad">
-        <h2 className="mb-4 text-sm font-semibold text-ink">New ad</h2>
+        <h2 className="mb-1 text-sm font-semibold text-ink">New ad</h2>
+        <p className="mb-4 text-xs text-ink-muted">
+          Self-serve ads need a{" "}
+          <Link href="/verify-business" className="underline hover:text-ink">
+            verified business
+          </Link>{" "}
+          — one review, then every ad you make skips this step.
+        </p>
         <form action={createAdvertiserAd}>
           <div>
             <label className={labelCls} htmlFor="ad-headline">Headline</label>

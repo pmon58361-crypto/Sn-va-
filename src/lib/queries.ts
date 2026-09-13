@@ -15,7 +15,7 @@ import type { PostCategory } from "@/lib/types";
 // Standard include shape so all post fetches return a consistent object.
 export const postInclude = {
   author: {
-    select: { id: true, name: true, image: true, location: true, createdAt: true },
+    select: { id: true, name: true, image: true, location: true, createdAt: true, businessName: true, businessVerifiedAt: true },
   },
   images: { select: { id: true, url: true, alt: true, order: true }, orderBy: { order: "asc" } },
   reactions: { select: { id: true, type: true, userId: true } },
@@ -82,6 +82,8 @@ export type PostWithRelations = Awaited<
     image: string | null;
     location: string | null;
     createdAt: Date;
+    businessName: string | null;
+    businessVerifiedAt: Date | null;
   } | null;
   images: { id: string; url: string; alt: string | null; order: number }[];
   reactions: { id: string; type: string; userId: string }[];

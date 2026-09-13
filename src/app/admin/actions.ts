@@ -442,6 +442,19 @@ export async function setAdActive(
 export async function approveAd(id: string): Promise<{ ok: boolean; error?: string }> {
   await requireAdmin();
   try {
+    const ad = await prisma.ad.findUnique({
+      where: { id },
+      select: {
+        userId: true,
+        user: { select: { businessVerifiedAt: true } },
+      },
+    });
+    if (!ad) throw new Error("Ad not found");
+    // Self-serve ads (user-owned) need a verified business; admin-created
+    // legacy rows (userId null) serve untouched.
+    if (ad.userId && !ad.user?.businessVerifiedAt) {
+      return { ok: false, error: "Advertiser is not a verified business" };
+    }
     await prisma.ad.update({
       where: { id },
       data: { approved: true, active: true },
@@ -472,6 +485,50 @@ export async function deleteAd(id: string): Promise<{ ok: boolean }> {
   revalidatePath("/admin/ads");
   revalidatePath("/community");
   return { ok: true };
+}
+
+// --- Business verification queue ---
+// Approving stamps the USER (businessName + verifiedAt) — the badge and the
+// jobs/ads gates read those fields, never the claim row, so history stays
+// intact and a later ban/un-verify is one null away.
+
+export async function approveBusinessClaim(form: FormData): Promise<void> {
+  const admin = await requireAdmin();
+  const claimId = String(form.get("claimId") || "");
+  if (!claimId) throw new Error("Missing claim");
+  const claim = await prisma.businessClaim.findUnique({
+    where: { id: claimId },
+    select: { id: true, userId: true, businessName: true, status: true },
+  });
+  if (!claim || claim.status !== "pending") throw new Error("Claim not found");
+  await prisma.$transaction([
+    prisma.businessClaim.update({
+      where: { id: claim.id },
+      data: { status: "approved", reviewerId: admin.id, reviewedAt: new Date() },
+    }),
+    prisma.user.update({
+      where: { id: claim.userId },
+      data: { businessName: claim.businessName, businessVerifiedAt: new Date() },
+    }),
+  ]);
+  revalidatePath("/admin/business");
+  revalidatePath(`/profile/${claim.userId}`);
+}
+
+export async function rejectBusinessClaim(form: FormData): Promise<void> {
+  const admin = await requireAdmin();
+  const claimId = String(form.get("claimId") || "");
+  if (!claimId) throw new Error("Missing claim");
+  const claim = await prisma.businessClaim.findUnique({
+    where: { id: claimId },
+    select: { id: true, userId: true, status: true },
+  });
+  if (!claim || claim.status !== "pending") throw new Error("Claim not found");
+  await prisma.businessClaim.update({
+    where: { id: claim.id },
+    data: { status: "rejected", reviewerId: admin.id, reviewedAt: new Date() },
+  });
+  revalidatePath("/admin/business");
 }
 
 // --- Weekly challenges (community contests) ---

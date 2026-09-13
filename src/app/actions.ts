@@ -107,6 +107,24 @@ export async function savePost(input: PostInput) {
   // Ban-aware: suspended users can't create or edit content.
   const me = await requireActiveUser();
 
+  // Business gate: hiring and offers carry money and trust, so creating
+  // JOB_OFFER / JOB_LISTING posts requires a verified business. Edits to
+  // existing posts stay open (the gate checked at creation).
+  if (
+    !input.id &&
+    (input.category === "JOB_OFFER" || input.category === "JOB_LISTING")
+  ) {
+    const owner = await prisma.user.findUnique({
+      where: { id: me.id },
+      select: { businessVerifiedAt: true },
+    });
+    if (!owner?.businessVerifiedAt) {
+      throw new Error(
+        "Posting jobs requires a verified business — verify at /verify-business"
+      );
+    }
+  }
+
   // Basic validation
   if (!POST_CATEGORIES.includes(input.category)) {
     throw new Error("Invalid category");

@@ -88,6 +88,14 @@ model User {
 
   // Self-serve ads (Phase 3): ads this user created via /advertise.
   adsCreated Ad[]
+
+  // Business verification (gate for JOB_OFFER/JOB_LISTING + ads).
+  // businessName is display-only and set on approval; verifiedAt null =
+  // unverified. Additive-only: both nullable, never backfilled.
+  businessName       String?
+  businessVerifiedAt DateTime?
+  businessClaims   BusinessClaim[] @relation("BusinessClaimant")
+  businessReviews  BusinessClaim[] @relation("BusinessReviewer")
 }
 
 // Discord-style groups: a page with its own post feed. Owner + moderators
@@ -698,5 +706,33 @@ model PollVote {
 
   @@unique([pollId, userId])
   @@index([optionId])
+}
+
+// Business ownership claim. One pending row per user at a time (enforced
+// app-side); history is kept (rejected rows stay for audit, re-applying
+// creates a new row). Approval stamps User.businessVerifiedAt — the badge
+// and the jobs/ads gates read THAT field, never this table, so a later
+// rejection/ban can un-verify without touching history.
+model BusinessClaim {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation("BusinessClaimant", fields: [userId], references: [id], onDelete: Cascade)
+  businessName String
+  // https:// only — validated app-side (same rule as ad targetUrls).
+  website      String?
+  // Proof of ownership: registry entry, official social page, or menu —
+  // anything public an admin can open and match to the claimant.
+  proofUrl     String?
+  // Photo proof: storefront, license, or workspace (Cloudinary URL via
+  // /api/upload, claimed like post images).
+  proofImageUrl String?
+  status       String    @default("pending") // pending | approved | rejected
+  reviewerId   String?
+  reviewer     User?     @relation("BusinessReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+  reviewedAt   DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([status])
+  @@index([userId])
 }
 
