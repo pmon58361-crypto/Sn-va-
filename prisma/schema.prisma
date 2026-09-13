@@ -727,6 +727,8 @@ model BusinessClaim {
   // /api/upload, claimed like post images).
   proofImageUrl String?
   status       String    @default("pending") // pending | approved | rejected
+  // One-line reason shown to the claimant when rejected (null otherwise).
+  rejectReason String?
   reviewerId   String?
   reviewer     User?     @relation("BusinessReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
   reviewedAt   DateTime?

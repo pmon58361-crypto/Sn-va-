@@ -518,6 +518,7 @@ export async function approveBusinessClaim(form: FormData): Promise<void> {
 export async function rejectBusinessClaim(form: FormData): Promise<void> {
   const admin = await requireAdmin();
   const claimId = String(form.get("claimId") || "");
+  const reason = String(form.get("reason") || "").trim().slice(0, 200) || null;
   if (!claimId) throw new Error("Missing claim");
   const claim = await prisma.businessClaim.findUnique({
     where: { id: claimId },
@@ -526,9 +527,28 @@ export async function rejectBusinessClaim(form: FormData): Promise<void> {
   if (!claim || claim.status !== "pending") throw new Error("Claim not found");
   await prisma.businessClaim.update({
     where: { id: claim.id },
-    data: { status: "rejected", reviewerId: admin.id, reviewedAt: new Date() },
+    data: {
+      status: "rejected",
+      rejectReason: reason,
+      reviewerId: admin.id,
+      reviewedAt: new Date(),
+    },
   });
   revalidatePath("/admin/business");
+}
+
+// Safety switch: pull the ✓ badge and re-lock jobs/ads without touching
+// history (the claim rows stay for audit; the user may re-apply).
+export async function revokeBusinessVerification(form: FormData): Promise<void> {
+  const admin = await requireAdmin();
+  const userId = String(form.get("userId") || "");
+  if (!userId) throw new Error("Missing user");
+  await prisma.user.update({
+    where: { id: userId },
+    data: { businessVerifiedAt: null },
+  });
+  revalidatePath("/admin/business");
+  revalidatePath(`/profile/${userId}`);
 }
 
 // --- Weekly challenges (community contests) ---

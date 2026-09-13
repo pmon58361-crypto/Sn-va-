@@ -5,13 +5,17 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireActiveUser } from "@/lib/session";
 import { assertClean } from "@/lib/filter";
+import { claimUploads } from "@/lib/uploads";
 
 // Business ownership claim. Proof bar is deliberately public-evidence:
 // a website, registry entry, official social page, or storefront photo an
 // admin can open and match to the claimant. No DMs, no "trust me".
+// Bare domains are accepted ("example.com" → "https://example.com") —
+// rejecting them burned every tester on the first try.
 function httpsOrNull(value: unknown): string | null {
-  const s = String(value ?? "").trim();
+  let s = String(value ?? "").trim();
   if (!s) return null;
+  if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(s)) s = `https://${s}`;
   let url: URL;
   try {
     url = new URL(s);
@@ -60,6 +64,11 @@ export async function submitBusinessClaim(formData: FormData): Promise<void> {
       proofImageUrl,
     },
   });
+  // Ledger claim (best-effort): proof photos uploaded through /api/upload
+  // would otherwise read as orphans to the future sweeper.
+  if (proofImageUrl) {
+    await claimUploads(me.id, [proofImageUrl], "business");
+  }
   revalidatePath("/verify-business");
   redirect("/verify-business?submitted=1");
 }

@@ -18,7 +18,8 @@ export type UploadPurpose =
   | "group_avatar"
   | "group_cover"
   | "highlight"
-  | "ad";
+  | "ad"
+  | "business";
 
 /** Record one stored asset. Throws on DB failure — upload sites that call
  *  this inline (stories, ads) surface it as an upload error; the proxied

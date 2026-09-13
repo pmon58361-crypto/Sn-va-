@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { submitBusinessClaim } from "./actions";
+import { ProofPhotoPicker } from "./ProofPhotoPicker";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Verify business", robots: { index: false } };
@@ -129,17 +130,10 @@ export default async function VerifyBusinessPage({
             />
           </div>
           <div>
-            <label htmlFor="proofImageUrl" className={labelCls}>
-              Storefront / license photo URL (upload first, paste the link)
+            <label className={labelCls}>
+              Storefront / license photo
             </label>
-            <input
-              id="proofImageUrl"
-              name="proofImageUrl"
-              type="url"
-              inputMode="url"
-              placeholder="https://…"
-              className={inputCls}
-            />
+            <ProofPhotoPicker />
             <p className="mt-1 text-xs text-ink-faint">
               At least one of the three proofs above is required.
             </p>
@@ -153,21 +147,28 @@ export default async function VerifyBusinessPage({
       {claims.length > 0 && (
         <div className="card mt-6 p-5">
           <h2 className="text-sm font-bold text-ink">History</h2>
-          <ul className="mt-2 space-y-1.5 text-sm text-ink-muted">
+          <ul className="mt-2 space-y-2.5 text-sm text-ink-muted">
             {claims.map((c) => (
-              <li key={c.id} className="flex items-center justify-between gap-2">
-                <span className="truncate">{c.businessName}</span>
-                <span
-                  className={`badge shrink-0 text-xs capitalize ${
-                    c.status === "approved"
-                      ? "bg-accent-tint text-accent"
-                      : c.status === "rejected"
-                        ? "bg-warm/15 text-warm"
-                        : "bg-soft text-ink-muted"
-                  }`}
-                >
-                  {c.status}
+              <li key={c.id}>
+                <span className="flex items-center justify-between gap-2">
+                  <span className="truncate">{c.businessName}</span>
+                  <span
+                    className={`badge shrink-0 text-xs capitalize ${
+                      c.status === "approved"
+                        ? "bg-accent-tint text-accent"
+                        : c.status === "rejected"
+                          ? "bg-warm/15 text-warm"
+                          : "bg-soft text-ink-muted"
+                    }`}
+                  >
+                    {c.status}
+                  </span>
                 </span>
+                {c.status === "rejected" && c.rejectReason && (
+                  <span className="mt-0.5 block text-xs text-ink-faint">
+                    Reason: {c.rejectReason}
+                  </span>
+                )}
               </li>
             ))}
           </ul>

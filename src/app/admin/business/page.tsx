@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { approveBusinessClaim, rejectBusinessClaim } from "../actions";
+import { approveBusinessClaim, rejectBusinessClaim, revokeBusinessVerification } from "../actions";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Business claims", robots: { index: false } };
@@ -12,7 +12,7 @@ export default async function AdminBusinessPage() {
   if (!session?.user?.id) redirect("/");
   if (session.user.role !== "admin") redirect("/");
 
-  const [pending, recent] = await Promise.all([
+  const [pending, recent, verified] = await Promise.all([
     prisma.businessClaim.findMany({
       where: { status: "pending" },
       orderBy: { createdAt: "asc" },
@@ -28,6 +28,11 @@ export default async function AdminBusinessPage() {
         user: { select: { id: true, name: true } },
         reviewer: { select: { id: true, name: true } },
       },
+    }),
+    prisma.user.findMany({
+      where: { businessVerifiedAt: { not: null } },
+      orderBy: { businessVerifiedAt: "desc" },
+      select: { id: true, name: true, businessName: true, businessVerifiedAt: true },
     }),
   ]);
 
@@ -103,15 +108,21 @@ export default async function AdminBusinessPage() {
                 </li>
               )}
             </ul>
-            <div className="mt-4 flex gap-2">
+            <div className="mt-4 flex flex-wrap items-center gap-2">
               <form action={approveBusinessClaim}>
                 <input type="hidden" name="claimId" value={c.id} />
                 <button type="submit" className="btn-primary px-4 py-2 text-sm">
                   Approve
                 </button>
               </form>
-              <form action={rejectBusinessClaim}>
+              <form action={rejectBusinessClaim} className="flex flex-1 flex-wrap gap-2">
                 <input type="hidden" name="claimId" value={c.id} />
+                <input
+                  name="reason"
+                  maxLength={200}
+                  placeholder="Reason (shown to claimant)…"
+                  className="input min-w-0 flex-1"
+                />
                 <button type="submit" className="btn-outline px-4 py-2 text-sm">
                   Reject
                 </button>
@@ -120,6 +131,38 @@ export default async function AdminBusinessPage() {
           </div>
         ))}
       </div>
+
+      {verified.length > 0 && (
+        <div className="card mt-8 p-5">
+          <h2 className="text-sm font-bold text-ink">
+            Verified businesses ({verified.length})
+          </h2>
+          <ul className="mt-2 space-y-2">
+            {verified.map((v) => (
+              <li
+                key={v.id}
+                className="flex flex-wrap items-center justify-between gap-2 text-sm"
+              >
+                <span className="min-w-0">
+                  <span className="font-semibold text-ink">
+                    ✓ {v.businessName || "Business"}
+                  </span>{" "}
+                  <span className="text-ink-muted">
+                    · {v.name || "Anonymous"} · since{" "}
+                    {v.businessVerifiedAt?.toLocaleDateString()}
+                  </span>
+                </span>
+                <form action={revokeBusinessVerification}>
+                  <input type="hidden" name="userId" value={v.id} />
+                  <button type="submit" className="btn-outline px-3 py-1 text-xs">
+                    Revoke
+                  </button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {recent.length > 0 && (
         <div className="card mt-8 p-5">

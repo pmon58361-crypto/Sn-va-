@@ -17,6 +17,7 @@ const PURPOSE_FOLDERS: Record<string, string> = {
   group_cover: "snivat/groups",
   highlight: "snivat/highlights",
   ad: "snivat/ads",
+  business: "snivat/business",
 };
 
 function folderFor(purpose: string): string {
