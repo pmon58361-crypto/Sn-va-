@@ -21,6 +21,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid subscription" }, { status: 400 });
   }
   try {
+    // Endpoint URLs are bearer-adjacent: whoever holds one could otherwise
+    // reassign a victim's subscription to themselves (silencing the victim
+    // and receiving their pushes). Only the owning user may refresh it.
+    const existing = await prisma.pushSubscription.findUnique({
+      where: { endpoint },
+      select: { userId: true },
+    });
+    if (existing && existing.userId !== session.user.id) {
+      return NextResponse.json({ error: "Invalid subscription" }, { status: 409 });
+    }
     await prisma.pushSubscription.upsert({
       where: { endpoint },
       update: { userId: session.user.id, p256dh, auth: authKey },

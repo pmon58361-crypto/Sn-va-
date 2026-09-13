@@ -42,13 +42,32 @@ export function accessCodeFor(account: "demo" | "demo2") {
   return code;
 }
 
-export async function signInWithAccessCode(page: Page, account: "demo" | "demo2") {
-  await page.goto(`${BASE_URL}/auth/signin`);
-  await page.getByPlaceholder("access code").fill(accessCodeFor(account));
-  await page.getByRole("button", { name: /Enter with access code/ }).click();
-  // Hosted-DB stalls make the credentials callback take tens of seconds;
-  // 15s flaked constantly under load.
-  await expect(page).toHaveURL(/\/community/, { timeout: 60_000 });
+export async function signInWithAccessCode(page: Page, account: "demo" | "demo2", attempts = 3) {
+  const code = accessCodeFor(account);
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    await page.goto(`${BASE_URL}/auth/signin`, { waitUntil: "networkidle" });
+    const input = page.getByPlaceholder("access code");
+    await expect(input).toBeVisible({ timeout: 30_000 });
+    await input.fill(code);
+    // The form is uncontrolled with a React onSubmit (see SignInForm
+    // handleAccessCode). A submit click that lands before hydration fires a
+    // native GET to ?code=… that bypasses the handler entirely — a dead end
+    // the old code mistook for an auth failure. Let hydration settle, assert
+    // the value stuck, then submit; retry the whole submit on failure.
+    await page.waitForLoadState("networkidle").catch(() => undefined);
+    expect(await input.inputValue()).toBe(code);
+    await page.getByRole("button", { name: /Enter with access code/ }).click();
+    try {
+      // Hosted-DB stalls make the credentials callback take tens of seconds;
+      // 15s flaked constantly under load.
+      await expect(page).toHaveURL(/\/community/, { timeout: 60_000 });
+      return;
+    } catch (err) {
+      lastError = err;
+    }
+  }
+  throw lastError;
 }
 
 export async function signedInPage(browser: Browser, account: "demo" | "demo2") {

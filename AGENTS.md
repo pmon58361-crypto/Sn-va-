@@ -9,7 +9,7 @@ How to build Snívať. For the product vision, brand, and audience, see `PRODUCT
 - Next.js 15 with App Router
 - React 18.3.1 (**NOT React 19** — do not use React 19-only APIs like `useActionState`)
 - TypeScript
-- Prisma with SQLite
+- Prisma with PostgreSQL (Neon serverless in prod, SQLite only for local fallback)
 - NextAuth v5 (beta)
 - Tailwind CSS
 - Server Actions
@@ -105,9 +105,44 @@ Remember: the goal isn't to build another social network. The goal is to build a
 
 ---
 
-## Current State
+## Current State (2026-09-13 — live on snivat.vercel.app)
 
-- Project builds and compiles cleanly
-- Dev server runs on localhost:3000
-- Posting, photo upload, auth, community, jobs, applications, settings, and profile pages all exist
-- **Demo login:** `demo@snivat.local` / `demo1234` (ensure database is seeded)
+- Project builds and compiles cleanly (`tsc` clean), dev server on `:3000` (No.2 owns rebuilds)
+- Stack live in prod: Next.js 15 + React 18.3.1 + Prisma + PostgreSQL (Neon) + Auth.js v5 + Tailwind + Cloudinary
+- Core shipped: community/jobs feeds (ranked + Following), stories, DMs, groups, profiles/highlights, bookmarks, reactions, comments, dashboard, moderation/bans, PWA (offline + push infra)
+- Recent ships (since 2026-09-04): direct-to-Cloudinary signed uploads + client compression + ledger (`Upload` + Post.kind before_after + PostImage.alt), before/after drag slider + composer + profile badge, challenge entry chip on cards, referral attribution (`User.refSource` + first-touch cookie + `/admin/referrals` funnel), dynamic OG share cards (split RAW/FINAL, `revalidate:3600`) + metadata, YouTube thumbnail facade → inline chromeless playback (shorts portrait), X server-fetched preview (Edge-proof) + in-app mini page + searchable link-preview (`linkPreviewText` indexed by search), Facebook outbound cards, anonymous group chat (`Message.anonymous` + 🎭 mask → domino SVG), followers/following modal lists, discovery hygiene (test accounts `@snivat.local/.test` hidden from Top voices/Who to follow/People), settings phone overflow fix, Terms/Privacy second pass (AI-media, jobs shield, badges, storage) + signup checkbox
+- Mobile wall **lifted** on 2026-09-12 (owner call) — install is now banner-only until proven on real devices
+
+## What's Left — Next Up (single source of truth, replaces PENDING.md for recent work)
+
+**Needs owner action (2-min each, blocking):**
+- [ ] Paste Stripe test keys (`sk_test_...` + `whsec_...`) → run $1 end-to-end (Stripe Checkout + webhook dormant until keys exist)
+- [ ] Set `DEMO_CODE_3` in Vercel env for `verify.1787750016566@snivat.test` (slot shipped in `auth.ts`, redeploy to activate)
+- [ ] `CRON_SECRET` on Vercel → activates nightly story-asset purge (code exists, env-gated)
+- [ ] `DISCORD_WEBHOOK_URL` → GitHub secret → activates daily bridge bot
+- [ ] Lawyer review before charging real money (Terms/Privacy are truthful baseline for founding-500, not legal guarantee)
+
+**Queued builds (small, ordered):**
+- [ ] Business proof / verification badge — **spec needed**: user asked "if someone owns business how would they even put a proof" → design: submit proof (domain, registration, or social) → admin verify → badge on profile/posts. Not started.
+- [ ] "How I made this" process attachments for before/after posts — knowledge-utility loop (seeds, workflow, steps). Specced as next cycle, deferred.
+- [ ] Upload orphan sweeper cron — ledger write-path live, deletion cron explicitly deferred to ~1k users (server storage leak is slow)
+- [ ] Feed slider sensors (`first_drag_ms`, `return_count`, `rest_position`, `drag_but_no_reaction`) — taxonomy filed in `artifacts/feed-sensors-and-principles`, instrumentation deferred until hundreds of users (volunteered signals, not passive dwell)
+
+**Polish / backlog (still valid from PENDING.md):**
+- [ ] Music chips UI on notes (`Story.musicUrl` + `musicTitle` columns live, UI not wired)
+- [ ] Groups directory rich cards upgrade (needs `Group.category` filter chips)
+- [ ] Challenge feed ranking boost / ending-soon surfacing (chip live, ranker boost deferred)
+- [ ] Password-reset email delivery to all users (works for owner email; needs $10/yr domain for deliverability)
+- [ ] Weekly community recap email
+- [ ] Push notifications end-to-end verification on real device (infra exists, lock-screen delivery proven once, device-specific flakiness remains)
+- [ ] Stripe self-serve funding polish + ad viewability beacon wiring (Phase 1-3 shipped per `artifacts/ads-monetization-audit`)
+
+**Deliberately deferred (don't build without asking):**
+- Hosted video uploads (Cloudinary video $), live video/audio calls (moderation), typing indicator (presence infra), GIF picker (Tenor), Groups v2 channels/roles, VS Code presence extension, brand-sponsored Quests
+
+**Demo / test accounts in prod (5):**
+- `demo@snivat.local` / `snivat-dream` (Demo User, admin) — `DEMO_CODE`
+- `demo2@snivat.local` / `733c...` (Demo User 2, admin) — `DEMO_CODE_2`
+- `verify.1787750016566@snivat.test` (Verify Walker, member, test residue) — `DEMO_CODE_3` slot, needs env + temp pw `Walker-Temp-5070`
+- `kinggren8@gmail.com` (Snívať OFFICIAL, admin)
+- `pmon58361@gmail.com` (NAME, admin — you)
