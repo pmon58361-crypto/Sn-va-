@@ -8,7 +8,7 @@ import { cdnUrl } from "@/lib/cdn";
 import { timeAgo } from "@/lib/utils";
 import { Avatar } from "@/components/ui/Avatar";
 import { XIcon } from "@/components/ui/Icons";
-import { MusicChip } from "@/components/stories/MusicChip";
+import { MusicChip, MusicNoteIcon } from "@/components/stories/MusicChip";
 
 export type StoryGroup = {
   author: { id: string; name: string | null; image: string | null };
@@ -269,8 +269,9 @@ function Ring({
     // eslint-disable-next-line @next/next/no-img-element
     return (
       <img
-        src={image}
+        src={cdnUrl(image, 160)}
         alt=""
+        loading="lazy"
         onError={() => setBroken(true)}
         className={`h-20 w-20 rounded-full object-cover p-[3px] ${seen ? "" : "bg-gradient-to-tr from-accent to-like"}`}
       />
@@ -431,8 +432,8 @@ function StoryComposer({ onClose }: { onClose: () => void }) {
 
         {/* Optional attached track — link-out only (no hosting), same allowlist as notes. */}
         <div className="relative mt-2">
-          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm" aria-hidden>
-            🎵
+          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-faint" aria-hidden>
+            <MusicNoteIcon className="h-4 w-4" />
           </span>
           <input
             value={music}
@@ -445,8 +446,8 @@ function StoryComposer({ onClose }: { onClose: () => void }) {
         </div>
         {music.trim() && (
           <div className="relative mt-2">
-            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm" aria-hidden>
-              🎵
+            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-faint" aria-hidden>
+              <MusicNoteIcon className="h-4 w-4" />
             </span>
             <input
               value={musicTitle}
@@ -484,7 +485,6 @@ function StoryViewer({
   onClose: () => void;
 }) {
   const [index, setIndex] = useState(0);
-  const [progress, setProgress] = useState(0);
   const [authorPicBroken, setAuthorPicBroken] = useState(false);
   const item = group.items[index];
   const router = useRouter();
@@ -497,21 +497,15 @@ function StoryViewer({
     viewStory(item.id).catch(() => {});
   }, [item?.id]);
 
-  // Progress timer: 5s per story.
+  // Preload the next photo while this one plays — the 5s auto-advance
+  // never waits on the network.
   useEffect(() => {
-    setProgress(0);
-    const started = Date.now();
-    const iv = setInterval(() => {
-      const pct = Math.min(100, ((Date.now() - started) / 5000) * 100);
-      setProgress(pct);
-      if (pct >= 100) {
-        clearInterval(iv);
-        next();
-      }
-    }, 50);
-    return () => clearInterval(iv);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [index]);
+    const next = group.items[index + 1]?.imageUrl;
+    if (next && typeof window !== "undefined") {
+      const img = new window.Image();
+      img.src = cdnUrl(next, 900);
+    }
+  }, [index, group.items]);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -545,14 +539,16 @@ function StoryViewer({
       aria-modal="true"
       aria-label={`${group.author.name || "Someone"}'s story`}
     >
-      {/* Progress bars */}
+      {/* Progress bars — CSS-driven (story-fill), zero re-renders while
+          playing; the bar remounts per story via key and advances on end. */}
       <div className="flex gap-1 px-3 pt-3">
         {group.items.map((_, i) => (
-          <span key={i} className="h-0.5 flex-1 overflow-hidden rounded-full bg-white/25">
-            <span
-              className="block h-full bg-white transition-[width] duration-75"
-              style={{ width: i < index ? "100%" : i === index ? `${progress}%` : "0%" }}
-            />
+          <span key={`${index}-${i}`} className="h-0.5 flex-1 overflow-hidden rounded-full bg-white/25">
+            {i < index ? (
+              <span className="block h-full w-full bg-white" />
+            ) : i === index ? (
+              <span className="story-fill block h-full bg-white" onAnimationEnd={next} />
+            ) : null}
           </span>
         ))}
       </div>
@@ -563,7 +559,7 @@ function StoryViewer({
           {group.author.image && !authorPicBroken && (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={group.author.image}
+              src={cdnUrl(group.author.image, 96)}
               alt=""
               onError={() => setAuthorPicBroken(true)}
               className="h-8 w-8 rounded-full object-cover"

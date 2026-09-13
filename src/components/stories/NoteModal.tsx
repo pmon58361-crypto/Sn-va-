@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { createStory } from "@/app/stories/actions";
 import { Avatar } from "@/components/ui/Avatar";
+import { MusicChip, MusicNoteIcon } from "@/components/stories/MusicChip";
 
 // Instagram-Notes-style story: a short text bubble over your avatar.
 // Uses the viewer's own accent color so it never clashes with their theme.
@@ -99,8 +100,15 @@ export function NoteModal({
               >
                 {note.trim()}
                 {music.trim() && (
-                  <span className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-white/20 px-2 py-0.5 text-[11px] font-medium">
-                    🎵 Music attached
+                  <span className="mt-1.5 block">
+                    <MusicChip
+                      url={
+                        /^[a-z][a-z0-9+.-]*:\/\//i.test(music.trim())
+                          ? music.trim()
+                          : `https://${music.trim()}`
+                      }
+                      title={musicTitle.trim() || null}
+                    />
                   </span>
                 )}
               </div>
@@ -133,8 +141,8 @@ export function NoteModal({
 
         {/* Optional attached track — link-out only (no hosting). */}
         <div className="relative mt-2">
-          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm" aria-hidden>
-            🎵
+          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-faint" aria-hidden>
+            <MusicNoteIcon className="h-4 w-4" />
           </span>
           <input
             value={music}
@@ -147,8 +155,8 @@ export function NoteModal({
         </div>
         {music.trim() && (
           <div className="relative mt-2">
-            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm" aria-hidden>
-              🎵
+            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-faint" aria-hidden>
+              <MusicNoteIcon className="h-4 w-4" />
             </span>
             <input
               value={musicTitle}

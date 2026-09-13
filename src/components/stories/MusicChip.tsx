@@ -17,6 +17,14 @@ function musicLabel(url: string): string {
   }
 }
 
+export function MusicNoteIcon({ className = "h-3 w-3" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden>
+      <path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z" />
+    </svg>
+  );
+}
+
 export function MusicChip({
   url,
   title,
@@ -38,9 +46,7 @@ export function MusicChip({
       }`}
       aria-label={`Listen to ${label} on ${musicLabel(url)}`}
     >
-      <svg viewBox="0 0 24 24" className={compact ? "h-2.5 w-2.5" : "h-3 w-3"} fill="currentColor" aria-hidden>
-        <path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z" />
-      </svg>
+      <MusicNoteIcon className={compact ? "h-2.5 w-2.5" : "h-3 w-3"} />
       {label}
     </a>
   );

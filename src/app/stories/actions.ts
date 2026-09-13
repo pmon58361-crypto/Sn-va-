@@ -96,23 +96,27 @@ export async function createStory(
   const rawMusic = (form.get("musicUrl") as string | null)?.trim() || null;
   let musicUrl: string | null = null;
   if (rawMusic) {
+    // Bare links accepted ("open.spotify.com/…") — the scheme is implied.
+    const withScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(rawMusic)
+      ? rawMusic
+      : `https://${rawMusic}`;
     let okHost = false;
     try {
-      const u = new URL(rawMusic);
+      const u = new URL(withScheme);
       const host = u.hostname.replace(/^www\./, "");
       okHost =
         u.protocol === "https:" &&
         MUSIC_HOSTS.some((h) => host === h || host.endsWith("." + h));
+      if (okHost) musicUrl = u.toString();
     } catch {
       okHost = false;
     }
-    if (!okHost) {
+    if (!okHost || !musicUrl) {
       return {
         ok: false,
         error: "Music must be a Spotify, YouTube, or Apple Music link",
       };
     }
-    musicUrl = rawMusic;
   }
 
   // Optional real song title — typed by the owner, shown on the chip

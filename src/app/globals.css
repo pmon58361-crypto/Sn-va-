@@ -270,6 +270,18 @@ body {
   .dm-in { animation: none; }
 }
 
+/* Story viewer progress — the compositor advances the bar, React rests.
+   key={index} remounts it per story; onAnimationEnd advances. */
+@keyframes story-fill {
+  from { width: 0%; }
+  to { width: 100%; }
+}
+.story-fill {
+  animation: story-fill 5s linear both;
+}
+/* No reduced-motion override: the fill is a 5s progress timer, not
+   decorative motion — shortening it would auto-skip stories. */
+
 /* Slow float for ambient artwork */
 @keyframes float-slow {
   0%, 100% { transform: translateY(0); }
