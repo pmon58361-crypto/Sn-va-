@@ -13,6 +13,7 @@ import { timeAgo, parseTags } from "@/lib/utils";
 import { CATEGORY_META } from "@/lib/types";
 import { reactionCounts, type PostWithRelations } from "@/lib/queries";
 import { isFoundingMember } from "@/lib/founding";
+import { VerifiedBadge } from "@/components/business/VerifiedBadge";
 import { PinButton } from "@/components/groups/GroupModeration";
 
 function detailPath(category: string, id: string) {
@@ -87,12 +88,7 @@ export async function PostCard({
               </span>
             )}
             {post.author?.businessVerifiedAt && (
-              <span
-                className="ml-1.5 align-middle badge bg-accent-tint text-[10px] font-semibold uppercase tracking-wide text-accent"
-                title={`Verified business${post.author?.businessName ? ` — ${post.author.businessName}` : ""}`}
-              >
-                ✓ Business
-              </span>
+              <VerifiedBadge businessName={post.author?.businessName} />
             )}
           </p>
           <div className="flex flex-wrap items-center gap-x-2 text-xs text-ink-faint">

@@ -10,10 +10,13 @@ export type AdData = {
   targetUrl: string;
 };
 
-// First-party sponsored card. Persistent "Sponsored" label, no tracking of
-// any kind — the click goes through our own redirect route which counts it.
-// If the image fails to load we hide the node and keep headline+advertiser,
-// so the card degrades gracefully instead of showing a broken-image icon.
+// First-party sponsored card. Unmissable on purpose: gold ring + tint wash
+// + solid CTA so paid placement never masquerades as a community post —
+// the persistent "Sponsored" label is the honesty half of the same deal.
+// No tracking of any kind — the click goes through our own redirect route
+// which counts it. If the image fails to load we hide the node and keep
+// headline+advertiser, so the card degrades gracefully instead of showing
+// a broken-image icon.
 //
 // Viewability: once the card holds the viewport for a full second we fire a
 // single beacon at the view route. Attention, not delivery, and unbilled.
@@ -73,15 +76,27 @@ export function AdCard({
       href={`/api/ads/${ad.id}/click`}
       target="_blank"
       rel="nofollow sponsored noopener"
-      className={`group block overflow-hidden rounded-2xl bg-surface sm:card sm:card-hover ${
-        sidebar ? "p-4" : ""
+      aria-label={`Sponsored: ${ad.headline}`}
+      className={`group block overflow-hidden rounded-2xl border-2 border-[var(--accent)] bg-[var(--accent-tint)] ${
+        sidebar ? "p-4" : "sm:card"
       }`}
     >
-      <div className={`flex items-center justify-between ${sidebar ? "mb-2" : "px-4 pt-2.5 sm:px-5"}`}>
-        <span className="badge bg-accent-tint text-[10px] uppercase tracking-wide text-accent">
+      <div className={`flex items-center gap-2 ${sidebar ? "mb-2" : "px-4 pt-3 sm:px-5"}`}>
+        <span
+          aria-hidden
+          className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[var(--accent)] text-[var(--accent-ink)]"
+        >
+          <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="m3 11 18-5v12L3 14v-3z" />
+            <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" />
+          </svg>
+        </span>
+        <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--accent)]">
           Sponsored
         </span>
-        <span className="text-[11px] text-ink-faint">{ad.advertiser}</span>
+        <span className="ml-auto truncate text-[11px] font-medium text-ink-muted">
+          {ad.advertiser}
+        </span>
       </div>
 
       {ad.imageUrl && imgOk && (
@@ -90,29 +105,32 @@ export function AdCard({
           src={ad.imageUrl}
           alt=""
           onError={() => setImgOk(false)}
-          className={`w-full object-cover ${sidebar ? "mt-1 rounded-lg" : "mt-2"}`}
+          className={`w-full object-cover ${sidebar ? "mt-1 rounded-xl border border-line" : "mt-2.5 border-y border-line"}`}
         />
       )}
 
       <p
-        className={`font-semibold leading-snug text-ink transition-colors group-hover:text-accent ${
-          sidebar ? "mt-2 text-sm" : "px-4 pt-2 text-base sm:px-5"
+        className={`font-extrabold leading-tight tracking-tight text-ink ${
+          sidebar ? "mt-2.5 text-[15px]" : "px-4 pt-3 text-lg sm:px-5 sm:text-xl"
         }`}
       >
         {ad.headline}
       </p>
 
-      {!sidebar && (
-        <div className="mt-2.5 px-4 pb-3 sm:px-5">
-          <span className="inline-flex items-center gap-1 text-xs font-medium text-accent">
-            Learn more
-            <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="5" y1="12" x2="19" y2="12" />
-              <polyline points="12 5 19 12 12 19" />
-            </svg>
-          </span>
-        </div>
-      )}
+      <div className={`${sidebar ? "mt-2.5" : "mt-3 px-4 pb-4 sm:px-5"}`}>
+        <span
+          aria-hidden
+          className={`inline-flex items-center gap-1.5 rounded-xl bg-[var(--accent)] font-bold text-[var(--accent-ink)] transition group-hover:bg-[var(--accent-hover)] ${
+            sidebar ? "px-3 py-1.5 text-xs" : "px-4 py-2 text-sm"
+          }`}
+        >
+          Visit
+          <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="7" y1="17" x2="17" y2="7" />
+            <polyline points="7 7 17 7 17 17" />
+          </svg>
+        </span>
+      </div>
     </a>
   );
 }

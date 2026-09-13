@@ -56,6 +56,25 @@ export default async function VerifyBusinessPage({
         registry entry, your official social page, or a storefront photo.
       </p>
 
+      <ol className="mt-5 grid gap-2 sm:grid-cols-3">
+        {[
+          { n: "1", t: "Submit proof", d: "Name + one public link or photo." },
+          { n: "2", t: "Admin review", d: "A human opens every link." },
+          { n: "3", t: "Get the ✓", d: "Badge, jobs and ads unlock." },
+        ].map((s) => (
+          <li
+            key={s.n}
+            className="rounded-2xl border-2 border-[var(--accent)] bg-[var(--accent-tint)] p-4"
+          >
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-[var(--accent)]">
+              Step {s.n}
+            </p>
+            <p className="mt-1 text-sm font-bold text-ink">{s.t}</p>
+            <p className="mt-0.5 text-xs text-ink-muted">{s.d}</p>
+          </li>
+        ))}
+      </ol>
+
       {submitted && (
         <p className="mt-4 rounded-xl border border-accent/40 bg-accent-tint px-4 py-3 text-sm text-accent">
           Claim received — an admin reviews it soon. Posting unlocks on approval.

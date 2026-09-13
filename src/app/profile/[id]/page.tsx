@@ -10,6 +10,7 @@ import { absoluteUrl } from "@/lib/og";
 import { Avatar } from "@/components/ui/Avatar";
 import { FollowButton } from "@/components/profile/FollowButton";
 import { FollowLists } from "@/components/profile/FollowLists";
+import { VerifiedBadge } from "@/components/business/VerifiedBadge";
 import {
   MapPinIcon,
   MailIcon,
@@ -261,12 +262,7 @@ export default async function ProfilePage({
             {(founding || streak.current > 0 || user.businessVerifiedAt) && (
               <div className="mt-2 flex flex-wrap items-center gap-1.5">
                 {user.businessVerifiedAt && (
-                  <span
-                    title={`Verified business${user.businessName ? ` — ${user.businessName}` : ""}`}
-                    className="badge bg-accent-tint px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-accent"
-                  >
-                    ✓ {user.businessName || "Business"}
-                  </span>
+                  <VerifiedBadge businessName={user.businessName} size="md" />
                 )}
                 {founding && (
                   <span
