@@ -819,3 +819,90 @@ export async function getJobsFunnel(meId: string): Promise<FunnelRow[]> {
     };
   });
 }
+
+// -- Proof of work � completed-work trail for profiles -----------------------
+// Everything derived from real rows: accepted applications (hired / won)
+// plus challenge wins under the frozen-like rule (likes cast before endsAt;
+// ties go to the earliest entry). No stored winners, nothing faked.
+
+export type WorkTrail = {
+  jobsHired: number;
+  jobsWon: number;
+  wins: { challengeId: string; challengeTitle: string; postId: string }[];
+};
+
+export async function getWorkTrail(userId: string): Promise<WorkTrail> {
+  const [jobsHired, jobsWon, myEntries] = await Promise.all([
+    prisma.application.count({
+      where: { status: "accepted", post: { authorId: userId } },
+    }),
+    prisma.application.count({
+      where: { status: "accepted", userId },
+    }),
+    prisma.post.findMany({
+      where: { authorId: userId, hidden: false, challengeId: { not: null } },
+      select: {
+        id: true,
+        challengeId: true,
+        challenge: { select: { id: true, title: true, endsAt: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+    }),
+  ]);
+
+  const now = Date.now();
+  const ended = myEntries.filter(
+    (e) => e.challenge?.endsAt && e.challenge.endsAt.getTime() < now
+  );
+  if (ended.length === 0) return { jobsHired, jobsWon, wins: [] };
+
+  const cids = Array.from(new Set(ended.map((e) => e.challengeId as string)));
+  const endsAtById = new Map(
+    ended.map((e) => [e.challengeId as string, e.challenge!.endsAt!.getTime()])
+  );
+  const maxEnd = new Date(Math.max(...endsAtById.values()));
+
+  const entries = await prisma.post.findMany({
+    where: { challengeId: { in: cids }, hidden: false },
+    select: { id: true, challengeId: true, createdAt: true },
+    take: 500,
+  });
+  const entryIds = entries.map((e) => e.id);
+  const likes =
+    entryIds.length > 0
+      ? await prisma.reaction.findMany({
+          where: { type: "like", postId: { in: entryIds }, createdAt: { lte: maxEnd } },
+          select: { postId: true, createdAt: true },
+        })
+      : [];
+
+  const likesByPost = new Map<string, number>();
+  const cidByPost = new Map(entries.map((e) => [e.id, e.challengeId as string]));
+  for (const l of likes) {
+    const end = endsAtById.get(cidByPost.get(l.postId) as string);
+    // Frozen rule: only likes cast before that challenge deadline count.
+    if (end != null && l.createdAt.getTime() <= end) {
+      likesByPost.set(l.postId, (likesByPost.get(l.postId) ?? 0) + 1);
+    }
+  }
+
+  const wins: WorkTrail["wins"] = [];
+  for (const cid of cids) {
+    const pool = entries.filter((e) => e.challengeId === cid);
+    if (pool.length === 0) continue;
+    // Top = most frozen likes; ties go to the earliest entry.
+    let top = pool[0];
+    for (const p of pool) {
+      const a = likesByPost.get(p.id) ?? 0;
+      const b = likesByPost.get(top.id) ?? 0;
+      if (a > b || (a === b && p.createdAt < top.createdAt)) top = p;
+    }
+    const mine = ended.find((e) => e.challengeId === cid);
+    if (mine && top.id === mine.id) {
+      const c = ended.find((e) => e.challengeId === cid)!.challenge!;
+      wins.push({ challengeId: cid, challengeTitle: c.title, postId: top.id });
+    }
+  }
+  return { jobsHired, jobsWon, wins };
+}

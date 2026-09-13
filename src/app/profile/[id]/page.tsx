@@ -23,6 +23,7 @@ import {
 import { CATEGORY_META } from "@/lib/types";
 import { cdnUrl } from "@/lib/cdn";
 import { getStreak } from "@/lib/streak";
+import { getWorkTrail } from "@/lib/queries";
 import { Highlights } from "./Highlights";
 
 export const dynamic = "force-dynamic";
@@ -152,7 +153,7 @@ export default async function ProfilePage({
   }
 
   // Independent reads — single round-trip wave.
-  const [viewerIsFollowing, highlightRows, activeStoryRow, presence, founding] =
+  const [viewerIsFollowing, highlightRows, activeStoryRow, presence, founding, trail] =
     await Promise.all([
       isFollowing(session?.user?.id, user.id),
       prisma.highlight.findMany({
@@ -167,6 +168,7 @@ export default async function ProfilePage({
       }),
       Promise.resolve(getPresence([id])),
       isFoundingMember(user.id, user.createdAt),
+      getWorkTrail(id),
     ]);
   const hasActiveStory = !!activeStoryRow;
   const mePresence = !isOwner ? presence[id] : null;
@@ -370,6 +372,37 @@ export default async function ProfilePage({
                   >
                     {b}
                   </span>
+                ))}
+              </div>
+            )}
+
+            {/* Proof of work — completed jobs + challenge wins, derived
+                from real rows (accepted applications, frozen like counts).
+                Empty = hidden, never "0 jobs" shame. */}
+            {(trail.jobsHired > 0 || trail.jobsWon > 0 || trail.wins.length > 0) && (
+              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-2xl border-2 border-[var(--accent)] bg-[var(--accent-tint)] px-4 py-2.5 text-sm">
+                {trail.jobsHired > 0 && (
+                  <span className="font-semibold text-ink">
+                    Hired {trail.jobsHired}×
+                    <span className="ml-1 font-normal text-ink-muted">
+                      {trail.jobsHired === 1 ? "person" : "people"}
+                    </span>
+                  </span>
+                )}
+                {trail.jobsWon > 0 && (
+                  <span className="font-semibold text-ink">
+                    {trail.jobsWon} {trail.jobsWon === 1 ? "job" : "jobs"} won
+                  </span>
+                )}
+                {trail.wins.map((w) => (
+                  <Link
+                    key={w.challengeId}
+                    href={`/challenges/${w.challengeId}`}
+                    className="font-semibold text-[var(--accent)] hover:underline"
+                    title={`Won “${w.challengeTitle}”`}
+                  >
+                    🏆 {w.challengeTitle.length > 26 ? `${w.challengeTitle.slice(0, 26)}…` : w.challengeTitle}
+                  </Link>
                 ))}
               </div>
             )}
